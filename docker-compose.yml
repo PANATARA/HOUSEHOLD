@@ -13,7 +13,6 @@ services:
         stdin_open: true
         tty: true
         restart: always
-
     postgres_db:
         image: postgres:14
         container_name: postgres_db
@@ -25,6 +24,17 @@ services:
             - pgdata:/var/lib/postgresql/data/
         ports:
             - "5433:5432"
-
+    test_postgres_db:
+        image: postgres:14
+        container_name: test_postgres_db
+        environment:
+            - POSTGRES_DB=test_database
+            - POSTGRES_USER=test_user
+            - POSTGRES_PASSWORD=test_password
+        volumes:
+            - test_pgdata:/var/lib/postgresql/data/
+        ports:
+            - "5431:5432"
 volumes:
     pgdata:
+    test_pgdata:
