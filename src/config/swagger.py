@@ -1,11 +1,11 @@
 
 swagger_ui_settings = {
-    "deepLinking": False,
+    "deepLinking": True,
     "displayOperationId": True,
     "syntaxHighlight.active": True,
     "syntaxHighlight.theme": "arta",
-    "defaultModelsExpandDepth": -1,
-    "docExpansion": "none",
+    "defaultModelsExpandDepth": 1,
+    "docExpansion": "True",
     "displayRequestDuration": True,
     "filter": True,
     "requestSnippetsEnabled": True,

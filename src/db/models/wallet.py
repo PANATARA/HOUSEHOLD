@@ -20,7 +20,6 @@ class Wallet(Base, BaseModel):
         )
     )
     user: Mapped["User"] = relationship("User", back_populates="wallet", uselist=False) # type: ignore
-    transactions: Mapped["Transaction"] = relationship("Transaction", back_populates="wallet") # type: ignore
 
 
     def __repr__(self):
@@ -64,8 +63,8 @@ class Transaction(Base, BaseModel):
             ondelete="SET NULL",
         )
     )
-    from_user: Mapped["User"] = relationship("User", back_populates="expenses", uselist=False) # type: ignore
-    to_user: Mapped["User"] = relationship("User", back_populates="incoming", uselist=False) # type: ignore
+    from_user: Mapped["User"] = relationship("User", back_populates="expenses", uselist=False, foreign_keys=[from_user_id]) # type: ignore
+    to_user: Mapped["User"] = relationship("User", back_populates="incoming", uselist=False, foreign_keys=[to_user_id]) # type: ignore
     product: Mapped["Product"] = relationship("Product", back_populates="transaction", uselist=False) # type: ignore
     chore_log: Mapped["ChoreLog"] = relationship("ChoreLog", back_populates="transaction", uselist=False) # type: ignore
 

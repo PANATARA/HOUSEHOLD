@@ -15,9 +15,9 @@ class TunedModel(BaseModel):
 
 class ShowUser(TunedModel):
     user_id: uuid.UUID
+    username: str
     name: str
     surname: str
-    email: EmailStr
     is_active: bool
 
 
@@ -25,6 +25,7 @@ class UserCreate(BaseModel):
     username: str
     name: str
     surname: str
+    password: str
 
     @field_validator("name")
     def validate_name(cls, value):
@@ -41,3 +42,8 @@ class UserCreate(BaseModel):
                 status_code=422, detail="Surname should contains only letters"
             )
         return value
+    
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str

@@ -34,9 +34,10 @@ class Product(Base, BaseModel):
         )
     )
 
+    transaction: Mapped["Transaction"] = relationship("Transaction", back_populates="product") # type: ignore
     family: Mapped["Family"] = relationship("Family", back_populates="products") # type: ignore
-    seller: Mapped["User"] = relationship("User", back_populates="seller") # type: ignore
-    buyer: Mapped["User"] = relationship("User", back_populates="buyer") # type: ignore
+    seller: Mapped["User"] = relationship("User", back_populates="seller", foreign_keys=[seller_id]) # type: ignore
+    buyer: Mapped["User"] = relationship("User", back_populates="buyer", foreign_keys=[buyer_id]) # type: ignore
 
 
 
