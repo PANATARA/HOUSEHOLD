@@ -1,9 +1,11 @@
 services:
     fastapi:
-        build: .
-        container_name: fastapi
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: web
         volumes:
-            - ./src:/usr/src/app
+            - .:/usr/src/app:cached
         ports:
             - "8000:8000"
         env_file:
@@ -13,9 +15,10 @@ services:
         stdin_open: true
         tty: true
         restart: always
+
     postgres_db:
         image: postgres:14
-        container_name: postgres_db
+        container_name: database
         environment:
             - POSTGRES_DB=${PG_DATABASE}
             - POSTGRES_USER=${PG_USER}
@@ -24,9 +27,10 @@ services:
             - pgdata:/var/lib/postgresql/data/
         ports:
             - "5433:5432"
+
     test_postgres_db:
         image: postgres:14
-        container_name: test_postgres_db
+        container_name: test_database
         environment:
             - POSTGRES_DB=test_database
             - POSTGRES_USER=test_user
@@ -34,7 +38,8 @@ services:
         volumes:
             - test_pgdata:/var/lib/postgresql/data/
         ports:
-            - "5431:5432"
+            - "5431:5430"
+
 volumes:
     pgdata:
     test_pgdata:
