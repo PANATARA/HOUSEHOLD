@@ -12,6 +12,7 @@ services:
             - .env
         depends_on:
             - postgres_db
+            - redis
         stdin_open: true
         tty: true
         restart: always
@@ -39,6 +40,8 @@ services:
             - test_pgdata:/var/lib/postgresql/data/
         ports:
             - "5431:5430"
+    redis:
+        image: "redis:alpine"
 
 volumes:
     pgdata:

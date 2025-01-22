@@ -15,6 +15,7 @@ class User(Base, BaseModel):
     email: Mapped[str | None] = mapped_column(String, unique=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     hashed_password: Mapped[str]
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 
     family_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(
