@@ -1,3 +1,4 @@
+from datetime import datetime
 import re
 import uuid
 from fastapi import HTTPException
@@ -26,6 +27,27 @@ class UserCreate(BaseModel):
     name: str
     surname: str
     password: str
+
+    @field_validator("name")
+    def validate_name(cls, value):
+        if not LETTER_MATCH_PATTERN.match(value):
+            raise HTTPException(
+                status_code=422, detail="Name should contains only letters"
+            )
+        return value
+
+    @field_validator("surname")
+    def validate_surname(cls, value):
+        if not LETTER_MATCH_PATTERN.match(value):
+            raise HTTPException(
+                status_code=422, detail="Surname should contains only letters"
+            )
+        return value
+    
+class UserUpdate(BaseModel):
+    username: str | None = None
+    name: str | None = None
+    surname: str | None = None
 
     @field_validator("name")
     def validate_name(cls, value):

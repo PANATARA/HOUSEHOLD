@@ -20,6 +20,14 @@ class AsyncUserDAL:
         self.db_session.add(new_user)
         await self.db_session.flush()
         return new_user
+    
+    async def update(self, user: User, fields: dict) -> User:
+        for field, value in fields.items():
+            if value is not None:
+                setattr(user, field, value)
+        self.db_session.add(user)
+        await self.db_session.flush()
+        return user
 
     async def get_user_by_id(self, user_id: UUID) -> Union[User, None]:
         query = select(User).where(User.user_id == user_id)

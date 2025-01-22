@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
 
-from api.handlers import user_router
+from api.users.handlers import user_router
 from api.login_handler import login_router
 from config.swagger import swagger_ui_settings
 

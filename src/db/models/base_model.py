@@ -17,6 +17,6 @@ class BaseModel:
         server_default=text("TIMEZONE('utc', now())"),
     )
 	updated_at: Mapped[datetime] = mapped_column(
-        server_default=text("TIMEZONE('utc', now())"),
-        onupdate=datetime.now(timezone.utc),
-    )
+		server_default=text("TIMEZONE('utc', now())"),
+		onupdate=text("TIMEZONE('utc', now())"),
+	)

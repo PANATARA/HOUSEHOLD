@@ -1,10 +1,11 @@
 from fastapi import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.models import ShowUser, UserCreate
+from api.models import ShowUser, UserCreate, UserUpdate
 from db.dals.user import AsyncUserDAL
 from logging import getLogger
 
+from db.models.user import User
 from hashing import Hasher
 
 logger = getLogger(__name__)
@@ -19,6 +20,31 @@ async def _create_new_user(body: UserCreate, async_session: AsyncSession) -> Sho
             name=body.name,
             surname=body.surname,
             hashed_password=Hasher.get_password_hash(body.password)
+        )
+        return ShowUser(
+            user_id=user.id,
+            username=user.username,
+            name=user.name,
+            surname=user.surname,
+            is_active=user.is_active,
+        )
+
+
+async def show_user(user: User) -> ShowUser:
+    return ShowUser(
+        user_id=user.id,
+        username=user.username,
+        name=user.name,
+        surname=user.surname,
+        is_active=user.is_active,
+    )
+
+async def _update_user(user:User, body: UserUpdate, async_session: AsyncSession) -> ShowUser:
+    async with async_session.begin():
+        user_dal = AsyncUserDAL(async_session)
+        user = await user_dal.update(
+            user=user,
+            fields=body.model_dump()
         )
         return ShowUser(
             user_id=user.id,
