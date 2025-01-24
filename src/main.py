@@ -2,9 +2,12 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
 
-from api.users.handlers import user_router
-from api.login_handler import login_router
 from config.swagger import swagger_ui_settings
+
+#import routers
+from api.users.handlers import user_router
+from api.auth.handler import login_router
+from api.families.handlers import families_router
 
 
 # create instance of the app
@@ -17,8 +20,10 @@ app = FastAPI(
 main_api_router = APIRouter()
 
 # set routes to the app instance
-main_api_router.include_router(user_router, prefix="/users", tags=["user"])
-main_api_router.include_router(login_router, prefix="/login", tags=["user"])
+main_api_router.include_router(user_router, prefix="/users", tags=["Users"])
+main_api_router.include_router(login_router, prefix="/login", tags=["Auth"])
+main_api_router.include_router(families_router, prefix="/family", tags=["Family"])
+
 app.include_router(main_api_router)
 
 if __name__ == "__main__":

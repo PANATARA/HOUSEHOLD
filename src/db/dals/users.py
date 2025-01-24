@@ -3,11 +3,15 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from dataclasses import dataclass
 
+from db.models.family import Family
 from db.models.user import User
 from sqlalchemy import select
 
 @dataclass
 class AsyncUserDAL:
+    # AsyncUserRepository:
+    # AsyncUserManager:
+    # UserDataService:
     db_session: AsyncSession
 
     async def create_user(self, username: str, name: str, surname: str, hashed_password:str) -> User:

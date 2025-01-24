@@ -5,7 +5,7 @@ swagger_ui_settings = {
     "syntaxHighlight.active": True,
     "syntaxHighlight.theme": "arta",
     "defaultModelsExpandDepth": 1,
-    "docExpansion": "True",
+    "docExpansion": "list",
     "displayRequestDuration": True,
     "filter": True,
     "requestSnippetsEnabled": True,

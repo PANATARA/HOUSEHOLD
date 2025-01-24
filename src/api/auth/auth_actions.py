@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from config import auth_token
-from db.dals.user import AsyncUserDAL
+from db.dals.users import AsyncUserDAL
 from db.models import User
 from db.session import get_db
 from hashing import Hasher

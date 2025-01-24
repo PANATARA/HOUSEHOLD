@@ -1,6 +1,12 @@
-.git
-__pycache__
+venv/
+.VENV/
+
 *.pyc
 *.pyo
-venv
+__pycache__/
+
 .env
+
+.git
+LICENSE
+README.md

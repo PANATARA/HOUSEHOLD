@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.actions.auth import get_current_user_from_token
+from api.auth.auth_actions import get_current_user_from_token
 from api.users.users_actions import _create_new_user, _update_user, show_user
-from api.models import ShowUser, UserCreate, UserUpdate
+from schemas.users import ShowUser, UserCreate, UserUpdate
 from db.models.user import User
 from db.session import get_db
 from logging import getLogger
@@ -23,12 +23,12 @@ async def create_user(body: UserCreate, db: AsyncSession = Depends(get_db)) -> S
 
 
 @user_router.get("/me", response_model=ShowUser)
-async def me_show(current_user: User = Depends(get_current_user_from_token)) -> ShowUser:
+async def me_user_get(current_user: User = Depends(get_current_user_from_token)) -> ShowUser:
     return await show_user(current_user)
 
 
 @user_router.patch("/", response_model=ShowUser)
-async def me_partial_update(
+async def me__user_partial_update(
     body: UserUpdate, 
     current_user: User = Depends(get_current_user_from_token), 
     db: AsyncSession = Depends(get_db)
@@ -39,3 +39,11 @@ async def me_partial_update(
         body=body, 
         async_session=db
     )
+
+
+@user_router.delete("/")
+async def me_user_delete( 
+    current_user: User = Depends(get_current_user_from_token), 
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    return

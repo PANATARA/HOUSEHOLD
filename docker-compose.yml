@@ -5,7 +5,9 @@ services:
             dockerfile: Dockerfile
         container_name: web
         volumes:
-            - .:/usr/src/app:cached
+            - ./src:/usr/src/app/src:cached
+            - ./requirements.txt:/usr/src/app/requirements.txt:cached
+            - ./alembic.ini:/usr/src/app/alembic.ini:cached
         ports:
             - "8000:8000"
         env_file:
