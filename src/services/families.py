@@ -54,6 +54,9 @@ class AddUserToFamilyService(BaseService):
         user_dal = AsyncUserDAL(self.db_session)
         await user_dal.update(self.user, {"family_id" : self.family.id})
 
+    async def _create_user_wallet(self):
+        pass
+
     async def validate(self):
         "Validate the user is not a member of any family"
         if self.user.family_id is not None:

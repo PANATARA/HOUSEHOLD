@@ -1,8 +1,7 @@
-from datetime import datetime
 import re
-import uuid
-from fastapi import HTTPException
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel
+
+from schemas.users import ShowUser
 
 LETTER_MATCH_PATTERN = re.compile(r"^[а-яА-Яa-zA-Z\-]+$")
 
@@ -18,3 +17,11 @@ class FamilyCreate(BaseModel):
 
 class FamilyShow(BaseModel):
     name: str
+
+class FamilyFullShow(BaseModel):
+    name: str
+    members: list[ShowUser]
+
+    class Config:
+        orm_mode = True
+        from_attributes = True 

@@ -15,14 +15,17 @@ class TunedModel(BaseModel):
 
 
 class ShowUser(TunedModel):
-    user_id: uuid.UUID
+    id: uuid.UUID
     username: str
     name: str
     surname: str
     is_active: bool
     is_superuser: bool
     created_at: datetime
-    # updated_at: datetime
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
 
 
 class UserCreate(BaseModel):

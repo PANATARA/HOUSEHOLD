@@ -17,7 +17,7 @@ app = FastAPI(
 )
 
 # create the instance for the routes
-main_api_router = APIRouter()
+main_api_router = APIRouter(prefix="/api")
 
 # set routes to the app instance
 main_api_router.include_router(user_router, prefix="/users", tags=["Users"])

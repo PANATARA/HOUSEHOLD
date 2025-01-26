@@ -3,6 +3,7 @@ from typing import Union
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from dataclasses import dataclass
+from sqlalchemy.orm import joinedload
 
 from db.models.family import Family
 from sqlalchemy import select
@@ -26,3 +27,13 @@ class AsyncFamilyDAL:
         family = result.fetchone()
         if family is not None:
             return family[0]
+        
+    async def get_family_with_related_objects(self, family_id: uuid.UUID) -> Family:
+        result = await self.db_session.execute(
+            select(Family)
+            .where(Family.id == family_id)
+            .options(joinedload(Family.users))
+        )
+        family = result.scalars().first()
+
+        return family
