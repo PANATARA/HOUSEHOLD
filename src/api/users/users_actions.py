@@ -6,7 +6,7 @@ from db.dals.users import AsyncUserDAL
 from logging import getLogger
 
 from db.models.user import User
-from hashing import Hasher
+from core.hashing import Hasher
 
 logger = getLogger(__name__)
 

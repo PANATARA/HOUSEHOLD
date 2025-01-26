@@ -11,7 +11,7 @@ from api.auth.auth_actions import authenticate_user, get_current_user_from_token
 from schemas.auth import Token
 from db.models.user import User
 from db.session import get_db
-from security import create_access_token
+from core.security import create_access_token
 
 login_router = APIRouter()
 

@@ -11,7 +11,7 @@ from config import auth_token
 from db.dals.users import AsyncUserDAL
 from db.models import User
 from db.session import get_db
-from hashing import Hasher
+from core.hashing import Hasher
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login/token")
 
