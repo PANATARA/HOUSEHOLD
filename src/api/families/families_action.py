@@ -4,8 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.dals.families import AsyncFamilyDAL
 from schemas.families import FamilyFullShow, FamilyShow
-from schemas.users import ShowUser, UserCreate, UserUpdate
-from db.dals.users import AsyncUserDAL
+from schemas.users import ShowUser, UserCreate
 from logging import getLogger
 
 from db.models.user import User

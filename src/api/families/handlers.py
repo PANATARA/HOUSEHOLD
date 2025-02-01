@@ -8,6 +8,7 @@ from db.session import get_db
 from logging import getLogger
 
 from schemas.families import FamilyCreate, FamilyFullShow, FamilyShow
+from services.family_chore import get_default_chore_data
 
 logger = getLogger(__name__)
 

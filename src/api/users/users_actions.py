@@ -22,7 +22,7 @@ async def _create_new_user(body: UserCreate, async_session: AsyncSession) -> Sho
             hashed_password=Hasher.get_password_hash(body.password)
         )
         return ShowUser(
-            user_id=user.id,
+            id=user.id,
             username=user.username,
             name=user.name,
             surname=user.surname,

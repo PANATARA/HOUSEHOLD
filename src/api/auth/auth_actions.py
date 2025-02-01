@@ -13,7 +13,7 @@ from db.models import User
 from db.session import get_db
 from core.hashing import Hasher
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login/token")
 
 
 async def _get_user_by_username_for_auth(username: str, session: AsyncSession):
