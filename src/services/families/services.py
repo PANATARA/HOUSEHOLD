@@ -29,7 +29,7 @@ class FamilyCreatorService(BaseService):
         new_family = await family_dal.create_family(self.name)
         return new_family
 
-    async def _add_user_to_family(self, family: Family) -> Family:
+    async def _add_user_to_family(self, family: Family) -> None:
         new_member = AddUserToFamilyService(family, self.user, self.db_session)
         await new_member()
 

@@ -1,5 +1,7 @@
-from fastapi import APIRouter
+from typing import List
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import TypeAdapter, parse_obj_as
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.dals.families import AsyncFamilyDAL
@@ -8,7 +10,8 @@ from schemas.users import ShowUser, UserCreate
 from logging import getLogger
 
 from db.models.user import User
-from services.families import FamilyCreatorService
+from services.families.data import FamilyDataService
+from services.families.services import FamilyCreatorService
 
 logger = getLogger(__name__)
 
@@ -33,11 +36,12 @@ async def _create_family(
         return JSONResponse(status_code=400, content={"detail": str(e)})
 
 
-async def _get_family(user: User, async_session: AsyncSession) -> FamilyShow:
+async def _get_family(user: User, async_session: AsyncSession) -> FamilyShow | HTTPException:
     async with async_session.begin():
-        family_dal = AsyncFamilyDAL(async_session)
-        family = await family_dal.get_family_with_related_objects(user.family_id)
+        data = await FamilyDataService(async_session).get_family_with_users(
+            user.family_id
+        )
+        if data is None:
+            raise HTTPException(status_code=404, detail=f"Family not found")
 
-        members = [ShowUser.model_validate(u) for u in family.users]
-
-        return FamilyFullShow(name=family.name, members=members)
+        return data

@@ -19,9 +19,9 @@ class ShowUser(TunedModel):
     username: str
     name: str
     surname: str
-    is_active: bool
-    is_superuser: bool
-    created_at: datetime
+    # is_active: bool
+    # is_superuser: bool
+    # created_at: datetime
 
     class Config:
         orm_mode = True
