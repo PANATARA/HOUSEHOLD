@@ -34,7 +34,7 @@ class AsyncUserDAL:
         return user
 
     async def get_user_by_id(self, user_id: UUID) -> Union[User, None]:
-        query = select(User).where(User.user_id == user_id)
+        query = select(User).where(User.id == user_id)
         result = await self.db_session.execute(query)
         user = result.fetchone()
         if user is not None:

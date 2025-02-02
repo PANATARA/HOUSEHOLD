@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.auth_actions import get_current_user_from_token
-from api.families.families_action import _create_family, _get_family
+from api.families.families_action import _add_user_to_family, _create_family, _get_family
 from db.models.user import User
 from db.session import get_db
+from schemas.families import FamilyCreate, FamilyFullShow, FamilyShow 
+
+
 from logging import getLogger
-
-from schemas.families import FamilyCreate, FamilyFullShow, FamilyShow
-from services.family_chore import get_default_chore_data
-
 logger = getLogger(__name__)
 
 families_router = APIRouter()
@@ -30,3 +30,12 @@ async def get_my_family(
 ) -> FamilyFullShow:
     
     return await _get_family(current_user, db)
+
+@families_router.post(path="/add/user/{user_id}", summary="...Debug handler...")
+async def add_user_to_family(
+    user_id: str,
+    current_user: User = Depends(get_current_user_from_token), 
+    db: AsyncSession = Depends(get_db)
+) -> FamilyShow:
+    
+    return await _add_user_to_family(current_user.family_id, user_id, db)
