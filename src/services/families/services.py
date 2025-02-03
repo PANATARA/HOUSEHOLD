@@ -8,7 +8,7 @@ from db.dals.users import AsyncUserDAL
 from db.models.family import Family
 from db.models.user import User
 from db.models.wallet import Wallet
-from services.family_chore import FamilyChoreCreatorService, get_default_chore_data
+from services.chores.family_chore import FamilyChoreCreatorService, get_default_chore_data
 from services.wallet import WalletCreatorService
 
 @dataclass
