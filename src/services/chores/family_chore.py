@@ -13,17 +13,23 @@ class FamilyChoreCreatorService(BaseService):
     """Create and return a new Family"""
     family: Family | UUID
     db_session: AsyncSession
-    data: list[ChoreCreate]
+    data: ChoreCreate | list[ChoreCreate]
 
     async def execute(self) -> None:
-        await self._create_chores()
+        return await self._create_chores()
     
     async def _create_chores(self):
         chore_dal = AsyncChoreDAL(self.db_session)
-        return await chore_dal.create_chores_many(
-            self.family.id, 
-            self.data
-        )
+        if isinstance(self.data, list):
+            return await chore_dal.create_chores_many(
+                self.family.id, 
+                self.data
+            )
+        else:
+            return await chore_dal.create_chore(
+                self.family, 
+                self.data
+            )
     
 async def get_default_chore_data() -> list[ChoreCreate]:
     chores = await load_seed_data("seed_data.json")

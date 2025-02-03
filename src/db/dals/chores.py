@@ -4,12 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from dataclasses import dataclass
 
 from db.models.chore import Chore
-from db.models.family import Family
-from db.models.user import User
 from sqlalchemy import select
-
-from db.models.wallet import Wallet
 from schemas.chores import ChoreCreate
+
 
 @dataclass
 class AsyncChoreDAL:
@@ -33,6 +30,19 @@ class AsyncChoreDAL:
 
         return chores
     
+    async def create_chore(self, family_id: UUID, chore_data: ChoreCreate) -> Chore:
+        chore = Chore(
+            name=chore_data.name,
+            description=chore_data.description,
+            icon=chore_data.icon,
+            valuation=chore_data.valuation,
+            family_id=family_id
+        )
+
+        self.db_session.add(chore)
+        await self.db_session.flush()
+        return chore
+
     async def get_family_chores(self, family_id: UUID) -> list[dict]:
         result = await self.db_session.execute(
             select(

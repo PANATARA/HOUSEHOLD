@@ -24,7 +24,7 @@ main_api_router = APIRouter(prefix="/api")
 main_api_router.include_router(user_router, prefix="/users", tags=["Users"])
 main_api_router.include_router(login_router, prefix="/login", tags=["Auth"])
 main_api_router.include_router(families_router, prefix="/family", tags=["Family"])
-main_api_router.include_router(chores_router, prefix="/chores", tags=["Chore"])
+main_api_router.include_router(chores_router, prefix="/family/chores", tags=["Chore"])
 
 app.include_router(main_api_router)
 
