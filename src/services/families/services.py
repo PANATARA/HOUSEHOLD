@@ -9,7 +9,7 @@ from db.models.family import Family
 from db.models.user import User
 from db.models.wallet import Wallet
 from services.chores.family_chore import FamilyChoreCreatorService, get_default_chore_data
-from services.wallet import WalletCreatorService
+from services.wallets.services import WalletCreatorService
 
 @dataclass
 class FamilyCreatorService(BaseService):
@@ -66,3 +66,20 @@ class AddUserToFamilyService(BaseService):
         "Validate the user is not a member of any family"
         if self.user.family_id is not None:
             raise ValueError("The user is already a member of a family")
+
+
+@dataclass
+class LogoutUserFromFamilyService(BaseService):
+    """Logout user from family"""
+    family: Family
+    user: User
+    db_session: AsyncSession
+
+    async def execute(self) -> None:
+        pass
+
+    async def _delete_user_wallet(self) -> None:
+        pass
+
+    async def validate(self):
+       pass

@@ -13,6 +13,10 @@ class WalletCreatorService(BaseService):
     user: User | UUID
     db_session: AsyncSession
 
+    async def __post_init__(self):
+        if isinstance(self.user, User):
+            self.user_id = self.user.id
+
     async def execute(self) -> Wallet:
         wallet = await self._create_wallet()
         return wallet
@@ -23,5 +27,7 @@ class WalletCreatorService(BaseService):
         return wallet
     
     async def validate(self):
-        "If the user already has a wallet -> delete it"
-        return
+        wallet_dal = AsyncWalletDAL(self.db_session)
+        if await wallet_dal.exist_wallet_user(self.user_id):
+            await wallet_dal.delete_wallet_user(self.user_id)
+        

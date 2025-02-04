@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from uuid import UUID
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.auth_actions import get_current_user_from_token
@@ -35,3 +36,13 @@ async def create_family_chore(
         family_id=current_user.family_id,
         async_session=db
     )
+
+# Delete family chore
+@chores_router.delete(path="/{chore_id}", summary="NOT IMPLEMENTED")
+async def delete_family_chore(
+    chore_id: UUID,
+    current_user: User = Depends(get_current_user_from_token), 
+    db: AsyncSession = Depends(get_db)
+) -> Response:
+    
+    return

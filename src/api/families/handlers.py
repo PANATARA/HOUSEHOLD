@@ -14,6 +14,7 @@ logger = getLogger(__name__)
 
 families_router = APIRouter()
 
+# Create a new family
 @families_router.post("", response_model=FamilyShow)
 async def create_family(
     body: FamilyCreate, 
@@ -23,6 +24,7 @@ async def create_family(
     
     return await _create_family(current_user, body, db)
 
+# Get user family
 @families_router.get("", response_model=FamilyFullShow)
 async def get_my_family(
     current_user: User = Depends(get_current_user_from_token), 
@@ -31,6 +33,7 @@ async def get_my_family(
     
     return await _get_family(current_user, db)
 
+# Add user to family
 @families_router.post(path="/add/user/{user_id}", summary="...Debug handler...")
 async def add_user_to_family(
     user_id: str,

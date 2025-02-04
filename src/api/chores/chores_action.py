@@ -1,4 +1,5 @@
 from uuid import UUID
+from fastapi import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from schemas.chores import ChoreCreate, ChoreShow, ChoresResponse
@@ -27,3 +28,8 @@ async def _create_family_chore(body: ChoreCreate, family_id: UUID, async_session
             icon=data.icon,
             valuation=data.valuation
         )
+
+async def _delete_family_chore(chore_id: UUID, family_id: UUID, async_session: AsyncSession) -> Response:
+    async with async_session.begin():
+        
+        return
