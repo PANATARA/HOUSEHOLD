@@ -15,11 +15,13 @@ user_router = APIRouter()
 async def _create_new_user(body: UserCreate, async_session: AsyncSession) -> ShowUser:
     async with async_session.begin():
         user_dal = AsyncUserDAL(async_session)
-        user = await user_dal.create_user(
-            username=body.username,
-            name=body.name,
-            surname=body.surname,
-            hashed_password=Hasher.get_password_hash(body.password)
+        user = await user_dal.create(
+            fields={
+            "username": body.username,
+            "name": body.name,
+            "surname": body.surname,
+            "hashed_password": Hasher.get_password_hash(body.password)
+            }
         )
         return ShowUser(
             id=user.id,
@@ -34,21 +36,19 @@ async def _create_new_user(body: UserCreate, async_session: AsyncSession) -> Sho
 
 async def show_user(user: User) -> ShowUser:
     return ShowUser(
-        user_id=user.id,
+        id=user.id,
         username=user.username,
         name=user.name,
         surname=user.surname,
-        is_active=user.is_active,
     )
 
-async def _update_user(user:User, body: UserUpdate, async_session: AsyncSession) -> ShowUser:
+async def _update_user(user: User, body: UserUpdate, async_session: AsyncSession) -> ShowUser:
     async with async_session.begin():
         user_dal = AsyncUserDAL(async_session)
         user = await user_dal.update(
             user=user,
             fields=body.model_dump()
         )
-        # import pdb; pdb.set_trace()
         return ShowUser(
             user_id=user.id,
             username=user.username,

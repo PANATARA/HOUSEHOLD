@@ -15,7 +15,7 @@ class WalletDataService:
     async def get_user_wallet(self, user_id: UUID) -> ShowWallet:
         """Returns a pydantic model of the user wallet"""
         wallet_dal = AsyncWalletDAL(self.db_session)
-        rows = await wallet_dal.get_wallet_user(user_id)
+        rows = await wallet_dal.get_wallet_by_user_id(user_id)
         
         if rows is None:
             return None
