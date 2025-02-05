@@ -43,6 +43,16 @@ async def delete_family_chore(
     chore_id: UUID,
     current_user: User = Depends(get_current_user_from_token), 
     db: AsyncSession = Depends(get_db)
-) -> Response:
+) -> None:
+    
+    return
+
+# Update family chore
+@chores_router.patch(path="/{chore_id}", summary="NOT IMPLEMENTED")
+async def update_family_chore(
+    chore_id: UUID,
+    current_user: User = Depends(get_current_user_from_token), 
+    db: AsyncSession = Depends(get_db)
+) -> None:
     
     return

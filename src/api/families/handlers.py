@@ -42,3 +42,21 @@ async def add_user_to_family(
 ) -> FamilyShow:
     
     return await _add_user_to_family(current_user.family_id, user_id, db)
+
+# Logout user to family
+@families_router.post(path="/logout", summary="NOT IMPLEMENTED")
+async def add_user_to_family(
+    current_user: User = Depends(get_current_user_from_token), 
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    
+    return
+
+@families_router.post(path="/kick/user/{user_id}", summary="NOT IMPLEMENTED")
+async def kick_user_from_family(
+    user_id: int,
+    current_user: User = Depends(get_current_user_from_token), 
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    
+    return
