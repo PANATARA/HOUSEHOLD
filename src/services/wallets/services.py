@@ -1,4 +1,3 @@
-from uuid import UUID
 from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,12 +9,8 @@ from db.models.wallet import Wallet
 @dataclass
 class WalletCreatorService(BaseService):
     """Create and return a new User's wallet"""
-    user: User | UUID
+    user: User
     db_session: AsyncSession
-
-    async def __post_init__(self):
-        if isinstance(self.user, User):
-            self.user_id = self.user.id
 
     async def execute(self) -> Wallet:
         wallet = await self._create_wallet()
@@ -23,11 +18,11 @@ class WalletCreatorService(BaseService):
     
     async def _create_wallet(self) -> Wallet:
         wallet_dal = AsyncWalletDAL(self.db_session)
-        wallet = await wallet_dal.create_wallet(self.user.id)
+        wallet = await wallet_dal.create({"user_id": self.user.id})
         return wallet
     
     async def validate(self):
         wallet_dal = AsyncWalletDAL(self.db_session)
-        if await wallet_dal.exist_wallet_user(self.user_id):
-            await wallet_dal.delete_wallet_user(self.user_id)
+        if await wallet_dal.exist_wallet_user(self.user.id):
+            await wallet_dal.delete_wallet_user(self.user.id)
         

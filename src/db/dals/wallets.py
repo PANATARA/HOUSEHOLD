@@ -33,3 +33,6 @@ class AsyncWalletDAL(BaseDals):
         query = select(exists().where(Wallet.user_id == user))
         result = await self.db_session.execute(query)
         return result.scalar()
+    
+    async def delete_wallet_user(self, user: UUID) -> None:
+        return

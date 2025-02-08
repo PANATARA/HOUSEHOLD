@@ -35,7 +35,9 @@ class AsyncFamilyDAL(BaseDals):
         return rows
     
     async def get_family_admins(self, family_id: UUID) -> list[UUID] | None:
-        query = select(User.id).where(User.family_id==family_id)
-        query_result = self.db_session.execute(query)
-        rows = query_result.mappings().all()
+        query = select(User.id).where(
+            (User.family_id == family_id) & (User.is_family_admin.is_(True))
+        )
+        query_result = await self.db_session.execute(query)
+        rows = query_result.scalars().all()
         return None if not rows else rows

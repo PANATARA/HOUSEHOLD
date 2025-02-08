@@ -24,6 +24,6 @@ async def create_chore_log(
     
     return await _create_chore_log(
         body=body,
-        family_id=current_user.family_id,
+        user=current_user,
         async_session=db
     )

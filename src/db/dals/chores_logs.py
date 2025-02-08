@@ -2,14 +2,14 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from core.base_dals import BaseDals
-from db.models.chore import Chore, ChoreLogConfirm
+from db.models.chore import Chore, ChoreLog, ChoreLogConfirm
 
 
 @dataclass
 class AsyncChoreLogDAL(BaseDals):
 
     class Meta:
-        model = Chore
+        model = ChoreLog
 
 
 @dataclass

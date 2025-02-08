@@ -26,7 +26,7 @@ class CreateChoreLog(BaseService):
         await self._create_chorelog_confirm(family_admins_ids, chore_log.id)
         return chore_log
 
-    async def _get_status() -> int:
+    async def _get_status(self) -> int:
         return ChoreLogEnum.awaiting_confirmation.value
 
     async def _create_chore_log(self, status: int) -> ChoreLog:
@@ -34,7 +34,7 @@ class CreateChoreLog(BaseService):
         chore_log = await chore_log_dal.create(
             fields={
                 "message": self.message,
-                "completed_by_id": self.user,
+                "completed_by_id": self.user.id,
                 "chore_id": self.chore_id,
                 "status": status,
             }
