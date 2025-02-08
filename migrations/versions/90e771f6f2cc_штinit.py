@@ -1,8 +1,8 @@
-"""comment
+"""штinit
 
-Revision ID: b6d04465b4ec
+Revision ID: 90e771f6f2cc
 Revises: 
-Create Date: 2025-01-20 21:58:59.792728
+Create Date: 2025-02-08 15:24:22.604268
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b6d04465b4ec'
+revision: str = '90e771f6f2cc'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,7 +27,7 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('family_chore',
+    op.create_table('chores',
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('description', sa.String(), nullable=False),
     sa.Column('icon', sa.String(), nullable=False),
@@ -39,34 +39,45 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['family_id'], ['family.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('family_settings',
+    sa.Column('family_id', sa.UUID(), nullable=False),
+    sa.Column('confirm_by_all_admins', sa.Boolean(), nullable=False),
+    sa.Column('icon', sa.String(), nullable=False),
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
+    sa.ForeignKeyConstraint(['family_id'], ['family.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('users',
     sa.Column('username', sa.String(length=60), nullable=False),
     sa.Column('name', sa.String(length=50), nullable=False),
-    sa.Column('surname', sa.String(length=30), nullable=True),
-    sa.Column('email', sa.String(), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('hashed_password', sa.String(), nullable=False),
+    sa.Column('surname', sa.String(length=50), nullable=True),
     sa.Column('family_id', sa.UUID(), nullable=True),
+    sa.Column('is_family_admin', sa.Boolean(), nullable=False),
+    sa.Column('hashed_password', sa.String(), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('is_superuser', sa.Boolean(), nullable=False),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
     sa.ForeignKeyConstraint(['family_id'], ['family.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('email'),
     sa.UniqueConstraint('username')
     )
-    op.create_table('family_chore_log',
-    sa.Column('message', sa.String(), nullable=False),
-    sa.Column('completed_by_id', sa.UUID(), nullable=False),
-    sa.Column('chore_id', sa.UUID(), nullable=False),
+    op.create_table('chores_logs',
+    sa.Column('chore_id', sa.UUID(), nullable=True),
+    sa.Column('completed_by_id', sa.UUID(), nullable=True),
+    sa.Column('status', sa.SmallInteger(), nullable=False),
+    sa.Column('message', sa.String(length=50), nullable=False),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
-    sa.ForeignKeyConstraint(['chore_id'], ['family_chore.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['chore_id'], ['chores.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['completed_by_id'], ['users.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('product',
+    op.create_table('products',
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('description', sa.String(), nullable=False),
     sa.Column('icon', sa.String(), nullable=False),
@@ -83,7 +94,16 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['seller_id'], ['users.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('user_wallet',
+    op.create_table('users_settings',
+    sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('app_theme', sa.String(), nullable=False),
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('wallets',
     sa.Column('balance', sa.DECIMAL(precision=10, scale=2), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('id', sa.UUID(), nullable=False),
@@ -92,9 +112,20 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('wallet_transaction',
+    op.create_table('chores_logs_confirms',
+    sa.Column('chore_log_id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('status', sa.SmallInteger(), nullable=False),
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
+    sa.ForeignKeyConstraint(['chore_log_id'], ['chores_logs.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('wallets_transactions',
     sa.Column('description', sa.String(), nullable=False),
-    sa.Column('transaction_type', sa.Enum('purchase', 'income', 'transfer', name='transactiontype'), nullable=False),
+    sa.Column('transaction_type', sa.SmallInteger(), nullable=False),
     sa.Column('from_user_id', sa.UUID(), nullable=True),
     sa.Column('to_user_id', sa.UUID(), nullable=True),
     sa.Column('product_id', sa.UUID(), nullable=True),
@@ -102,9 +133,9 @@ def upgrade() -> None:
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text("TIMEZONE('utc', now())"), nullable=False),
-    sa.ForeignKeyConstraint(['chore_log_id'], ['family_chore_log.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['chore_log_id'], ['chores_logs.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['from_user_id'], ['users.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['product_id'], ['product.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['to_user_id'], ['users.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -113,11 +144,14 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_table('wallet_transaction')
-    op.drop_table('user_wallet')
-    op.drop_table('product')
-    op.drop_table('family_chore_log')
+    op.drop_table('wallets_transactions')
+    op.drop_table('chores_logs_confirms')
+    op.drop_table('wallets')
+    op.drop_table('users_settings')
+    op.drop_table('products')
+    op.drop_table('chores_logs')
     op.drop_table('users')
-    op.drop_table('family_chore')
+    op.drop_table('family_settings')
+    op.drop_table('chores')
     op.drop_table('family')
     # ### end Alembic commands ###

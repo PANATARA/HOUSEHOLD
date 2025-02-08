@@ -6,6 +6,7 @@ services:
         container_name: web
         volumes:
             - ./src:/usr/src/app/src:cached
+            - ./migrations:/usr/src/app/migrations:cached
             - ./requirements.txt:/usr/src/app/requirements.txt:cached
             - ./alembic.ini:/usr/src/app/alembic.ini:cached
         ports:

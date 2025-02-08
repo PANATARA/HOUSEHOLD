@@ -1,15 +1,15 @@
 import uuid
-from sqlalchemy import DECIMAL, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 import enum
+from sqlalchemy import DECIMAL, ForeignKey, SmallInteger, CheckConstraint
+from sqlalchemy.orm import Mapped, mapped_column
 
 from db.models.base_model import BaseModel
 from db.models.declarative_base import Base
 
 
+
 class Wallet(Base, BaseModel):
-    __tablename__ = "user_wallet"
+    __tablename__ = "wallets"
 
     balance: Mapped[DECIMAL] = mapped_column(DECIMAL(10, 2), default=0.00, nullable=False)
 
@@ -19,24 +19,21 @@ class Wallet(Base, BaseModel):
             ondelete="CASCADE",
         )
     )
-    user: Mapped["User"] = relationship("User", back_populates="wallet", uselist=False) # type: ignore
-
 
     def __repr__(self):
         return super().__repr__()
 
 
-class TransactionType(enum.Enum):
-    purchase = "purchase"
-    income = "income"
-    transfer = "transfer"
-
-
 class Transaction(Base, BaseModel):
-    __tablename__ = "wallet_transaction"
+    __tablename__ = "wallets_transactions"
 
     description: Mapped[str]
-    transaction_type: Mapped[TransactionType]
+    transaction_type:  Mapped[int] = mapped_column(
+        SmallInteger,
+        CheckConstraint("status BETWEEN 1 AND 2"),
+        nullable=False,
+        default=0,
+    )
 
     from_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(
@@ -52,21 +49,17 @@ class Transaction(Base, BaseModel):
     )
     product_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(
-            column="product.id", 
+            column="products.id", 
             ondelete="SET NULL",
         )
     )
 
     chore_log_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(
-            column="family_chore_log.id", 
+            column="chores_logs.id", 
             ondelete="SET NULL",
         )
     )
-    from_user: Mapped["User"] = relationship("User", back_populates="expenses", uselist=False, foreign_keys=[from_user_id]) # type: ignore
-    to_user: Mapped["User"] = relationship("User", back_populates="incoming", uselist=False, foreign_keys=[to_user_id]) # type: ignore
-    product: Mapped["Product"] = relationship("Product", back_populates="transaction", uselist=False) # type: ignore
-    chore_log: Mapped["ChoreLog"] = relationship("ChoreLog", back_populates="transaction", uselist=False) # type: ignore
 
     def __repr__(self):
         return super().__repr__()

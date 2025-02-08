@@ -1,5 +1,4 @@
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
 from dataclasses import dataclass
 
 from core.base_dals import BaseDals

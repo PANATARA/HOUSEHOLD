@@ -1,4 +1,6 @@
-from sqlalchemy.orm import Mapped, relationship
+import uuid
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, ForeignKey
 
 from db.models.base_model import BaseModel
 from db.models.declarative_base import Base
@@ -8,9 +10,22 @@ class Family(Base, BaseModel):
     __tablename__ = "family"
 
     name: Mapped[str]
-    users: Mapped[list["User"]] = relationship("User", back_populates="family") # type: ignore
-    products: Mapped["Product"] = relationship("Product", back_populates="family") # type: ignore
 
     def __repr__(self):
         return super().__repr__()
 
+
+class FamilySettings(Base, BaseModel):
+    __tablename__ = "family_settings"
+
+    family_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(
+            column="family.id",
+            ondelete="CASCADE",
+        )
+    )
+    confirm_by_all_admins: Mapped[bool] = mapped_column(Boolean, default=False)
+    icon: Mapped[str]
+
+    def __repr__(self):
+        return super().__repr__()

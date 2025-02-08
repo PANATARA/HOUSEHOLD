@@ -1,13 +1,13 @@
 import uuid
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from db.models.base_model import BaseModel
 from db.models.declarative_base import Base
 
 
 class Product(Base, BaseModel):
-    __tablename__ = "product"
+    __tablename__ = "products"
 
     name: Mapped[str]
     description: Mapped[str]
@@ -33,13 +33,6 @@ class Product(Base, BaseModel):
             ondelete="SET NULL",
         )
     )
-
-    transaction: Mapped["Transaction"] = relationship("Transaction", back_populates="product") # type: ignore
-    family: Mapped["Family"] = relationship("Family", back_populates="products") # type: ignore
-    seller: Mapped["User"] = relationship("User", back_populates="seller", foreign_keys=[seller_id]) # type: ignore
-    buyer: Mapped["User"] = relationship("User", back_populates="buyer", foreign_keys=[buyer_id]) # type: ignore
-
-
 
     def __repr__(self):
         return super().__repr__()

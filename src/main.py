@@ -9,6 +9,7 @@ from api.users.handlers import user_router
 from api.auth.handler import login_router
 from api.families.handlers import families_router
 from api.chores.handlers import chores_router
+from api.chores_logs.handlers import chores_logs_router
 from api.wallets.handlers import wallet_router
 
 
@@ -26,6 +27,7 @@ main_api_router.include_router(user_router, prefix="/users", tags=["Users"])
 main_api_router.include_router(login_router, prefix="/login", tags=["Auth"])
 main_api_router.include_router(families_router, prefix="/family", tags=["Family"])
 main_api_router.include_router(chores_router, prefix="/family/chores", tags=["Chore"])
+main_api_router.include_router(chores_logs_router, prefix="/family/chores/logs", tags=["Chores Logs"])
 main_api_router.include_router(wallet_router, prefix="/users/wallets", tags=["Wallet"])
 
 app.include_router(main_api_router)

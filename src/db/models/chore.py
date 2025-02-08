@@ -1,49 +1,60 @@
 import uuid
-from sqlalchemy import ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from enum import Enum
+from sqlalchemy import CheckConstraint, ForeignKey, String, SmallInteger
+from sqlalchemy.orm import Mapped, mapped_column
 
 from db.models.base_model import BaseModel
 from db.models.declarative_base import Base
 
 
 class Chore(Base, BaseModel):
-    __tablename__ = "family_chore"
+    __tablename__ = "chores"
 
     name: Mapped[str]
     description: Mapped[str]
     icon: Mapped[str]
     valuation: Mapped[int]
     family_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(
-            column="family.id", 
-            ondelete="CASCADE",
-        )
+        ForeignKey(column="family.id", ondelete="CASCADE")
     )
-    logs: Mapped["ChoreLog"] = relationship("ChoreLog", back_populates="chore")
 
     def __repr__(self):
         return super().__repr__()
-    
+
 
 class ChoreLog(Base, BaseModel):
-    __tablename__ = "family_chore_log"
+    __tablename__ = "chores_logs"
 
-    message: Mapped[str]
-    completed_by_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(
-            column="users.id", 
-            ondelete="SET NULL",
-        )
+    chore_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(column="chores.id", ondelete="SET NULL")
     )
-    chore_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(
-            column="family_chore.id", 
-            ondelete="CASCADE",
-        )
+    completed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(column="users.id", ondelete="SET NULL")
     )
-    chore: Mapped["Chore"] = relationship("Chore", back_populates="logs")
-    transaction: Mapped["Transaction"] = relationship("Transaction", back_populates="chore_log") # type: ignore
-    completed_by: Mapped["User"] = relationship("User", back_populates="chore_logs")  # type: ignore
-    
+    status: Mapped[int] = mapped_column(
+        SmallInteger,
+        CheckConstraint("status BETWEEN 0 AND 2"),
+        nullable=False,
+        default=0,
+    )
+    message: Mapped[str] = mapped_column(String(50))
+
     def __repr__(self):
         return super().__repr__()
+
+
+class ChoreLogConfirm(Base, BaseModel):
+    __tablename__ = "chores_logs_confirms"
+
+    chore_log_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(column="chores_logs.id", ondelete="CASCADE")
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(column="users.id", ondelete="CASCADE")
+    )
+    status: Mapped[int] = mapped_column(
+        SmallInteger,
+        CheckConstraint("status BETWEEN 0 AND 2"),
+        nullable=False,
+        default=0,
+    )
