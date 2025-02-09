@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from dataclasses import dataclass
 
 from core.base_dals import BaseDals
-from db.models.user import User
+from db.models.user import User, UserFamilyPermissions, UserSettings
 from sqlalchemy import select
 
 @dataclass
@@ -19,3 +19,19 @@ class AsyncUserDAL(BaseDals):
         user = result.fetchone()
         if user is not None:
             return user[0]
+
+
+@dataclass
+class AsyncUserSettingsDAL(BaseDals):
+    db_session: AsyncSession
+
+    class Meta:
+        model = UserSettings
+
+
+@dataclass
+class AsyncUserFamilyPermissionsDAL(BaseDals):
+    db_session: AsyncSession
+
+    class Meta:
+        model = UserFamilyPermissions

@@ -14,3 +14,8 @@ class ChoreLogShow(BaseModel):
     chore: ChoreShow
     completed_by: ShowUser
     status: str
+
+
+class ChoreLogConfirm(BaseModel):
+    message: str
+    status: int

@@ -70,3 +70,13 @@ class UserUpdate(BaseModel):
                 status_code=422, detail="Surname should contains only letters"
             )
         return value
+    
+
+class UserFamilyPermissionModel(BaseModel):
+    should_confirm_chorelog: bool
+    should_confirm_creating_chore: bool
+    can_create_chore: bool
+    can_change_family_name: bool
+    can_kick_user: bool
+    can_invite_users: bool
+    can_promote_user: bool

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,8 +41,14 @@ async def add_user_to_family(
     current_user: User = Depends(get_current_user_from_token), 
     db: AsyncSession = Depends(get_db)
 ) -> FamilyShow:
+    try:
+        return await _add_user_to_family(current_user.family_id, user_id, db)
     
-    return await _add_user_to_family(current_user.family_id, user_id, db)
+    except ValueError:
+        return JSONResponse(
+            content={"message": "The user is already a member of a family"},
+            status_code=400,
+        )
 
 # Logout user to family
 @families_router.post(path="/logout", summary="NOT IMPLEMENTED")

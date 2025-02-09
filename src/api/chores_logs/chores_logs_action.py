@@ -25,3 +25,11 @@ async def _create_chore_log(
         return Response(
             status_code=204,
         )
+
+async def _confirm_chore_log(
+    chorelog_id, body: ChoreLogCreate, user: User, async_session: AsyncSession
+) -> Response:
+    async with async_session.begin():
+        return Response(
+            status_code=204,
+        )

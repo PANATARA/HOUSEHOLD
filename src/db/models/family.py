@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Boolean, ForeignKey
+from sqlalchemy import Boolean, ForeignKey, String
 
 from db.models.base_model import BaseModel
 from db.models.declarative_base import Base
@@ -25,7 +25,7 @@ class FamilySettings(Base, BaseModel):
         )
     )
     confirm_by_all_admins: Mapped[bool] = mapped_column(Boolean, default=False)
-    icon: Mapped[str]
+    icon: Mapped[str]  = mapped_column(String, default="DefaultIcon")
 
     def __repr__(self):
         return super().__repr__()

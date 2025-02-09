@@ -6,7 +6,7 @@ from db.dals.users import AsyncUserDAL
 from logging import getLogger
 
 from db.models.user import User
-from core.hashing import Hasher
+from services.users.services import UserCreatorService
 
 logger = getLogger(__name__)
 
@@ -14,23 +14,19 @@ user_router = APIRouter()
 
 async def _create_new_user(body: UserCreate, async_session: AsyncSession) -> ShowUser:
     async with async_session.begin():
-        user_dal = AsyncUserDAL(async_session)
-        user = await user_dal.create(
-            fields={
-            "username": body.username,
-            "name": body.name,
-            "surname": body.surname,
-            "hashed_password": Hasher.get_password_hash(body.password)
-            }
+        service = UserCreatorService(
+            username = body.username,
+            name = body.name,
+            surname = body.surname,
+            password = body.password,
+            db_session=async_session,
         )
+        user = await service()
         return ShowUser(
             id=user.id,
             username=user.username,
             name=user.name,
             surname=user.surname,
-            is_active=user.is_active,
-            is_superuser=user.is_superuser,
-            created_at=user.created_at,
         )
 
 

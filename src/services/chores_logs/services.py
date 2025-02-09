@@ -89,3 +89,7 @@ class CancellChoreLog(BaseService):
 
     async def validate(self):
         return
+
+
+async def set_status_confirm_chorelog(chorelog_confirm: UUID, message: str, status: int):
+    pass

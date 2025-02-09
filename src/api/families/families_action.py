@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core import constants
 from db.dals.families import AsyncFamilyDAL
 from db.dals.users import AsyncUserDAL
 from schemas.families import FamilyShow
@@ -47,11 +48,16 @@ async def _get_family(user: User, async_session: AsyncSession) -> FamilyShow | H
 
 async def _add_user_to_family(family_id, user_id: User, async_session: AsyncSession) -> None:
     async with async_session.begin():
-        family = await AsyncFamilyDAL(async_session).get_family_by_id(family_id=family_id)
+        family = await AsyncFamilyDAL(async_session).get_by_id(family_id)
         user = await AsyncUserDAL(async_session).get_by_id(user_id)
 
-
-        await AddUserToFamilyService(family=family, user=user, db_session=async_session)()
+        await AddUserToFamilyService(
+            family=family,
+            user=user,
+            permissions=constants.default_user_permissions,
+            is_family_admin=False,
+            db_session=async_session
+        )()
         return JSONResponse(
             content={"message": "OK"},
             status_code=200,
