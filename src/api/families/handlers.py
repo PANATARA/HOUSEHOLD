@@ -4,7 +4,7 @@ from sqlalchemy import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.auth_actions import get_current_user_from_token
-from api.families.families_action import _add_user_to_family, _create_family, _get_family
+from api.families.families_action import _add_user_to_family, _create_family, _get_family, _logout_user_from_family
 from db.models.user import User
 from db.session import get_db
 from schemas.families import FamilyCreate, FamilyFullShow, FamilyShow 
@@ -51,13 +51,13 @@ async def add_user_to_family(
         )
 
 # Logout user to family
-@families_router.post(path="/logout", summary="NOT IMPLEMENTED")
-async def add_user_to_family(
+@families_router.post(path="/logout", summary="NOT IMPLEMENTED..................Logout me from family")
+async def logout_user_from_family(
     current_user: User = Depends(get_current_user_from_token), 
     db: AsyncSession = Depends(get_db)
-) -> None:
+) -> JSONResponse:
     
-    return
+    return await _logout_user_from_family(current_user , db)
 
 @families_router.post(path="/kick/user/{user_id}", summary="NOT IMPLEMENTED")
 async def kick_user_from_family(

@@ -1,11 +1,12 @@
 from fastapi import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas.users import ShowUser, UserCreate, UserUpdate
+from schemas.users import ShowUser, UserCreate, UserSettingsShow, UserUpdate
 from db.dals.users import AsyncUserDAL
 from logging import getLogger
 
 from db.models.user import User
+from services.users.data import UserDataService
 from services.users.services import UserCreatorService
 
 logger = getLogger(__name__)
@@ -61,3 +62,11 @@ async def _delete_user(user:User, async_session: AsyncSession) -> ShowUser:
     async with async_session.begin():
         user_dal = AsyncUserDAL(async_session)
         return
+    
+
+async def _get_me_settings(user: User, async_session: AsyncSession) -> UserSettingsShow:
+    async with async_session.begin():
+        data_service = UserDataService(async_session)
+        return await data_service.get_user_settings(
+            user=user
+        )    

@@ -24,7 +24,7 @@ class Wallet(Base, BaseModel):
         return super().__repr__()
 
 
-class Transaction(Base, BaseModel):
+class TransactionLog(Base, BaseModel):
     __tablename__ = "wallets_transactions"
 
     description: Mapped[str]
@@ -34,6 +34,7 @@ class Transaction(Base, BaseModel):
         nullable=False,
         default=0,
     )
+    coins: Mapped[DECIMAL] = mapped_column(DECIMAL(10, 2), nullable=False)
 
     from_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(

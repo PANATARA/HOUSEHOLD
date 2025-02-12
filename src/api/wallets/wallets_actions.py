@@ -1,27 +1,55 @@
-from fastapi import APIRouter, HTTPException, Response
-from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.responses import JSONResponse
 
-from db.dals.families import AsyncFamilyDAL
+from core.exceptions import NoSuchUserFoundInThefamily, NotEnoughCoins
 from db.dals.users import AsyncUserDAL
-from db.dals.wallets import AsyncWalletDAL
-from schemas.families import FamilyShow
-from schemas.users import UserCreate
 from db.models.user import User
-from schemas.wallets import ShowWallet
-from services.families.data import FamilyDataService
-from services.families.services import AddUserToFamilyService, FamilyCreatorService
-
+from schemas.wallets import MoneyTransfer, ShowWallet
+from services.wallets.data import WalletDataService
+from services.wallets.services import MoneyTransferService
 
 from logging import getLogger
 
-from services.wallets.data import WalletDataService
+
 logger = getLogger(__name__)
 
-user_router = APIRouter()
 
 # Get user wallet
 async def _get_user_wallet(user: User, async_session: AsyncSession) -> ShowWallet:
     async with async_session.begin():
-        wallet_data = await WalletDataService(async_session).get_user_wallet(user_id=user.id)
+        wallet_data = await WalletDataService(async_session).get_user_wallet(
+            user_id=user.id
+        )
         return wallet_data
+
+
+async def _money_transfer_wallet(
+    body: MoneyTransfer, user: User, async_session: AsyncSession
+):
+    async with async_session.begin():
+        try:
+            user_dal = AsyncUserDAL(async_session)
+            to_user = await user_dal.get_by_id(body.to_user_id)
+
+            transactioin_log = await MoneyTransferService(
+                from_user=user,
+                to_user=to_user,
+                count=body.count,
+                message="Transferred you some coins",
+                db_session=async_session,
+            )()
+        except NoSuchUserFoundInThefamily:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "No Such User Found In The family"},
+            )
+        except NotEnoughCoins:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "You don't have enough coins"},
+            )
+        
+        return JSONResponse(
+                status_code=200,
+                content={"detail": "The transaction was successful."},
+            )

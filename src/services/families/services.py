@@ -2,6 +2,7 @@ from uuid import UUID
 from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.exceptions import UserCannotLeaveFamily
 from core.services import BaseService
 from core import constants
 from db.dals.families import AsyncFamilyDAL
@@ -95,15 +96,40 @@ class AddUserToFamilyService(BaseService):
 @dataclass
 class LogoutUserFromFamilyService(BaseService):
     """Logout user from family"""
-    family: Family
     user: User
     db_session: AsyncSession
 
     async def execute(self) -> None:
+        await self._update_user_field()
+        await self._delete_user_permissions()
+        await self._delete_user_wallet()
+
+    async def _update_user_field(self) -> None:
+        user_dal = AsyncUserDAL(self.db_session)
+        await user_dal.update(
+            self.user.id,
+            {"family_id": None} 
+        )
+
+    async def _delete_user_permissions(self) -> None:
         pass
 
     async def _delete_user_wallet(self) -> None:
         pass
 
     async def validate(self):
-       pass
+       if self.user.is_family_admin:
+           raise UserCannotLeaveFamily()
+       
+
+@dataclass
+class FamilyDeleterService(BaseService):
+    """Delete Family"""
+    family: Family
+    db_session: AsyncSession
+
+    async def execute(self) -> Family:
+        return super().execute()
+
+    async def validate(self):
+        return super().validate()

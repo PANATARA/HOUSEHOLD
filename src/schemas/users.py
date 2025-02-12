@@ -80,3 +80,10 @@ class UserFamilyPermissionModel(BaseModel):
     can_kick_user: bool
     can_invite_users: bool
     can_promote_user: bool
+
+
+class UserSettingsShow(BaseModel):
+    user_id: uuid.UUID
+    app_theme: str
+
+    

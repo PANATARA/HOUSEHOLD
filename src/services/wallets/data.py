@@ -1,8 +1,10 @@
 from uuid import UUID
 from dataclasses import dataclass
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.dals.wallets import AsyncWalletDAL
+from db.models.wallet import Wallet
 from schemas.wallets import ShowWallet
 
 
@@ -14,10 +16,17 @@ class WalletDataService:
 
     async def get_user_wallet(self, user_id: UUID) -> ShowWallet:
         """Returns a pydantic model of the user wallet"""
-        wallet_dal = AsyncWalletDAL(self.db_session)
-        rows = await wallet_dal.get_wallet_by_user_id(user_id)
-        
-        if rows is None:
+        result = await self.db_session.execute(
+            select(
+                Wallet.id.label("wallet_id"),
+                Wallet.balance.label("wallet_balance"),
+            )
+            .where(Wallet.user_id == user_id)
+        )
+
+        rows = result.mappings().first()
+
+        if not rows:
             return None
 
         wallet = ShowWallet(

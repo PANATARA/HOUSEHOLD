@@ -25,6 +25,9 @@ class AsyncUserDAL(BaseDals):
 class AsyncUserSettingsDAL(BaseDals):
     db_session: AsyncSession
 
+    async def get_settings_by_user_id(self, user_id):
+        pass
+
     class Meta:
         model = UserSettings
 

@@ -1,9 +1,12 @@
 from uuid import UUID
 from dataclasses import dataclass
 from pydantic import TypeAdapter
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.dals.families import AsyncFamilyDAL
+from db.models.family import Family
+from db.models.user import User
 from schemas.families import FamilyFullShow
 from schemas.users import ShowUser
 
@@ -16,8 +19,20 @@ class FamilyDataService:
 
     async def get_family_with_users(self, family_id: UUID) -> FamilyFullShow | None:
         """Returns a pydantic model of the family and its members"""
-        family_dal = AsyncFamilyDAL(self.db_session)
-        rows = await family_dal.get_family_with_users(family_id)
+        result = await self.db_session.execute(
+            select(
+                Family.id.label("family_id"),
+                Family.name.label("family_name"),
+                User.id.label("user_id"),
+                User.username.label("user_username"),
+                User.name.label("user_name"),
+                User.surname.label("user_surname"),
+            )
+            .join(User, Family.id == User.family_id)
+            .where(Family.id == family_id)
+        )
+
+        rows = result.mappings().all()
         
         if rows is None:
             return None

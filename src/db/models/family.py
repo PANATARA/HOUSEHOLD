@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, SmallInteger, String
 
 from db.models.base_model import BaseModel
 from db.models.declarative_base import Base

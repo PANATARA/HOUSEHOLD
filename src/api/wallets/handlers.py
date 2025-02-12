@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.auth_actions import get_current_user_from_token
-from api.wallets.wallets_actions import _get_user_wallet
+from api.wallets.wallets_actions import _get_user_wallet, _money_transfer_wallet
 from db.models.user import User
 from db.session import get_db
 from logging import getLogger
@@ -30,4 +30,4 @@ async def money_transfer_wallet(
     db: AsyncSession = Depends(get_db)
 ) -> None:
     
-    return
+    return await _money_transfer_wallet(body, current_user, db)
