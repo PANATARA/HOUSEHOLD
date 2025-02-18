@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.dals.wallets import AsyncTransactionLogDAL, AsyncWalletDAL
 from db.models.wallet import Wallet
 from schemas.wallets import CoinTransactionLog, ShowWallet
 
@@ -20,8 +19,7 @@ class WalletDataService:
             select(
                 Wallet.id.label("wallet_id"),
                 Wallet.balance.label("wallet_balance"),
-            )
-            .where(Wallet.user_id == user_id)
+            ).where(Wallet.user_id == user_id)
         )
 
         rows = result.mappings().first()
@@ -30,10 +28,10 @@ class WalletDataService:
             return None
 
         wallet = ShowWallet(
-            id = rows["wallet_id"],
+            id=rows["wallet_id"],
             balance=rows["wallet_balance"],
         )
-        return wallet 
+        return wallet
 
 
 @dataclass
@@ -42,9 +40,11 @@ class TransactionDataService:
 
     db_session: AsyncSession
 
-    async def get_user_transactions(self, user_id: UUID) -> list[CoinTransactionLog]:
+    async def get_user_transactions(
+        self, user_id: UUID, offset: int, limit: int
+    ) -> list[CoinTransactionLog]:
         query = text(
-        """ 
+            """ 
         SELECT
             CASE 
                 WHEN wt.transaction_type = 0 AND wt.from_user_id = :user_id THEN 'purchase'
@@ -73,11 +73,12 @@ class TransactionDataService:
             wt.from_user_id = :user_id 
             OR wt.to_user_id = :user_id
         ORDER BY wt.created_at DESC
-        limit 10;
+        LIMIT :limit OFFSET :offset;
         """
         )
-        result = await self.db_session.execute(query, {"user_id": user_id})
+        result = await self.db_session.execute(
+            query, {"user_id": user_id, "limit": limit, "offset": offset}
+        )
         raw_data = result.mappings().all()
 
         return [CoinTransactionLog.model_validate(item) for item in raw_data]
-    

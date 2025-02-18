@@ -22,11 +22,11 @@ async def _get_user_wallet(user: User, async_session: AsyncSession) -> ShowWalle
         )
         return wallet_data
 
-async def _get_user_transactions(user: User, async_session: AsyncSession) -> list[CoinTransactionLog]:
+async def _get_user_transactions(user: User, async_session: AsyncSession, page=1, limit=10) -> list[CoinTransactionLog]:
     async with async_session.begin():
         transactions_data = TransactionDataService(async_session)
-
-        return await transactions_data.get_user_transactions(user.id)
+        offset = (page - 1) * limit
+        return await transactions_data.get_user_transactions(user.id, offset, limit)
 
 
 async def _money_transfer_wallet(

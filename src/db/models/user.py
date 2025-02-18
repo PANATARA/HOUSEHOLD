@@ -51,6 +51,7 @@ class UserSettings(Base, BaseModel):
     def __repr__(self):
         return super().__repr__()
 
+
 class UserFamilyPermissions(Base, BaseModel):
     __tablename__= "users_family_permissions"
     
