@@ -1,6 +1,6 @@
 from datetime import timedelta
 from fastapi import APIRouter, HTTPException, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import ExpiredSignatureError, jwt
 from jose import JWTError
@@ -8,6 +8,7 @@ from starlette import status
 
 from config import auth_token
 from core.exceptions import UserCannotLeaveFamily
+from core.qr_code import get_qr_code
 from core.security import create_access_token
 from db.dals.families import AsyncFamilyDAL
 from schemas.families import FamilyShow, InviteToken, JoinFamily, UserInviteParametr
@@ -87,10 +88,15 @@ async def _genarate_invite_token(
     invite_token = create_access_token(
         data=payload, expires_delta=timedelta(seconds=900)
     )
-    return InviteToken(
-        invite_token=invite_token,
-        life_time=timedelta(seconds=900),
-    )
+    qrcode = await get_qr_code(invite_token, 300)
+    if qrcode:
+        return StreamingResponse(qrcode, media_type="image/png")
+    else:
+        return InviteToken(
+            invite_token=invite_token,
+            life_time=timedelta(seconds=900),
+        )
+    
 
 
 async def _join_to_family(
