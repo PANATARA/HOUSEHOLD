@@ -15,10 +15,8 @@ services:
             - .env
         depends_on:
             - postgres_db
-            - redis
         stdin_open: true
         tty: true
-        restart: always
 
     postgres_db:
         image: postgres:14
@@ -31,21 +29,5 @@ services:
             - pgdata:/var/lib/postgresql/data/
         ports:
             - "5433:5432"
-
-    test_postgres_db:
-        image: postgres:14
-        container_name: test_database
-        environment:
-            - POSTGRES_DB=test_database
-            - POSTGRES_USER=test_user
-            - POSTGRES_PASSWORD=test_password
-        volumes:
-            - test_pgdata:/var/lib/postgresql/data/
-        ports:
-            - "5431:5430"
-    redis:
-        image: "redis:alpine"
-
 volumes:
     pgdata:
-    test_pgdata:
