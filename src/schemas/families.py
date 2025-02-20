@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import re
 from pydantic import BaseModel
 
-from schemas.users import ShowUser
+from schemas.users import UserResponse
 
 LETTER_MATCH_PATTERN = re.compile(r"^[а-яА-Яa-zA-Z\-]+$")
 
@@ -21,7 +21,7 @@ class FamilyShow(BaseModel):
 
 class FamilyFullShow(BaseModel):
     name: str
-    members: list[ShowUser]
+    members: list[UserResponse]
 
     class Config:
         orm_mode = True

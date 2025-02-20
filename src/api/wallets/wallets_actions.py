@@ -6,7 +6,7 @@ from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from schemas.wallets import CoinTransactionLog, MoneyTransfer, ShowWallet
 from services.wallets.data import TransactionDataService, WalletDataService
-from services.wallets.services import MoneyTransferService
+from services.wallets.services import CoinsTransferService
 
 from logging import getLogger
 
@@ -37,7 +37,7 @@ async def _money_transfer_wallet(
             user_dal = AsyncUserDAL(async_session)
             to_user = await user_dal.get_by_id(body.to_user_id)
 
-            transactioin_log = await MoneyTransferService(
+            transactioin_log = await CoinsTransferService(
                 from_user=user,
                 to_user=to_user,
                 count=body.count,

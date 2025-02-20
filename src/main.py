@@ -16,6 +16,7 @@ from api.families.handlers import families_router
 from api.chores.handlers import chores_router
 from api.chores_logs.handlers import chores_logs_router
 from api.wallets.handlers import wallet_router
+from api.chores_confirmations.handlers import chores_confirmations
 
 async def create_enum_if_not_exists(engine: AsyncEngine):
     async with engine.begin() as conn:
@@ -58,8 +59,11 @@ main_api_router = APIRouter(prefix="/api")
 main_api_router.include_router(user_router, prefix="/users", tags=["Users"])
 main_api_router.include_router(login_router, prefix="/login", tags=["Auth"])
 main_api_router.include_router(families_router, prefix="/family", tags=["Family"])
+
 main_api_router.include_router(chores_router, prefix="/family/chores", tags=["Chore"])
 main_api_router.include_router(chores_logs_router, prefix="/family/chores/logs", tags=["Chores Logs"])
+main_api_router.include_router(chores_confirmations, prefix="/family/chores/confirmations", tags=["Chores confiramtions"])
+
 main_api_router.include_router(wallet_router, prefix="/users/wallets", tags=["Wallet"])
 
 app.include_router(main_api_router)

@@ -8,7 +8,7 @@ from schemas.chores import ChoreCreate, ChoreShow, ChoresResponse
 from logging import getLogger
 
 from services.chores.data import ChoreDataService
-from services.chores.family_chore import FamilyChoreCreatorService
+from services.chores.services import FamilyChoreCreatorService
 logger = getLogger(__name__)
 
 

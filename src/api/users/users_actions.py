@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas.users import ShowUser, UserCreate, UserSettingsShow, UserUpdate
+from schemas.users import UserResponse, UserCreate, UserSettingsShow, UserUpdate
 from db.dals.users import AsyncUserDAL
 from logging import getLogger
 
@@ -13,7 +13,7 @@ logger = getLogger(__name__)
 
 user_router = APIRouter()
 
-async def _create_new_user(body: UserCreate, async_session: AsyncSession) -> ShowUser:
+async def _create_new_user(body: UserCreate, async_session: AsyncSession) -> UserResponse:
     async with async_session.begin():
         service = UserCreatorService(
             username = body.username,
@@ -23,7 +23,7 @@ async def _create_new_user(body: UserCreate, async_session: AsyncSession) -> Sho
             db_session=async_session,
         )
         user = await service()
-        return ShowUser(
+        return UserResponse(
             id=user.id,
             username=user.username,
             name=user.name,
@@ -31,22 +31,22 @@ async def _create_new_user(body: UserCreate, async_session: AsyncSession) -> Sho
         )
 
 
-async def show_user(user: User) -> ShowUser:
-    return ShowUser(
+async def show_user(user: User) -> UserResponse:
+    return UserResponse(
         id=user.id,
         username=user.username,
         name=user.name,
         surname=user.surname,
     )
 
-async def _update_user(user: User, body: UserUpdate, async_session: AsyncSession) -> ShowUser:
+async def _update_user(user: User, body: UserUpdate, async_session: AsyncSession) -> UserResponse:
     async with async_session.begin():
         user_dal = AsyncUserDAL(async_session)
         user = await user_dal.update(
             user=user,
             fields=body.model_dump()
         )
-        return ShowUser(
+        return UserResponse(
             user_id=user.id,
             username=user.username,
             name=user.name,
@@ -58,7 +58,7 @@ async def _update_user(user: User, body: UserUpdate, async_session: AsyncSession
         )
 
 
-async def _delete_user(user:User, async_session: AsyncSession) -> ShowUser:
+async def _delete_user(user:User, async_session: AsyncSession) -> UserResponse:
     async with async_session.begin():
         user_dal = AsyncUserDAL(async_session)
         return

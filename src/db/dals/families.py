@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from core.base_dals import BaseDals
 from db.models.family import Family
-from db.models.user import User
+from db.models.user import User, UserFamilyPermissions
 
 
 
@@ -21,3 +21,15 @@ class AsyncFamilyDAL(BaseDals):
         query_result = await self.db_session.execute(query)
         rows = query_result.scalars().all()
         return None if not rows else rows
+
+    async def get_users_should_confirm_chorelog(self, family_id) -> list[UUID] | None:
+        query = (
+            select(User.id)
+                .join(UserFamilyPermissions, UserFamilyPermissions.user_id == User.id)
+                .where(UserFamilyPermissions.should_confirm_chorelog)
+                .where(User.family_id == family_id)
+        )
+        query_result = await self.db_session.execute(query)
+        users_ids = query_result.scalars().all()
+    
+        return None if not users_ids else users_ids

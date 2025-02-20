@@ -14,14 +14,11 @@ class TunedModel(BaseModel):
         from_attributes = True
 
 
-class ShowUser(TunedModel):
+class UserResponse(TunedModel):
     id: uuid.UUID
     username: str
     name: str
     surname: str
-    # is_active: bool
-    # is_superuser: bool
-    # created_at: datetime
 
     class Config:
         orm_mode = True
@@ -49,7 +46,8 @@ class UserCreate(BaseModel):
                 status_code=422, detail="Surname should contains only letters"
             )
         return value
-    
+
+
 class UserUpdate(BaseModel):
     username: str | None = None
     name: str | None = None
@@ -85,5 +83,3 @@ class UserFamilyPermissionModel(BaseModel):
 class UserSettingsShow(BaseModel):
     user_id: uuid.UUID
     app_theme: str
-
-    

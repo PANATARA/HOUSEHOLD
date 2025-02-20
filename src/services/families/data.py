@@ -8,7 +8,7 @@ from db.dals.families import AsyncFamilyDAL
 from db.models.family import Family
 from db.models.user import User
 from schemas.families import FamilyFullShow
-from schemas.users import ShowUser
+from schemas.users import UserResponse
 
 
 @dataclass
@@ -47,7 +47,7 @@ class FamilyDataService:
             }
             for row in rows
         ]
-        user_adapter = TypeAdapter(list[ShowUser])
+        user_adapter = TypeAdapter(list[UserResponse])
         members = user_adapter.validate_python(users)
 
         return FamilyFullShow(name=family_data["family_name"], members=members)

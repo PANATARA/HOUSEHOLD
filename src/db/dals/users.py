@@ -1,4 +1,5 @@
 from typing import Union
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from dataclasses import dataclass
 
@@ -19,6 +20,10 @@ class AsyncUserDAL(BaseDals):
         user = result.fetchone()
         if user is not None:
             return user[0]
+    
+    async def get_users_where_permission(self, family_id: UUID):
+        pass
+
 
 
 @dataclass

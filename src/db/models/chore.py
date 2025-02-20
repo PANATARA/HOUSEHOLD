@@ -1,8 +1,8 @@
 import uuid
-from enum import Enum
-from sqlalchemy import CheckConstraint, ForeignKey, String, SmallInteger
+from sqlalchemy import CheckConstraint, Enum, ForeignKey, String, SmallInteger
 from sqlalchemy.orm import Mapped, mapped_column
 
+from core.constants import StatusConfirmENUM
 from db.models.base_model import BaseModel
 from db.models.declarative_base import Base
 
@@ -31,11 +31,10 @@ class ChoreLog(Base, BaseModel):
     completed_by_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(column="users.id", ondelete="SET NULL")
     )
-    status: Mapped[int] = mapped_column(
-        SmallInteger,
-        CheckConstraint("status BETWEEN 0 AND 2"),
+    status = mapped_column(
+        Enum(StatusConfirmENUM, name=StatusConfirmENUM.get_enum_name(), create_type=False),
         nullable=False,
-        default=0,
+        default=StatusConfirmENUM.awaits.value
     )
     message: Mapped[str] = mapped_column(String(50))
 
@@ -52,9 +51,8 @@ class ChoreLogConfirm(Base, BaseModel):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(column="users.id", ondelete="CASCADE")
     )
-    status: Mapped[int] = mapped_column(
-        SmallInteger,
-        CheckConstraint("status BETWEEN 0 AND 2"),
+    status = mapped_column(
+        Enum(StatusConfirmENUM, name=StatusConfirmENUM.get_enum_name(), create_type=False),
         nullable=False,
-        default=0,
+        default=StatusConfirmENUM.awaits.value
     )

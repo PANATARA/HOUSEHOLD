@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import UUID
 from dataclasses import dataclass
 
@@ -48,3 +49,9 @@ class AsyncChoreDAL(BaseDals):
         if not rows:
             return None
         return rows
+    
+    async def get_chore_valutation(self, chore_id: UUID) -> Decimal:
+        query = select(Chore.valuation).where(Chore.id==chore_id)
+        query_result = await self.db_session.execute(query)
+        valutation = query_result.fetchone()
+        return valutation[0]

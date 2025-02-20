@@ -1,8 +1,9 @@
 import uuid
 import enum
-from sqlalchemy import DECIMAL, ForeignKey, SmallInteger, CheckConstraint
+from sqlalchemy import DECIMAL, Enum, ForeignKey, SmallInteger, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
+from core.constants import WalletTransactionENUM
 from db.models.base_model import BaseModel
 from db.models.declarative_base import Base
 
@@ -28,11 +29,9 @@ class TransactionLog(Base, BaseModel):
     __tablename__ = "wallets_transactions"
 
     description: Mapped[str]
-    transaction_type:  Mapped[int] = mapped_column(
-        SmallInteger,
-        CheckConstraint("status BETWEEN 1 AND 2"),
+    transaction_type = mapped_column(
+        Enum(name=WalletTransactionENUM.get_enum_name(), create_type=False),
         nullable=False,
-        default=0,
     )
     coins: Mapped[DECIMAL] = mapped_column(DECIMAL(10, 2), nullable=False)
 

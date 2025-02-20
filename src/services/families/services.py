@@ -12,7 +12,7 @@ from db.models.family import Family
 from db.models.user import User, UserFamilyPermissions
 from db.models.wallet import Wallet
 from schemas.users import UserFamilyPermissionModel
-from services.chores.family_chore import FamilyChoreCreatorService, get_default_chore_data
+from services.chores.services import FamilyChoreCreatorService, get_default_chore_data
 from services.wallets.services import WalletCreatorService
 
 
