@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from core.base_dals import BaseDals
+from core.constants import StatusConfirmENUM
 from db.models.chore import Chore, ChoreLog, ChoreLogConfirm
 
 
@@ -26,7 +27,7 @@ class AsyncChoreLogConfirmDAL(BaseDals):
             ChoreLogConfirm(
                 chore_log_id=chorelog_id,
                 user_id=user_id,
-                status=0,
+                status=StatusConfirmENUM.awaits.value,
             )
             for user_id in users_ids
         ]

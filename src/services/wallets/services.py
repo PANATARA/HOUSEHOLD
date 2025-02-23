@@ -101,7 +101,7 @@ class CoinsCreditService(BaseService):
     
     async def _add_coins(self, user_id: UUID, amount: Decimal):
         wallet_dal = AsyncWalletDAL(self.db_session)
-        await wallet_dal.add_balance(user_id=self.to_user.id, amount=self.count)
+        await wallet_dal.add_balance(user_id=user_id, amount=amount)
 
     async def _create_transaction_log(self, user_id: UUID, amount: Decimal):
         fields = {

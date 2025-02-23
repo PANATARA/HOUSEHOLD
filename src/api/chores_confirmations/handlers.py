@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Response
+from uuid import UUID
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.auth_actions import get_current_user_from_token
@@ -26,3 +27,12 @@ async def get_my_chores_confirmations(
         user=current_user,
         async_session=db
     )
+
+@chores_confirmations.patch("/{chorlog_id}")
+async def get_my_chores_confirmations(
+    confirm_chorlog_id: UUID,
+    current_user: User = Depends(get_current_user_from_token), 
+    db: AsyncSession = Depends(get_db)
+) -> None:
+    
+    return

@@ -7,7 +7,6 @@ from core.services import BaseService
 from db.dals.chores_logs import AsyncChoreLogConfirmDAL, AsyncChoreLogDAL
 from db.dals.families import AsyncFamilyDAL
 from db.models.chore import Chore, ChoreLog
-from db.models.family import Family
 from db.models.user import User
 from services.wallets.services import CoinsCreditService
 
@@ -27,16 +26,13 @@ class CreateChoreLog(BaseService):
 
         if users is None:
             service = ApproveChoreLog(chore_log_id=chore_log.id, db_session=self.db_session)
-            service()
+            await service()
         else:
             await self._create_chorelog_confirm(users, chore_log.id)
 
         return chore_log
 
-    def _get_status(self) -> int:
-        return StatusConfirmENUM.awaits.value
-
-    async def _create_chore_log(self, status: int) -> ChoreLog:
+    async def _create_chore_log(self, status: str) -> ChoreLog:
         chore_log_dal = AsyncChoreLogDAL(self.db_session)
         chore_log = await chore_log_dal.create(
             fields={
@@ -50,7 +46,9 @@ class CreateChoreLog(BaseService):
 
     async def _get_users_should_confirm_chorelog(self) -> list[UUID] | None:
         family_dal = AsyncFamilyDAL(self.db_session)
-        family_admins = await family_dal.get_users_should_confirm_chorelog(self.user.family_id)
+        family_admins = await family_dal.get_users_should_confirm_chorelog(
+            self.user.family_id, excluded_user_ids=[self.user.id]
+        )
         return family_admins
 
     async def _create_chorelog_confirm(
@@ -85,7 +83,7 @@ class ApproveChoreLog(BaseService):
         )
 
     async def send_reward(self):
-        chorelog = AsyncChoreLogDAL(self.db_session).get_by_id(self.chore_log_id)
+        chorelog = await AsyncChoreLogDAL(self.db_session).get_by_id(self.chore_log_id)
         service = CoinsCreditService(
             chorelog=chorelog,
             message="income",
