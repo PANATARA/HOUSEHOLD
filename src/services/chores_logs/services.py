@@ -114,5 +114,30 @@ class CancellChoreLog(BaseService):
         return
 
 
-async def set_status_confirm_chorelog(chorelog_confirm: UUID, message: str, status: int):
-    pass
+async def set_status_confirm_chorelog(
+    chorelog_confirm_id: UUID, status: StatusConfirmENUM, db_session: AsyncSession
+) -> None:
+    chorelog_confirm_dal = AsyncChoreLogConfirmDAL(db_session)
+    chorelog_confirm = await chorelog_confirm_dal.update(
+        object_id=chorelog_confirm_id,
+        fields={
+            "status": status
+        }
+    )
+    if status == StatusConfirmENUM.canceled.value:
+        service = CancellChoreLog(
+                chore_log_id=chorelog_confirm.chore_log_id,
+                db_session=db_session
+            )
+        await service()
+    else:    
+        count_chorelogs_confirms = await chorelog_confirm_dal.count_choreslogs_confirmations_status(
+            chorelog_id=chorelog_confirm.chore_log_id,
+            status=StatusConfirmENUM.awaits.value
+        )
+        if count_chorelogs_confirms == 0:
+            service = ApproveChoreLog(
+                chore_log_id=chorelog_confirm.chore_log_id,
+                db_session=db_session
+            )
+            await service()

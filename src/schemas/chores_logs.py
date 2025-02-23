@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel
 
+from core.constants import StatusConfirmENUM
 from schemas.chores import ChoreShow
 from schemas.users import UserResponse
 from schemas.wallets import CoinTransactionLog
@@ -31,6 +32,8 @@ class ChoreConfirmation(BaseModel):
     status: str
 
 
+class ChoreLogConfirmationChangeStatus(BaseModel):
+    status: StatusConfirmENUM
 
 class ChoreLogConfirmation(BaseModel):
     id: UUID

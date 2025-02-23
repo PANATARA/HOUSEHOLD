@@ -1,10 +1,6 @@
 from typing import AsyncGenerator
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from core.constants import PostgreSQLEnum
-from sqlalchemy.ext.asyncio import AsyncEngine
-from sqlalchemy.sql import text
 
 from config import database
 
