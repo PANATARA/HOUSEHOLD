@@ -9,7 +9,7 @@ from db.models.family import Family
 from schemas.chores import ChoreCreate
 
 @dataclass
-class FamilyChoreCreatorService(BaseService):
+class ChoreCreatorService(BaseService):
     """Create and return a new Family"""
     family: Family | UUID
     db_session: AsyncSession

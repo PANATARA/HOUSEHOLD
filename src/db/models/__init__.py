@@ -1,4 +1,4 @@
-from .chore import Chore, ChoreLog
+from .chore import Chore, ChoreCompletion
 from .family import Family
 from .product import Product
 from .user import User

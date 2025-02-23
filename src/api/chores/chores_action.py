@@ -8,7 +8,7 @@ from schemas.chores import ChoreCreate, ChoreShow, ChoresResponse
 from logging import getLogger
 
 from services.chores.data import ChoreDataService
-from services.chores.services import FamilyChoreCreatorService
+from services.chores.services import ChoreCreatorService
 logger = getLogger(__name__)
 
 
@@ -19,7 +19,7 @@ async def _get_family_chore(family_id: UUID, async_session: AsyncSession) -> Cho
 
 async def _create_family_chore(body: ChoreCreate, family_id: UUID, async_session: AsyncSession) -> ChoreShow:
     async with async_session.begin():
-        creator_service = FamilyChoreCreatorService(family_id, async_session, body)
+        creator_service = ChoreCreatorService(family_id, async_session, body)
         data = await creator_service()
         return ChoreShow(
             id=data.id,

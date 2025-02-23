@@ -6,10 +6,10 @@ from sqlalchemy.orm import aliased
 
 from db.dals.chores import AsyncChoreDAL
 from db.dals.families import AsyncFamilyDAL
-from db.models.chore import Chore, ChoreLog, ChoreLogConfirm
+from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
 from schemas.chores import ChoreShow, ChoresResponse
-from schemas.chores_logs import ChoreConfirmation, ChoreLogShow
+from schemas.chores_logs import ChoreConfirmation, ChoreCompletionShow
 from schemas.families import FamilyFullShow
 from schemas.users import UserResponse
 
@@ -50,8 +50,8 @@ class ChoreConfirmationDataService:
     db_session: AsyncSession
 
     async def get_user_chore_confirmations(self, user_id) -> list[ChoreConfirmation]:
-        clc = aliased(ChoreLogConfirm)
-        cl = aliased(ChoreLog)
+        clc = aliased(ChoreConfirmation)
+        cl = aliased(ChoreCompletion)
         c = aliased(Chore)
         u = aliased(User)
 
@@ -60,10 +60,10 @@ class ChoreConfirmationDataService:
                 clc.id.label("chore_confirmation_id"),
                 clc.status.label("chore_confirmation_status"),
                 clc.created_at.label("chore_confirmation_created_at"),
-                cl.id.label("chore_log_id"),
-                cl.message.label("chore_log_message"),
-                cl.created_at.label("chore_log_completed_at"),
-                cl.status.label("chore_log_status"),
+                cl.id.label("chore_completion_id"),
+                cl.message.label("chore_completion_message"),
+                cl.created_at.label("chore_completion_completed_at"),
+                cl.status.label("chore_completion_status"),
                 u.id.label("completed_by_id"),
                 u.username.label("completed_by_username"),
                 u.name.label("completed_by_name"),
@@ -74,7 +74,7 @@ class ChoreConfirmationDataService:
                 c.icon.label("chore_icon"),
                 c.valuation.label("chore_valuation"),
             )
-            .join(cl, clc.chore_log_id == cl.id)
+            .join(cl, clc.chore_completion_id == cl.id)
             .join(c, cl.chore_id == c.id)
             .join(u, cl.completed_by_id == u.id)
             .where(clc.user_id == user_id)
@@ -87,11 +87,11 @@ class ChoreConfirmationDataService:
             ChoreConfirmation(
                 id=data["chore_confirmation_id"],
                 status=data["chore_confirmation_status"],
-                chorelog=ChoreLogShow(
-                    id=data["chore_log_id"],
-                    completed_at=data["chore_log_completed_at"],
-                    message=data["chore_log_message"],
-                    status=data["chore_log_status"],
+                chore_completion=ChoreCompletionShow(
+                    id=data["chore_completion_id"],
+                    completed_at=data["chore_completion_completed_at"],
+                    message=data["chore_completion_message"],
+                    status=data["chore_completion_status"],
                     completed_by=UserResponse(
                         id=data["completed_by_id"],
                         username=data["completed_by_username"],

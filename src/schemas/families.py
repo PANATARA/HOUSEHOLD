@@ -29,7 +29,7 @@ class FamilyFullShow(BaseModel):
 
 
 class UserInviteParametr(BaseModel):
-    should_confirm_chorelog: bool
+    should_confirm_chore_completion: bool
     should_confirm_creating_chore: bool
     can_create_chore: bool
     can_change_family_name: bool

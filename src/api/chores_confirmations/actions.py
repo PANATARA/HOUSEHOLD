@@ -1,17 +1,13 @@
 from uuid import UUID
-from fastapi import Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models.user import User
-from schemas.chores_logs import ChoreConfirmation, ChoreLogConfirmationChangeStatus
-
+from schemas.chores_logs import ChoreConfirmation, ChoreCompletionConfirmationChangeStatus
+from services.chores.data import ChoreConfirmationDataService
+from services.chores_completions.services import set_status_chore_confirmation
 
 from logging import getLogger
-
-from services.chores.data import ChoreConfirmationDataService
-from services.chores_logs.services import set_status_confirm_chorelog
-
 logger = getLogger(__name__)
 
 
@@ -24,14 +20,14 @@ async def _get_my_chores_confirmations(
         return result
 
 
-async def _change_status_chorelog_confirmation(
-    chorelog_confirm: UUID,
-    body: ChoreLogConfirmationChangeStatus,
+async def _change_status_chore_confirmation(
+    chore_confirmation_id: UUID,
+    body: ChoreCompletionConfirmationChangeStatus,
     user: User,
     async_session: AsyncSession,
 ) -> JSONResponse:
     async with async_session.begin():
-        await set_status_confirm_chorelog(chorelog_confirm, body.status, async_session)
+        await set_status_chore_confirmation(chore_confirmation_id, body.status, async_session)
         
         return JSONResponse(
             content={"detail": "OK"},

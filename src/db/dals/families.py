@@ -22,11 +22,11 @@ class AsyncFamilyDAL(BaseDals):
         rows = query_result.scalars().all()
         return None if not rows else rows
 
-    async def get_users_should_confirm_chorelog(self, family_id: UUID, excluded_user_ids: list[UUID]) -> list[UUID] | None:
+    async def get_users_should_confirm_chore_completion(self, family_id: UUID, excluded_user_ids: list[UUID]) -> list[UUID] | None:
         query = (
             select(User.id)
                 .join(UserFamilyPermissions, UserFamilyPermissions.user_id == User.id)
-                .where(UserFamilyPermissions.should_confirm_chorelog)
+                .where(UserFamilyPermissions.should_confirm_chore_completion)
                 .where(User.family_id == family_id)
                 .where(User.id.notin_(excluded_user_ids))
         )

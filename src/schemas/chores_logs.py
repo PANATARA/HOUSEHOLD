@@ -7,17 +7,17 @@ from schemas.chores import ChoreShow
 from schemas.users import UserResponse
 from schemas.wallets import CoinTransactionLog
 
-class ChoreLogCreate(BaseModel):
+class ChoreCompletionCreate(BaseModel):
     chore_id: UUID
     message: str
 
 
-class ChoreLogConfirm(BaseModel):
+class ChoreCompletionConfirm(BaseModel):
     message: str
     status: int
 
 
-class ChoreLogShow(BaseModel):
+class ChoreCompletionShow(BaseModel):
     id: UUID
     chore: ChoreShow
     completed_by: UserResponse
@@ -28,19 +28,19 @@ class ChoreLogShow(BaseModel):
 
 class ChoreConfirmation(BaseModel):
     id: UUID
-    chorelog: ChoreLogShow
+    chore_completion: ChoreCompletionShow
     status: str
 
 
-class ChoreLogConfirmationChangeStatus(BaseModel):
+class ChoreCompletionConfirmationChangeStatus(BaseModel):
     status: StatusConfirmENUM
 
-class ChoreLogConfirmation(BaseModel):
+class ChoreCompletionConfirmation(BaseModel):
     id: UUID
     user: UserResponse
     status: str
 
-class ChoreLogDetailShow(BaseModel):
+class ChoreCompletionDetailShow(BaseModel):
     id: UUID
     chore: ChoreShow
     completed_by: UserResponse
@@ -48,4 +48,4 @@ class ChoreLogDetailShow(BaseModel):
     # transaction: CoinTransactionLog
     message: str
     status: str
-    confirmed_by: list[ChoreLogConfirmation]
+    confirmed_by: list[ChoreCompletionConfirmation]

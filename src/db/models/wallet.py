@@ -1,6 +1,6 @@
 import uuid
 import enum
-from sqlalchemy import DECIMAL, Enum, ForeignKey, SmallInteger, CheckConstraint
+from sqlalchemy import DECIMAL, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.constants import WalletTransactionENUM
@@ -30,7 +30,7 @@ class TransactionLog(Base, BaseModel):
 
     description: Mapped[str]
     transaction_type = mapped_column(
-        Enum(name=WalletTransactionENUM.get_enum_name(), create_type=False),
+        Enum(name=WalletTransactionENUM.get_enum_name(), create_type=False, native_enum=False),
         nullable=False,
     )
     coins: Mapped[DECIMAL] = mapped_column(DECIMAL(10, 2), nullable=False)
@@ -54,9 +54,9 @@ class TransactionLog(Base, BaseModel):
         )
     )
 
-    chore_log_id: Mapped[uuid.UUID | None] = mapped_column(
+    chore_completion_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(
-            column="chores_logs.id", 
+            column="chore_completion.id", 
             ondelete="SET NULL",
         )
     )

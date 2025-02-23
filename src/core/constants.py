@@ -6,7 +6,7 @@ default_user_settings = {
 
 
 default_admin_permissions = {
-    "should_confirm_chorelog": True,
+    "should_confirm_chore_completion": True,
     "should_confirm_creating_chore": True,
     "can_create_chore": True,
     "can_change_family_name": True,
@@ -16,7 +16,7 @@ default_admin_permissions = {
 }
 
 default_user_permissions = {
-    "should_confirm_chorelog": False,
+    "should_confirm_chore_completion": False,
     "should_confirm_creating_chore": False,
     "can_create_chore": False,
     "can_change_family_name": False,

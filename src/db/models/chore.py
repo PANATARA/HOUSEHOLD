@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, String, SmallInteger
+from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.constants import StatusConfirmENUM
@@ -22,8 +22,8 @@ class Chore(Base, BaseModel):
         return super().__repr__()
 
 
-class ChoreLog(Base, BaseModel):
-    __tablename__ = "chores_logs"
+class ChoreCompletion(Base, BaseModel):
+    __tablename__ = "chore_completion"
 
     chore_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(column="chores.id", ondelete="SET NULL")
@@ -32,7 +32,7 @@ class ChoreLog(Base, BaseModel):
         ForeignKey(column="users.id", ondelete="SET NULL")
     )
     status = mapped_column(
-        Enum(StatusConfirmENUM, name=StatusConfirmENUM.get_enum_name(), create_type=False),
+        Enum(StatusConfirmENUM, name=StatusConfirmENUM.get_enum_name(), create_type=False, native_enum=False),
         nullable=False,
         default=StatusConfirmENUM.awaits.value
     )
@@ -42,17 +42,17 @@ class ChoreLog(Base, BaseModel):
         return super().__repr__()
 
 
-class ChoreLogConfirm(Base, BaseModel):
-    __tablename__ = "chores_logs_confirms"
+class ChoreConfirmation(Base, BaseModel):
+    __tablename__ = "chore_confirmation"
 
-    chore_log_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(column="chores_logs.id", ondelete="CASCADE")
+    chore_completion_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(column="chore_completion.id", ondelete="CASCADE")
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(column="users.id", ondelete="CASCADE")
     )
     status = mapped_column(
-        Enum(StatusConfirmENUM, name=StatusConfirmENUM.get_enum_name(), create_type=False),
+        Enum(StatusConfirmENUM, name=StatusConfirmENUM.get_enum_name(), create_type=False, native_enum=False),
         nullable=False,
         default=StatusConfirmENUM.awaits.value
     )

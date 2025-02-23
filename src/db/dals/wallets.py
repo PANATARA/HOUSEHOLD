@@ -1,10 +1,8 @@
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
 from dataclasses import dataclass
 from decimal import Decimal
 
 from core.base_dals import BaseDals, BaseUserPkDals
-from db.models.user import User
 from sqlalchemy import exists, select, update
 from db.models.wallet import TransactionLog, Wallet
 

@@ -12,7 +12,7 @@ from starlette import status
 from config import auth_token
 from db.dals.users import AsyncUserDAL
 from db.models import User
-from db.models.chore import Chore, ChoreLog
+from db.models.chore import Chore, ChoreCompletion
 from db.session import get_db
 from core.hashing import Hasher
 from core.exceptions import permission_denided

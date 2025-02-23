@@ -7,30 +7,30 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
 
 
-from db.models.chore import Chore, ChoreLog, ChoreLogConfirm
+from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
 from schemas.chores import ChoreShow
-from schemas.chores_logs import ChoreLogConfirmation, ChoreLogDetailShow, ChoreLogShow
+from schemas.chores_logs import ChoreCompletionConfirmation, ChoreCompletionDetailShow, ChoreCompletionShow
 from schemas.users import UserResponse
 
 
 @dataclass
-class ChoreLogDataService:
+class ChoreCompletionDataService:
     """Return family pydantic models"""
 
     db_session: AsyncSession
 
-    async def get_family_choreslogs(
+    async def get_family_chore_completion(
         self, family_id: UUID, offset: int, limit: int
-    ) -> list[ChoreLogShow]:
+    ) -> list[ChoreCompletionShow]:
         """Returns a pydantic model of the chores logs"""
-        cl = aliased(ChoreLog)
+        cl = aliased(ChoreCompletion)
         c = aliased(Chore)
         u = aliased(User)
 
         query = (
             select(
-                cl.id.label("chorelog_id"),
+                cl.id.label("chore_completion_id"),
                 c.id.label("chore_id"),
                 c.name.label("chore_name"),
                 c.description.label("chore_description"),
@@ -40,9 +40,9 @@ class ChoreLogDataService:
                 u.username.label("completed_by_username"),
                 u.name.label("completed_by_name"),
                 u.surname.label("completed_by_surname"),
-                cl.created_at.label("chorelog_completed_at"),
-                cl.message.label("chorelog_msg"),
-                cl.status.label("chorelog_status"),
+                cl.created_at.label("chore_completion_completed_at"),
+                cl.message.label("chore_completion_msg"),
+                cl.status.label("chore_completion_status"),
             )
             .join(u, cl.completed_by_id == u.id)
             .join(c, cl.chore_id == c.id)
@@ -53,12 +53,12 @@ class ChoreLogDataService:
         )
         query_result = await self.db_session.execute(query)
         raw_data = query_result.mappings().all()
-        chorelogs = [
-            ChoreLogShow(
-                id=data["chorelog_id"],
-                completed_at=data["chorelog_completed_at"],
-                message=data["chorelog_msg"],
-                status=data["chorelog_status"],
+        chores_completions = [
+            ChoreCompletionShow(
+                id=data["chore_completion_id"],
+                completed_at=data["chore_completion_completed_at"],
+                message=data["chore_completion_msg"],
+                status=data["chore_completion_status"],
                 completed_by=UserResponse(
                     id=data["completed_by_id"],
                     username=data["completed_by_username"],
@@ -75,16 +75,16 @@ class ChoreLogDataService:
             )
             for data in raw_data
         ]
-        return chorelogs
+        return chores_completions
 
-    async def get_family_choreslog_detail(
-        self, chorelog_id: UUID,
-    ) -> ChoreLogDetailShow:
+    async def get_family_chore_completion_detail(
+        self, chore_completion_id: UUID,
+    ) -> ChoreCompletionDetailShow:
         confirm_user = aliased(User)
 
         query = (   
             select(
-                ChoreLog.id.label('chorelog_id'),
+                ChoreCompletion.id.label('chore_completion_id'),
                 Chore.id.label('chore_id'),
                 Chore.name.label('chore_name'),
                 Chore.description.label('chore_description'),
@@ -94,28 +94,28 @@ class ChoreLogDataService:
                 User.username.label('completed_by_username'),
                 User.name.label('completed_by_name'),
                 User.surname.label('completed_by_surname'),
-                ChoreLog.created_at.label('chorelog_completed_at'),
-                ChoreLog.message.label('chorelog_msg'),
-                ChoreLog.status.label('chorelog_status'),
+                ChoreCompletion.created_at.label('chore_completion_completed_at'),
+                ChoreCompletion.message.label('chore_completion_msg'),
+                ChoreCompletion.status.label('chore_completion_status'),
                 func.json_agg(
                     func.json_build_object(
-                        'id', ChoreLogConfirm.id,
+                        'id', ChoreConfirmation.id,
                         'user', func.json_build_object(
                             'id', confirm_user.id,
                             'username', confirm_user.username,
                             'name', confirm_user.name,
                             'surname', confirm_user.surname
                         ),
-                        'status', ChoreLogConfirm.status
+                        'status', ChoreConfirmation.status
                     )
                 ).label('confirmed_by')
             )
-            .join(User, ChoreLog.completed_by_id == User.id)
-            .join(Chore, ChoreLog.chore_id == Chore.id)
-            .join(ChoreLogConfirm, ChoreLog.id == ChoreLogConfirm.chore_log_id)
-            .join(confirm_user, ChoreLogConfirm.user_id == confirm_user.id)
-            .where(ChoreLog.id == chorelog_id)
-            .group_by(ChoreLog.id, Chore.id, User.id)
+            .join(User, ChoreCompletion.completed_by_id == User.id)
+            .join(Chore, ChoreCompletion.chore_id == Chore.id)
+            .join(ChoreConfirmation, ChoreCompletion.id == ChoreConfirmation.chore_completion_id)
+            .join(confirm_user, ChoreConfirmation.user_id == confirm_user.id)
+            .where(ChoreCompletion.id == chore_completion_id)
+            .group_by(ChoreCompletion.id, Chore.id, User.id)
         )
 
         query_result = await self.db_session.execute(query)
@@ -124,8 +124,8 @@ class ChoreLogDataService:
         if not item:
             return None 
 
-        return ChoreLogDetailShow(
-            id=item['chorelog_id'],
+        return ChoreCompletionDetailShow(
+            id=item['chore_completion_id'],
             chore=ChoreShow(
                 id=item['chore_id'],
                 name=item['chore_name'],
@@ -139,11 +139,11 @@ class ChoreLogDataService:
                 name=item['completed_by_name'],
                 surname=item['completed_by_surname']
             ),
-            completed_at=item['chorelog_completed_at'],
-            message=item['chorelog_msg'],
-            status=item['chorelog_status'],
+            completed_at=item['chore_completion_completed_at'],
+            message=item['chore_completion_msg'],
+            status=item['chore_completion_status'],
             confirmed_by=[
-                ChoreLogConfirmation(
+                ChoreCompletionConfirmation(
                     id=confirm['id'],
                     user=UserResponse(**confirm['user']),
                     status=confirm['status']

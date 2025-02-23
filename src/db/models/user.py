@@ -63,7 +63,7 @@ class UserFamilyPermissions(Base, BaseModel):
     )
     user: Mapped["User"] = relationship("User", back_populates="permissions")
     
-    should_confirm_chorelog: Mapped[bool]
+    should_confirm_chore_completion: Mapped[bool]
     should_confirm_creating_chore: Mapped[bool]
     
     can_create_chore: Mapped[bool]

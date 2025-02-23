@@ -8,7 +8,7 @@ from core.exceptions import NoSuchUserFoundInThefamily, NotEnoughCoins
 from core.services import BaseService
 from db.dals.chores import AsyncChoreDAL
 from db.dals.wallets import AsyncTransactionLogDAL, AsyncWalletDAL
-from db.models.chore import ChoreLog
+from db.models.chore import ChoreCompletion
 from db.models.user import User
 from db.models.wallet import TransactionLog, Wallet
 
@@ -86,14 +86,14 @@ class CoinsCreditService(BaseService):
     Service for accruing coins for completing chore
     """
 
-    chorelog: ChoreLog
+    chore_completion: ChoreCompletion
     message: str
     db_session: AsyncSession
 
     async def execute(self) -> TransactionLog | None:
-        user_id = self.chorelog.completed_by_id
+        user_id = self.chore_completion.completed_by_id
         amount = await AsyncChoreDAL(self.db_session).get_chore_valutation(
-            self.chorelog.chore_id
+            self.chore_completion.chore_id
         )
         await self._add_coins(user_id, amount)
         transaction = await self._create_transaction_log(user_id, amount)
@@ -109,7 +109,7 @@ class CoinsCreditService(BaseService):
             "transaction_type": WalletTransactionENUM.income.value,
             "coins": amount,
             "to_user_id": user_id,
-            "chore_log_id": self.chorelog.id,
+            "chore_completion_id": self.chore_completion.id,
         }
         transaction_log_dal = AsyncTransactionLogDAL(self.db_session)
         return await transaction_log_dal.create(fields=fields)
