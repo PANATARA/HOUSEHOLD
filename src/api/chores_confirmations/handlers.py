@@ -12,9 +12,9 @@ from api.chores_confirmations.actions import (
 from api.chores_confirmations.permissions import (
     get_user_and_check_chore_confirmation_permission,
 )
-from schemas.chores_logs import (
-    ChoreConfirmation,
-    ChoreCompletionConfirmationChangeStatus,
+from schemas.chores_completions import (
+    NewChoreConfirmationDetail,
+    NewChoreConfirmationSetStatus,
 )
 
 
@@ -31,7 +31,7 @@ chores_confirmations = APIRouter()
 async def get_my_chores_confirmations(
     current_user: User = Depends(get_current_user_from_token),
     db: AsyncSession = Depends(get_db),
-) -> list[ChoreConfirmation]:
+) -> list[NewChoreConfirmationDetail]:
 
     return await _get_my_chores_confirmations(user=current_user, async_session=db)
 
@@ -39,7 +39,7 @@ async def get_my_chores_confirmations(
 @chores_confirmations.patch("/{chore_confirmation_id}")
 async def change_status_chore_confirmation(
     chore_confirmation_id: UUID,
-    body: ChoreCompletionConfirmationChangeStatus,
+    body: NewChoreConfirmationSetStatus,
     current_user: User = Depends(get_user_and_check_chore_confirmation_permission),
     db: AsyncSession = Depends(get_db),
 ) -> None:

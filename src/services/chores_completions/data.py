@@ -1,4 +1,3 @@
-from collections import defaultdict
 from uuid import UUID
 from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,8 +8,12 @@ from sqlalchemy.sql import func
 
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
-from schemas.chores import ChoreShow
-from schemas.chores_logs import ChoreCompletionConfirmation, ChoreCompletionDetailShow, ChoreCompletionShow
+from schemas.chores import NewChoreSummary
+from schemas.chores_completions import (
+    NewChoreCompletionDetail,
+    NewChoreCompletionSummary,
+    NewChoreConfirmationSummary,
+)
 from schemas.users import UserResponse
 
 
@@ -22,7 +25,7 @@ class ChoreCompletionDataService:
 
     async def get_family_chore_completion(
         self, family_id: UUID, offset: int, limit: int
-    ) -> list[ChoreCompletionShow]:
+    ) -> list[NewChoreCompletionSummary]:
         """Returns a pydantic model of the chores logs"""
         cl = aliased(ChoreCompletion)
         c = aliased(Chore)
@@ -33,7 +36,6 @@ class ChoreCompletionDataService:
                 cl.id.label("chore_completion_id"),
                 c.id.label("chore_id"),
                 c.name.label("chore_name"),
-                c.description.label("chore_description"),
                 c.icon.label("chore_icon"),
                 c.valuation.label("chore_valuation"),
                 u.id.label("completed_by_id"),
@@ -41,7 +43,6 @@ class ChoreCompletionDataService:
                 u.name.label("completed_by_name"),
                 u.surname.label("completed_by_surname"),
                 cl.created_at.label("chore_completion_completed_at"),
-                cl.message.label("chore_completion_msg"),
                 cl.status.label("chore_completion_status"),
             )
             .join(u, cl.completed_by_id == u.id)
@@ -54,101 +55,110 @@ class ChoreCompletionDataService:
         query_result = await self.db_session.execute(query)
         raw_data = query_result.mappings().all()
         chores_completions = [
-            ChoreCompletionShow(
+            NewChoreCompletionSummary(
                 id=data["chore_completion_id"],
-                completed_at=data["chore_completion_completed_at"],
-                message=data["chore_completion_msg"],
-                status=data["chore_completion_status"],
+                chore=NewChoreSummary(
+                    id=data["chore_id"],
+                    name=data["chore_name"],
+                    icon=data["chore_icon"],
+                    valuation=data["chore_valuation"],
+                ),
                 completed_by=UserResponse(
                     id=data["completed_by_id"],
                     username=data["completed_by_username"],
                     name=data["completed_by_name"],
                     surname=data["completed_by_surname"],
                 ),
-                chore=ChoreShow(
-                    id=data["chore_id"],
-                    name=data["chore_name"],
-                    description=data["chore_description"],
-                    icon=data["chore_icon"],
-                    valuation=data["chore_valuation"],
-                ),
+                completed_at=data["chore_completion_completed_at"],
+                status=data["chore_completion_status"],
             )
             for data in raw_data
         ]
         return chores_completions
 
     async def get_family_chore_completion_detail(
-        self, chore_completion_id: UUID,
-    ) -> ChoreCompletionDetailShow:
+        self,
+        chore_completion_id: UUID,
+    ) -> NewChoreCompletionDetail:
         confirm_user = aliased(User)
 
-        query = (   
+        query = (
             select(
-                ChoreCompletion.id.label('chore_completion_id'),
-                Chore.id.label('chore_id'),
-                Chore.name.label('chore_name'),
-                Chore.description.label('chore_description'),
-                Chore.icon.label('chore_icon'),
-                Chore.valuation.label('chore_valuation'),
-                User.id.label('completed_by_id'),
-                User.username.label('completed_by_username'),
-                User.name.label('completed_by_name'),
-                User.surname.label('completed_by_surname'),
-                ChoreCompletion.created_at.label('chore_completion_completed_at'),
-                ChoreCompletion.message.label('chore_completion_msg'),
-                ChoreCompletion.status.label('chore_completion_status'),
+                ChoreCompletion.id.label("chore_completion_id"),
+                Chore.id.label("chore_id"),
+                Chore.name.label("chore_name"),
+                Chore.icon.label("chore_icon"),
+                Chore.valuation.label("chore_valuation"),
+                User.id.label("completed_by_id"),
+                User.username.label("completed_by_username"),
+                User.name.label("completed_by_name"),
+                User.surname.label("completed_by_surname"),
+                ChoreCompletion.created_at.label("chore_completion_completed_at"),
+                ChoreCompletion.message.label("chore_completion_msg"),
+                ChoreCompletion.status.label("chore_completion_status"),
                 func.json_agg(
                     func.json_build_object(
-                        'id', ChoreConfirmation.id,
-                        'user', func.json_build_object(
-                            'id', confirm_user.id,
-                            'username', confirm_user.username,
-                            'name', confirm_user.name,
-                            'surname', confirm_user.surname
+                        "id",
+                        ChoreConfirmation.id,
+                        "user",
+                        func.json_build_object(
+                            "id",
+                            confirm_user.id,
+                            "username",
+                            confirm_user.username,
+                            "name",
+                            confirm_user.name,
+                            "surname",
+                            confirm_user.surname,
                         ),
-                        'status', ChoreConfirmation.status
+                        "status",
+                        ChoreConfirmation.status,
                     )
-                ).label('confirmed_by')
+                ).label("confirmed_by"),
             )
             .join(User, ChoreCompletion.completed_by_id == User.id)
             .join(Chore, ChoreCompletion.chore_id == Chore.id)
-            .join(ChoreConfirmation, ChoreCompletion.id == ChoreConfirmation.chore_completion_id)
-            .join(confirm_user, ChoreConfirmation.user_id == confirm_user.id)
+            .outerjoin(
+                ChoreConfirmation,
+                ChoreCompletion.id == ChoreConfirmation.chore_completion_id,
+            )
+            .outerjoin(confirm_user, ChoreConfirmation.user_id == confirm_user.id)
             .where(ChoreCompletion.id == chore_completion_id)
             .group_by(ChoreCompletion.id, Chore.id, User.id)
         )
 
         query_result = await self.db_session.execute(query)
         item = query_result.mappings().first()
-
         if not item:
-            return None 
+            return None
 
-        return ChoreCompletionDetailShow(
-            id=item['chore_completion_id'],
-            chore=ChoreShow(
-                id=item['chore_id'],
-                name=item['chore_name'],
-                description=item['chore_description'],
-                icon=item['chore_icon'],
-                valuation=item['chore_valuation']
+        return NewChoreCompletionDetail(
+            id=item["chore_completion_id"],
+            chore=NewChoreSummary(
+                id=item["chore_id"],
+                name=item["chore_name"],
+                icon=item["chore_icon"],
+                valuation=item["chore_valuation"],
             ),
             completed_by=UserResponse(
-                id=item['completed_by_id'],
-                username=item['completed_by_username'],
-                name=item['completed_by_name'],
-                surname=item['completed_by_surname']
+                id=item["completed_by_id"],
+                username=item["completed_by_username"],
+                name=item["completed_by_name"],
+                surname=item["completed_by_surname"],
             ),
-            completed_at=item['chore_completion_completed_at'],
-            message=item['chore_completion_msg'],
-            status=item['chore_completion_status'],
+            completed_at=item["chore_completion_completed_at"],
+            message=item["chore_completion_msg"],
+            status=item["chore_completion_status"],
             confirmed_by=[
-                ChoreCompletionConfirmation(
-                    id=confirm['id'],
-                    user=UserResponse(**confirm['user']),
-                    status=confirm['status']
+                (
+                    NewChoreConfirmationSummary(
+                        id=confirm["id"],
+                        user=UserResponse(**confirm["user"]),
+                        status=confirm["status"],
+                    )
+                    if confirm["id"]
+                    else None
                 )
-                for confirm in item['confirmed_by']
-            ]
+                for confirm in item["confirmed_by"]
+            ],
         )
-

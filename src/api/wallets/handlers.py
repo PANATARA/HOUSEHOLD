@@ -11,7 +11,7 @@ from db.models.user import User
 from db.session import get_db
 from logging import getLogger
 
-from schemas.wallets import CoinTransactionLog, MoneyTransfer, ShowWallet, WalletTransactionLog
+from schemas.wallets import MoneyTransfer, ShowWalletBalance, WalletTransactionLog
 
 logger = getLogger(__name__)
 
@@ -20,12 +20,12 @@ wallet_router = APIRouter()
 
 # Get user wallet
 @wallet_router.get(
-    path="", response_model=ShowWallet, summary="Get user wallet information"
+    path="", response_model=ShowWalletBalance, summary="Get user wallet information"
 )
 async def get_user_wallet(
     current_user: User = Depends(get_current_user_from_token),
     db: AsyncSession = Depends(get_db),
-) -> ShowWallet:
+) -> ShowWalletBalance:
 
     return await _get_user_wallet(current_user, db)
 

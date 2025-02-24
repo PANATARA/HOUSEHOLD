@@ -1,35 +1,27 @@
+from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
-from pydantic import BaseModel
-
-class TunedModel(BaseModel):
-    class Config:
-        """tells pydantic to convert even non dict obj to json"""
-
-        from_attributes = True
-
-class ChoreCreate(BaseModel):
-    name: str
-    description: str
-    icon: str
-    valuation: int
+from pydantic import BaseModel, Field
 
 
-class ChoreShow(TunedModel):
-    id: UUID
-    name: str
-    description: str
-    icon: str
-    valuation: int
+class NewChoreCreate(BaseModel):
+    name: str = Field(max_length=32)
+    description: str = Field(max_length=128)
+    icon: str = Field(max_length=64)
+    valuation: Decimal
 
-class ChoreShort(TunedModel):
+
+class NewChoreSummary(BaseModel):
     id: UUID
     name: str
     icon: str
+    valuation: Decimal
 
-class ChoresResponse(BaseModel):
-    chores: list[ChoreShow]
 
-    class Config:
-        orm_mode = True
-        from_attributes = True 
-
+class NewChoreDetail(BaseModel):
+    id: UUID
+    name: str
+    description: str
+    icon: str = Field
+    valuation: Decimal
+    created_at: datetime

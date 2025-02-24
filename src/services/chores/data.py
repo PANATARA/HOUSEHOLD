@@ -4,13 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 
-from db.dals.chores import AsyncChoreDAL
-from db.dals.families import AsyncFamilyDAL
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
-from schemas.chores import ChoreShow, ChoresResponse
-from schemas.chores_logs import ChoreConfirmation, ChoreCompletionShow
-from schemas.families import FamilyFullShow
+from schemas.chores import NewChoreSummary
+from schemas.chores_completions import (
+    NewChoreConfirmationDetail,
+    NewChoreCompletionSummary,
+)
 from schemas.users import UserResponse
 
 
@@ -20,27 +20,22 @@ class ChoreDataService:
 
     db_session: AsyncSession
 
-    async def get_family_chores(self, family_id: UUID):
+    async def get_family_chores(self, family_id: UUID) -> list[NewChoreSummary]:
         """Returns a pydantic model of the chores"""
-        chore_dal = AsyncChoreDAL(self.db_session)
-        rows = await chore_dal.get_family_chores(family_id)
+        query = select(
+            Chore.id,
+            Chore.name,
+            Chore.icon,
+            Chore.valuation,
+        ).where(Chore.family_id == family_id)
 
-        if not rows:
+        query_result = await self.db_session.execute(query)
+        raw_data = query_result.mappings().all()
+
+        if not raw_data:
             return None
 
-        chores = [
-            ChoreShow(
-                id=row["chore_id"],
-                name=row["chore_name"],
-                description=row["chore_description"],
-                icon=row["chore_icon"],
-                valuation=row["chore_valuation"],
-            )
-            for row in rows
-        ]
-        
-        return ChoresResponse(chores=chores)
-
+        return [NewChoreSummary.model_validate(item) for item in raw_data]
 
 
 @dataclass
@@ -49,7 +44,9 @@ class ChoreConfirmationDataService:
 
     db_session: AsyncSession
 
-    async def get_user_chore_confirmations(self, user_id) -> list[ChoreConfirmation]:
+    async def get_user_chore_confirmations(
+        self, user_id: UUID
+    ) -> list[NewChoreConfirmationDetail]:
         clc = aliased(ChoreConfirmation)
         cl = aliased(ChoreCompletion)
         c = aliased(Chore)
@@ -61,7 +58,6 @@ class ChoreConfirmationDataService:
                 clc.status.label("chore_confirmation_status"),
                 clc.created_at.label("chore_confirmation_created_at"),
                 cl.id.label("chore_completion_id"),
-                cl.message.label("chore_completion_message"),
                 cl.created_at.label("chore_completion_completed_at"),
                 cl.status.label("chore_completion_status"),
                 u.id.label("completed_by_id"),
@@ -70,7 +66,6 @@ class ChoreConfirmationDataService:
                 u.surname.label("completed_by_surname"),
                 c.id.label("chore_id"),
                 c.name.label("chore_name"),
-                c.description.label("chore_description"),
                 c.icon.label("chore_icon"),
                 c.valuation.label("chore_valuation"),
             )
@@ -84,30 +79,28 @@ class ChoreConfirmationDataService:
         raw_data = query_result.mappings().all()
 
         confirmations = [
-            ChoreConfirmation(
+            NewChoreConfirmationDetail(
                 id=data["chore_confirmation_id"],
                 status=data["chore_confirmation_status"],
-                chore_completion=ChoreCompletionShow(
+                chore_completion=NewChoreCompletionSummary(
                     id=data["chore_completion_id"],
                     completed_at=data["chore_completion_completed_at"],
-                    message=data["chore_completion_message"],
                     status=data["chore_completion_status"],
                     completed_by=UserResponse(
                         id=data["completed_by_id"],
                         username=data["completed_by_username"],
                         name=data["completed_by_name"],
-                        surname=data["completed_by_surname"]
+                        surname=data["completed_by_surname"],
                     ),
-                    chore=ChoreShow(
+                    chore=NewChoreSummary(
                         id=data["chore_id"],
                         name=data["chore_name"],
-                        description=data["chore_description"],
                         icon=data["chore_icon"],
-                        valuation=data["chore_valuation"]
-                    )
-                )
+                        valuation=data["chore_valuation"],
+                    ),
+                ),
             )
             for data in raw_data
         ]
 
-        return confirmations 
+        return confirmations

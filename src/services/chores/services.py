@@ -5,20 +5,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.load_seed_data import load_seed_data
 from core.services import BaseService
 from db.dals.chores import AsyncChoreDAL
+from db.models.chore import Chore
 from db.models.family import Family
-from schemas.chores import ChoreCreate
+from schemas.chores import NewChoreCreate
 
 @dataclass
 class ChoreCreatorService(BaseService):
     """Create and return a new Family"""
     family: Family | UUID
     db_session: AsyncSession
-    data: ChoreCreate | list[ChoreCreate]
+    data: NewChoreCreate | list[NewChoreCreate]
 
     async def execute(self) -> None:
         return await self._create_chores()
     
-    async def _create_chores(self):
+    async def _create_chores(self) -> Chore | None:
         chore_dal = AsyncChoreDAL(self.db_session)
         if isinstance(self.data, list):
             return await chore_dal.create_chores_many(
@@ -26,16 +27,21 @@ class ChoreCreatorService(BaseService):
                 self.data
             )
         else:
-            return await chore_dal.create_chore(
-                self.family, 
-                self.data
+            return await chore_dal.create(
+                fields={
+                    "name": self.data.name,
+                    "description": self.data.description,
+                    "icon": self.data.icon,
+                    "valuation": self.data.valuation,
+                    "family_id": self.family,
+                }
             )
     
-async def get_default_chore_data() -> list[ChoreCreate]:
+async def get_default_chore_data() -> list[NewChoreCreate]:
     chores = await load_seed_data("seed_data.json")
     data = []
     for chore in chores:
-        data.append(ChoreCreate(
+        data.append(NewChoreCreate(
             name=chore["name"],
             description=chore["description"],
             icon=chore["icon"],

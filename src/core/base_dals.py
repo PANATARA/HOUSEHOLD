@@ -28,6 +28,7 @@ class BaseDals:
         object = self.Meta.model(**fields)
         self.db_session.add(object)
         await self.db_session.flush()
+        await self.db_session.refresh(object)
         return object
 
     async def update(self, object_id: UUID | Base, fields: dict)-> Base | None:

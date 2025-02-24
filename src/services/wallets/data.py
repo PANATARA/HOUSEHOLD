@@ -8,10 +8,10 @@ from core.constants import WalletTransactionENUM
 from db.models.chore import Chore, ChoreCompletion
 from db.models.user import User
 from db.models.wallet import TransactionLog, Wallet
-from schemas.chores import ChoreShort
-from schemas.chores_logs import ChoreCompletionShort
+from schemas.chores import NewChoreSummary
+from schemas.chores_completions import NewChoreCompletionSummaryLite
 from schemas.users import UserResponse
-from schemas.wallets import CoinTransactionLog, ShowWallet, WalletTransactionLog
+from schemas.wallets import ShowWalletBalance, WalletTransactionLog
 
 
 @dataclass
@@ -20,7 +20,7 @@ class WalletDataService:
 
     db_session: AsyncSession
 
-    async def get_user_wallet(self, user_id: UUID) -> ShowWallet:
+    async def get_user_wallet(self, user_id: UUID) -> ShowWalletBalance:
         """Returns a pydantic model of the user wallet"""
         result = await self.db_session.execute(
             select(
@@ -34,7 +34,7 @@ class WalletDataService:
         if not rows:
             return None
 
-        wallet = ShowWallet(
+        wallet = ShowWalletBalance(
             id=rows["wallet_id"],
             balance=rows["wallet_balance"],
         )
@@ -49,7 +49,7 @@ class TransactionDataService:
 
     async def get_user_transactions(
         self, user_id: UUID, offset: int, limit: int
-    ) -> list[CoinTransactionLog]:
+    ) -> list[WalletTransactionLog]:
         wt = aliased(TransactionLog)
 
         query = (
@@ -79,7 +79,8 @@ class TransactionDataService:
                 ChoreCompletion.created_at.label("chore_completion_created_at"),
                 Chore.id.label("chore_completion_chore_id"),
                 Chore.name.label("chore_completion_chore_name"),
-                Chore.icon.label("chore_completion_chore_icon")
+                Chore.icon.label("chore_completion_chore_icon"),
+                Chore.valuation.label("chore_completion_chore_valuation")
             )
             .outerjoin(
                 User, 
@@ -113,12 +114,13 @@ class TransactionDataService:
                     name=item["user_name"],
                     surname=item["user_surname"],
                 ) if item["user_id"] else None,
-                chore_completion = ChoreCompletionShort(
+                chore_completion = NewChoreCompletionSummaryLite(
                     id=item["chore_completion_id"],
-                    chore=ChoreShort(
+                    chore=NewChoreSummary(
                         id = item["chore_completion_chore_id"],
                         name = item["chore_completion_chore_name"],
                         icon = item["chore_completion_chore_icon"],
+                        valuation = item["chore_completion_chore_valuation"],
                     ),
                     completed_at=item["chore_completion_created_at"]
                 ) if item["chore_completion_id"] else None,

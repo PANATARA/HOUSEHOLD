@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from core.exceptions import NoSuchUserFoundInThefamily, NotEnoughCoins
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
-from schemas.wallets import CoinTransactionLog, MoneyTransfer, ShowWallet, WalletTransactionLog
+from schemas.wallets import MoneyTransfer, ShowWalletBalance, WalletTransactionLog
 from services.wallets.data import TransactionDataService, WalletDataService
 from services.wallets.services import CoinsTransferService
 
@@ -15,7 +15,7 @@ logger = getLogger(__name__)
 
 
 # Get user wallet
-async def _get_user_wallet(user: User, async_session: AsyncSession) -> ShowWallet:
+async def _get_user_wallet(user: User, async_session: AsyncSession) -> ShowWalletBalance:
     async with async_session.begin():
         wallet_data = await WalletDataService(async_session).get_user_wallet(
             user_id=user.id
