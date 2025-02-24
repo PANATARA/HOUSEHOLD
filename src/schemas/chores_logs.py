@@ -3,9 +3,8 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from core.constants import StatusConfirmENUM
-from schemas.chores import ChoreShow
+from schemas.chores import ChoreShort, ChoreShow
 from schemas.users import UserResponse
-from schemas.wallets import CoinTransactionLog
 
 class ChoreCompletionCreate(BaseModel):
     chore_id: UUID
@@ -25,6 +24,10 @@ class ChoreCompletionShow(BaseModel):
     message: str
     status: str
 
+class ChoreCompletionShort(BaseModel):
+    id: UUID
+    chore: ChoreShort
+    completed_at: datetime
 
 class ChoreConfirmation(BaseModel):
     id: UUID

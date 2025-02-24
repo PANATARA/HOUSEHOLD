@@ -3,6 +3,11 @@ from pydantic import BaseModel, field_validator
 from decimal import Decimal
 from datetime import datetime
 
+from sqlalchemy import UUID
+
+from schemas.chores_logs import ChoreCompletionShort
+from schemas.users import UserResponse
+
 
 class ShowWallet(BaseModel):
     id: uuid.UUID
@@ -29,3 +34,11 @@ class CoinTransactionLog(BaseModel):
     other_user_surname: str
     datetime: datetime
     coins: Decimal
+
+class WalletTransactionLog(BaseModel):
+    description: str
+    transaction_type: str
+    coins: Decimal
+    user: UserResponse | None
+    # product: UUID | None
+    chore_completion: ChoreCompletionShort | None 

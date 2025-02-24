@@ -16,7 +16,7 @@ class TunedModel(BaseModel):
 
 class UserResponse(TunedModel):
     id: uuid.UUID
-    username: str
+    username: str 
     name: str
     surname: str
 

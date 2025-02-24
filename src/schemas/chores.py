@@ -21,6 +21,10 @@ class ChoreShow(TunedModel):
     icon: str
     valuation: int
 
+class ChoreShort(TunedModel):
+    id: UUID
+    name: str
+    icon: str
 
 class ChoresResponse(BaseModel):
     chores: list[ChoreShow]

@@ -1,10 +1,17 @@
 from uuid import UUID
 from dataclasses import dataclass
-from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import case, or_, select
+from sqlalchemy.orm import aliased
 
-from db.models.wallet import Wallet
-from schemas.wallets import CoinTransactionLog, ShowWallet
+from core.constants import WalletTransactionENUM
+from db.models.chore import Chore, ChoreCompletion
+from db.models.user import User
+from db.models.wallet import TransactionLog, Wallet
+from schemas.chores import ChoreShort
+from schemas.chores_logs import ChoreCompletionShort
+from schemas.users import UserResponse
+from schemas.wallets import CoinTransactionLog, ShowWallet, WalletTransactionLog
 
 
 @dataclass
@@ -43,42 +50,78 @@ class TransactionDataService:
     async def get_user_transactions(
         self, user_id: UUID, offset: int, limit: int
     ) -> list[CoinTransactionLog]:
-        query = text(
-            """ 
-        SELECT
-            CASE 
-                WHEN wt.transaction_type = 0 AND wt.from_user_id = :user_id THEN 'purchase'
-                WHEN wt.transaction_type = 0 AND wt.to_user_id = :user_id THEN 'selling'
-                WHEN wt.transaction_type = 1 AND wt.to_user_id = :user_id THEN 'earning'
-                WHEN wt.transaction_type = 2 AND wt.from_user_id = :user_id THEN 'outgoing transfer'
-                WHEN wt.transaction_type = 2 AND wt.to_user_id = :user_id THEN 'incoming transfer'
-                ELSE 'unknown'
-            END AS "transaction_type",
-            wt.description AS "message",
-            CASE 
-                WHEN wt.from_user_id = :user_id THEN wt.to_user_id
-                ELSE wt.from_user_id
-            END AS "transaction_with_user_id",
-            u.username AS "other_user_username",
-            u."name" AS "other_user_name",
-            u.surname AS "other_user_surname",
-            wt.created_at AS "datetime",
-            wt.coins AS "coins"
-        FROM wallets_transactions wt
-        JOIN users u ON 
-            (wt.from_user_id = u.id AND wt.from_user_id <> :user_id) 
-            OR 
-            (wt.to_user_id = u.id AND wt.to_user_id <> :user_id)
-        WHERE 
-            wt.from_user_id = :user_id 
-            OR wt.to_user_id = :user_id
-        ORDER BY wt.created_at DESC
-        LIMIT :limit OFFSET :offset;
-        """
-        )
-        result = await self.db_session.execute(
-            query, {"user_id": user_id, "limit": limit, "offset": offset}
-        )
-        raw_data = result.mappings().all()
+        wt = aliased(TransactionLog)
 
-        return [CoinTransactionLog.model_validate(item) for item in raw_data]
+        query = (
+            select(
+                case(
+                    (wt.transaction_type == WalletTransactionENUM.purchase.value, case(
+                        (wt.from_user_id == user_id, 'purchase'),
+                        (wt.to_user_id == user_id, 'selling'),
+                    )),
+                    (wt.transaction_type == WalletTransactionENUM.income.value, case(
+                        (wt.to_user_id == user_id, 'earning'),
+                    )),
+                    (wt.transaction_type == WalletTransactionENUM.transfer.value, case(
+                        (wt.from_user_id == user_id, 'outgoing transfer'),
+                        (wt.to_user_id == user_id, 'incoming transfer'),
+                    )),
+                    else_='unknown'
+                ).label("transaction_type"),
+                wt.description.label("message"),
+                wt.created_at.label("datetime"),
+                wt.coins.label("coins"),
+                User.id.label("user_id"),
+                User.username.label("user_username"),
+                User.name.label("user_name"),
+                User.surname.label("user_surname"),
+                ChoreCompletion.id.label("chore_completion_id"),
+                ChoreCompletion.created_at.label("chore_completion_created_at"),
+                Chore.id.label("chore_completion_chore_id"),
+                Chore.name.label("chore_completion_chore_name"),
+                Chore.icon.label("chore_completion_chore_icon")
+            )
+            .outerjoin(
+                User, 
+                or_(
+                    (wt.from_user_id == User.id) & (wt.from_user_id != user_id),
+                    (wt.to_user_id == User.id) & (wt.to_user_id != user_id)
+                )
+            )
+            .outerjoin(
+                ChoreCompletion, wt.chore_completion_id==ChoreCompletion.id
+            )
+            .outerjoin(
+                Chore, ChoreCompletion.chore_id==Chore.id
+            )
+            .where((wt.from_user_id == user_id) | (wt.to_user_id == user_id))
+            .order_by(wt.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        query_result = await self.db_session.execute(query)
+        raw_data = query_result.mappings().all()
+
+        return [
+            WalletTransactionLog(
+                description = item["message"],
+                transaction_type = item["transaction_type"],
+                coins = item["coins"],
+                user = UserResponse(
+                    id=item["user_id"],
+                    username=item["user_username"],
+                    name=item["user_name"],
+                    surname=item["user_surname"],
+                ) if item["user_id"] else None,
+                chore_completion = ChoreCompletionShort(
+                    id=item["chore_completion_id"],
+                    chore=ChoreShort(
+                        id = item["chore_completion_chore_id"],
+                        name = item["chore_completion_chore_name"],
+                        icon = item["chore_completion_chore_icon"],
+                    ),
+                    completed_at=item["chore_completion_created_at"]
+                ) if item["chore_completion_id"] else None,
+            )
+            for item in raw_data
+        ]
