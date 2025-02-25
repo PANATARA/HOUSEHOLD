@@ -30,12 +30,6 @@ class FamilyFullShow(BaseModel):
 
 class UserInviteParametr(BaseModel):
     should_confirm_chore_completion: bool
-    should_confirm_creating_chore: bool
-    can_create_chore: bool
-    can_change_family_name: bool
-    can_kick_user: bool
-    can_invite_users: bool
-    can_promote_user: bool
 
 
 class InviteToken(BaseModel):

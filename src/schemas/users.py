@@ -1,5 +1,6 @@
+from datetime import datetime
 import re
-import uuid
+from uuid import UUID
 from fastapi import HTTPException
 from pydantic import BaseModel, field_validator
 
@@ -14,7 +15,7 @@ class TunedModel(BaseModel):
 
 
 class UserResponse(TunedModel):
-    id: uuid.UUID
+    id: UUID
     username: str 
     name: str
     surname: str
@@ -71,14 +72,17 @@ class UserUpdate(BaseModel):
 
 class UserFamilyPermissionModel(BaseModel):
     should_confirm_chore_completion: bool
-    should_confirm_creating_chore: bool
-    can_create_chore: bool
-    can_change_family_name: bool
-    can_kick_user: bool
-    can_invite_users: bool
-    can_promote_user: bool
 
 
 class UserSettingsShow(BaseModel):
-    user_id: uuid.UUID
+    user_id: UUID
     app_theme: str
+
+
+class UserDetail(BaseModel):
+    id: UUID
+    username:str
+    name: str
+    surname: str
+    created_at: datetime
+    updated_at: datetime

@@ -7,22 +7,10 @@ default_user_settings = {
 
 default_admin_permissions = {
     "should_confirm_chore_completion": True,
-    "should_confirm_creating_chore": True,
-    "can_create_chore": True,
-    "can_change_family_name": True,
-    "can_kick_user": True,
-    "can_invite_users": True,
-    "can_promote_user": True,
 }
 
 default_user_permissions = {
     "should_confirm_chore_completion": False,
-    "should_confirm_creating_chore": False,
-    "can_create_chore": False,
-    "can_change_family_name": False,
-    "can_kick_user": False,
-    "can_invite_users": False,
-    "can_promote_user": False,
 }
 from abc import abstractmethod
 

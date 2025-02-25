@@ -131,7 +131,6 @@ async def _join_to_family(
             family=family,
             user=user,
             permissions=user_permissions,
-            is_family_admin=False,
             db_session=async_session,
         )
         try:

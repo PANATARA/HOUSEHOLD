@@ -18,7 +18,6 @@ class User(Base, BaseModel):
             ondelete="SET NULL",
         )
     )
-    is_family_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 
     hashed_password: Mapped[str]
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -61,13 +60,6 @@ class UserFamilyPermissions(Base, BaseModel):
             ondelete="CASCADE",
         )
     )
-    user: Mapped["User"] = relationship("User", back_populates="permissions")
-    
     should_confirm_chore_completion: Mapped[bool]
-    should_confirm_creating_chore: Mapped[bool]
     
-    can_create_chore: Mapped[bool]
-    can_change_family_name: Mapped[bool]
-    can_kick_user: Mapped[bool]
-    can_invite_users: Mapped[bool]
-    can_promote_user: Mapped[bool]
+    user: Mapped["User"] = relationship("User", back_populates="permissions")

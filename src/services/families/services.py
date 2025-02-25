@@ -6,7 +6,6 @@ from core.exceptions import UserCannotLeaveFamily
 from core.services import BaseService
 from core import constants
 from db.dals.families import AsyncFamilyDAL
-from db.dals.families_settings import AsyncFamilySettingsDAL
 from db.dals.users import AsyncUserDAL, AsyncUserFamilyPermissionsDAL
 from db.models.family import Family
 from db.models.user import User, UserFamilyPermissions
@@ -27,12 +26,11 @@ class FamilyCreatorService(BaseService):
         family = await self._create_family()
         await self._add_user_to_family(family)
         await self._create_default_family_chore(family)
-        await self._create_family_settings(family.id)
         return family
     
     async def _create_family(self) -> Family:
         family_dal = AsyncFamilyDAL(self.db_session)
-        new_family = await family_dal.create({"name": self.name})
+        new_family = await family_dal.create({"name": self.name, "family_admin_id": self.user.id})
         return new_family
 
     async def _add_user_to_family(self, family: Family) -> None:
@@ -40,7 +38,6 @@ class FamilyCreatorService(BaseService):
             family=family, 
             user=self.user,
             permissions=UserFamilyPermissionModel(**constants.default_admin_permissions),
-            is_family_admin=True,
             db_session=self.db_session
         )
         await new_member()
@@ -49,10 +46,6 @@ class FamilyCreatorService(BaseService):
         data = await get_default_chore_data()
         default_chores = ChoreCreatorService(family, self.db_session, data)
         return await default_chores()
-
-    async def _create_family_settings(self, family_id: UUID) -> None:
-        settings_dal = AsyncFamilySettingsDAL(self.db_session)
-        await settings_dal.create({"family_id": family_id})
 
     async def validate(self):
         "Validate the user is not a member of any family"
@@ -64,7 +57,6 @@ class AddUserToFamilyService(BaseService):
     family: Family
     user: User
     permissions: UserFamilyPermissionModel
-    is_family_admin: bool
     db_session: AsyncSession
 
     async def execute(self) -> Family:
@@ -75,7 +67,7 @@ class AddUserToFamilyService(BaseService):
 
     async def _add_user_to_family(self) -> Family:
         user_dal = AsyncUserDAL(self.db_session)
-        await user_dal.update(self.user, {"family_id" : self.family.id, "is_family_admin": self.is_family_admin})
+        await user_dal.update(self.user, {"family_id" : self.family.id})
 
     async def _create_permissions(self, fields: dict) -> UserFamilyPermissions:
         perm_dal = AsyncUserFamilyPermissionsDAL(self.db_session)
@@ -118,7 +110,8 @@ class LogoutUserFromFamilyService(BaseService):
         pass
 
     async def validate(self):
-       if self.user.is_family_admin:
+       family_dal = AsyncFamilyDAL(self.db_session)
+       if family_dal.user_is_family_admin(self.user.id, self.user.family_id):
            raise UserCannotLeaveFamily()
        
 

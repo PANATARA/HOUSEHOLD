@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas.users import UserResponse, UserCreate, UserSettingsShow, UserUpdate
+from schemas.users import UserDetail, UserResponse, UserCreate, UserSettingsShow, UserUpdate
 from db.dals.users import AsyncUserDAL
 from logging import getLogger
 
@@ -32,11 +32,13 @@ async def _create_new_user(body: UserCreate, async_session: AsyncSession) -> Use
 
 
 async def show_user(user: User) -> UserResponse:
-    return UserResponse(
+    return UserDetail(
         id=user.id,
         username=user.username,
         name=user.name,
         surname=user.surname,
+        created_at = user.created_at,
+        updated_at=user.updated_at
     )
 
 async def _update_user(user: User, body: UserUpdate, async_session: AsyncSession) -> UserResponse:
