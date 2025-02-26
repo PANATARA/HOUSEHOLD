@@ -1,4 +1,5 @@
 from datetime import timedelta
+from uuid import UUID
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,7 +8,7 @@ from jose import JWTError
 from starlette import status
 
 from config import auth_token
-from core.exceptions import UserCannotLeaveFamily
+from core.exceptions import UserCannotLeaveFamily, user_not_found
 from core.qr_code import get_qr_code
 from core.security import create_access_token
 from db.dals.families import AsyncFamilyDAL
@@ -145,3 +146,20 @@ async def _join_to_family(
             content={"message": "You have been successfully added to the family"},
             status_code=status.HTTP_200_OK
         )
+
+async def _change_family_admin(
+    new_admin_id: UUID, user: User,async_session: AsyncSession
+) -> JSONResponse:
+    async with async_session.begin():
+        family_dal = AsyncFamilyDAL(async_session)
+        if await family_dal.user_is_family_member(new_admin_id, user.family_id):
+            await family_dal.update(
+                object_id=user.family_id,
+                fields={"family_admin_id": new_admin_id}
+            )
+        else:
+            raise user_not_found
+    return JSONResponse(
+        content={"detail": "New family administrator appointed"},
+        status_code=status.HTTP_200_OK
+    )

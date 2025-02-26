@@ -25,6 +25,15 @@ class AsyncFamilyDAL(BaseDals):
         result = await self.db_session.execute(query)
         return result.scalar()
 
+    async def user_is_family_member(self, user_id: UUID, family_id: UUID) -> bool:
+        query = select(
+            exists().where(
+                and_(User.id == user_id, User.family_id == family_id)
+            )
+        )
+        result = await self.db_session.execute(query)
+        return result.scalar()
+        
     async def get_users_should_confirm_chore_completion(
         self, family_id: UUID, excluded_user_ids: list[UUID]
     ) -> list[UUID] | None:
