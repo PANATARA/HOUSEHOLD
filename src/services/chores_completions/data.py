@@ -8,12 +8,10 @@ from sqlalchemy.sql import func
 
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
-from schemas.chores import NewChoreSummary
-from schemas.chores_completions import (
-    NewChoreCompletionDetail,
-    NewChoreCompletionSummary,
-    NewChoreConfirmationSummary,
-)
+from schemas.chores.chores import NewChoreSummary
+from schemas.chores.chores_completions import NewChoreCompletionSummary
+from schemas.chores.chores_confirmations import NewChoreConfirmationSummary
+from schemas.chores.compositions import NewChoreCompletionDetail
 from schemas.users import UserResponse
 
 

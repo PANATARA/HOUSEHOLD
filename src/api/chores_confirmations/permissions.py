@@ -1,10 +1,11 @@
 from uuid import UUID
 from fastapi import Depends
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.auth_actions import get_user_id_from_token, oauth2_scheme
+from api.auth.actions import oauth2_scheme
+from core.security import get_user_id_from_token
 from db.models import User
 from db.models.chore import ChoreConfirmation
 from db.session import get_db
@@ -18,10 +19,12 @@ async def get_user_and_check_chore_confirmation_permission(
     async with db.begin():
         query = (
             select(User)
-            .join(ChoreConfirmation, ChoreConfirmation.user_id == User.id)
             .where(
-                User.id == user_id, 
-                ChoreConfirmation.id == chore_confirmation_id
+                User.id == user_id,
+                exists().where(
+                    (ChoreConfirmation.user_id == User.id) &
+                    (ChoreConfirmation.id == chore_confirmation_id)
+                )
             )
         )
         

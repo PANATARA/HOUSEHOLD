@@ -2,16 +2,17 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.auth_actions import get_current_user_from_token
-from api.chores_completions.actions import _create_chore_completion, _get_family_chore_completion_detail, _get_family_chores_completions
 from api.chores_completions.permissions import get_user_and_check_chore_completion_permission
+from core.security import get_current_user_from_token
 from db.models.user import User
 from db.session import get_db
-from schemas.chores_completions import NewChoreCompletionCreate, NewChoreCompletionDetail, NewChoreCompletionSummary
+from schemas.chores.chores_completions import NewChoreCompletionCreate, NewChoreCompletionSummary
+from schemas.chores.compositions import NewChoreCompletionDetail
+from services.chores_completions.services import CreateChoreCompletion
+from services.chores_completions.data import ChoreCompletionDataService
 
 
 from logging import getLogger
-
 logger = getLogger(__name__)
 
 chores_completions_router = APIRouter()
@@ -21,13 +22,19 @@ chores_completions_router = APIRouter()
 async def create_chore_completion(
     body: NewChoreCompletionCreate,
     current_user: User = Depends(get_current_user_from_token), 
-    db: AsyncSession = Depends(get_db)
+    async_session: AsyncSession = Depends(get_db)
 ) -> Response:
     
-    return await _create_chore_completion(
-        body=body,
-        user=current_user,
-        async_session=db
+    async with async_session.begin():
+        creator_service = CreateChoreCompletion(
+            user=current_user,
+            chore_id=body.chore_id,
+            message=body.message,
+            db_session=async_session,
+        )
+        await creator_service()
+    return Response(
+        status_code=204,
     )
 
 # Get family's chores completions
@@ -36,15 +43,14 @@ async def get_family_chores_completions(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=50),
     current_user: User = Depends(get_current_user_from_token), 
-    db: AsyncSession = Depends(get_db)
+    async_session: AsyncSession = Depends(get_db)
 ) -> list[NewChoreCompletionSummary]:
     
-    return await _get_family_chores_completions(
-        page=page,
-        limit=limit,
-        user=current_user,
-        async_session=db
-    )
+    async with async_session.begin():
+        offset = (page - 1) * limit
+        data_service = ChoreCompletionDataService(async_session)
+        result = await data_service.get_family_chore_completion(current_user.family_id, offset, limit)
+        return result
 
 
 # Get family's chore completion detail
@@ -52,11 +58,10 @@ async def get_family_chores_completions(
 async def get_family_chore_completion_detail(
     chore_completion_id: UUID,
     current_user: User = Depends(get_user_and_check_chore_completion_permission), 
-    db: AsyncSession = Depends(get_db)
+    async_session: AsyncSession = Depends(get_db)
 ) -> NewChoreCompletionDetail:
     
-    return await _get_family_chore_completion_detail(
-        chore_completion_id=chore_completion_id,
-        user=current_user,
-        async_session=db
-    )
+    async with async_session.begin():
+        data_service = ChoreCompletionDataService(async_session)
+        result = await data_service.get_family_chore_completion_detail(chore_completion_id)
+        return result

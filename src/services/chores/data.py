@@ -1,3 +1,5 @@
+from collections import defaultdict
+from datetime import datetime
 from uuid import UUID
 from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,11 +8,9 @@ from sqlalchemy.orm import aliased
 
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
-from schemas.chores import NewChoreSummary
-from schemas.chores_completions import (
-    NewChoreConfirmationDetail,
-    NewChoreCompletionSummary,
-)
+from schemas.chores.chores import NewChoreDetail, NewChoreSummary
+from schemas.chores.chores_completions import NewChoreCompletion, NewChoreCompletionSummary
+from schemas.chores.compositions import NewChoreConfirmationDetail, NewChoreDetailMax
 from schemas.users import UserResponse
 
 
@@ -36,6 +36,70 @@ class ChoreDataService:
             return None
 
         return [NewChoreSummary.model_validate(item) for item in raw_data]
+    
+    async def get_family_chore_with_chore_completions(self, chore_id: UUID, limit: int, offset: int) -> list[NewChoreDetailMax]:
+        query = (
+            select(
+                Chore.id.label("chore_id"),
+                Chore.name.label("chore_name"),
+                Chore.description.label("chore_description"),
+                Chore.icon.label("chore_icon"),
+                Chore.valuation.label("chore_valuation"),
+                Chore.created_at.label("chore_created_at"),
+                ChoreCompletion.id.label("chore_completion_id"),
+                User.id.label("chore_completion_user_id"),
+                User.username.label("chore_completion_user_username"),
+                User.name.label("chore_completion_user_name"),
+                User.surname.label("chore_completion_user_surname"),
+                ChoreCompletion.created_at.label("chore_completion_completed_at"),
+                ChoreCompletion.status.label("chore_completion_status"),
+                ChoreCompletion.message.label("chore_completion_message")
+            )
+            .select_from(Chore)
+            .join(ChoreCompletion, ChoreCompletion.chore_id == Chore.id, isouter=True)
+            .join(User, User.id == ChoreCompletion.completed_by_id, isouter=True)
+            .where(Chore.id == chore_id)
+            .limit(limit)
+            .offset(offset) 
+        )
+
+        query_result = await self.db_session.execute(query)
+        raw_data = query_result.mappings().all()
+
+        chore_dict = defaultdict(lambda: {"chore": {}, "chores_completion": []})
+        for row in raw_data:
+            chore_id = row["chore_id"]
+            chore_dict[chore_id]["chore"] = {
+                "id": row["chore_id"],
+                "name": row["chore_name"],
+                "description": row["chore_description"],
+                "icon": row["chore_icon"],
+                "valuation": row["chore_valuation"],
+                "created_at": row["chore_created_at"]
+            }
+            chore_dict[chore_id]["chores_completion"].append(
+                {
+                    "id": row["chore_completion_id"],
+                    "completed_by": {
+                        "id": row["chore_completion_user_id"],
+                        "username": row["chore_completion_user_username"],
+                        "name": row["chore_completion_user_name"],
+                        "surname": row["chore_completion_user_surname"]
+                    },
+                    "completed_at": row["chore_completion_completed_at"],
+                    "status": row["chore_completion_status"],
+                    "message": row["chore_completion_message"]
+                    } if row["chore_completion_id"] else None
+            )
+
+        grouped_data = list(chore_dict.values())
+        chores_details = []
+
+        for item in grouped_data:
+            chores_details.append(
+                NewChoreDetailMax.model_validate(item)
+            )
+        return chores_details
 
 
 @dataclass

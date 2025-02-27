@@ -7,7 +7,7 @@ from core.services import BaseService
 from db.dals.chores import AsyncChoreDAL
 from db.models.chore import Chore
 from db.models.family import Family
-from schemas.chores import NewChoreCreate
+from schemas.chores.chores import NewChoreCreate
 
 @dataclass
 class ChoreCreatorService(BaseService):

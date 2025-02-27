@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import auth_token
-from api.auth.auth_actions import authenticate_user
+from api.auth.actions import authenticate_user
 from db.dals.families import AsyncFamilyDAL
 from schemas.auth import Token
 from db.session import get_db

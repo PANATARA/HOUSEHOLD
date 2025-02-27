@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from core.base_dals import BaseDals
 from db.models.chore import Chore
 from sqlalchemy import select
-from schemas.chores import NewChoreCreate
+from schemas.chores.chores import NewChoreCreate
 
 
 @dataclass

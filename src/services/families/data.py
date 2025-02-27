@@ -4,7 +4,6 @@ from pydantic import TypeAdapter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.dals.families import AsyncFamilyDAL
 from db.models.family import Family
 from db.models.user import User
 from schemas.families import FamilyFullShow

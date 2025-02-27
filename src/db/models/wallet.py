@@ -30,7 +30,7 @@ class TransactionLog(Base, BaseModel):
 
     description: Mapped[str]
     transaction_type = mapped_column(
-        Enum(name=WalletTransactionENUM.get_enum_name(), create_type=False, native_enum=False),
+        Enum(WalletTransactionENUM, name=WalletTransactionENUM.get_enum_name(), create_type=False, native_enum=False),
         nullable=False,
     )
     coins: Mapped[DECIMAL] = mapped_column(DECIMAL(10, 2), nullable=False)

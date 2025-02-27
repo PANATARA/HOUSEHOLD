@@ -1,18 +1,18 @@
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.auth_actions import get_current_user_from_token
-from api.wallets.wallets_actions import (
-    _get_user_transactions,
-    _get_user_wallet,
-    _money_transfer_wallet,
-)
+from core.exceptions import NoSuchUserFoundInThefamily, NotEnoughCoins
+from core.security import get_current_user_from_token
+from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from db.session import get_db
-from logging import getLogger
-
 from schemas.wallets import MoneyTransfer, ShowWalletBalance, WalletTransactionLog
+from services.wallets.data import TransactionDataService, WalletDataService
+from services.wallets.services import CoinsTransferService
 
+
+from logging import getLogger
 logger = getLogger(__name__)
 
 wallet_router = APIRouter()
@@ -24,10 +24,14 @@ wallet_router = APIRouter()
 )
 async def get_user_wallet(
     current_user: User = Depends(get_current_user_from_token),
-    db: AsyncSession = Depends(get_db),
+    async_session: AsyncSession = Depends(get_db),
 ) -> ShowWalletBalance:
 
-    return await _get_user_wallet(current_user, db)
+    async with async_session.begin():
+        wallet_data = await WalletDataService(async_session).get_user_wallet(
+            user_id=current_user.id
+        )
+        return wallet_data
 
 
 # Money transfer
@@ -35,10 +39,37 @@ async def get_user_wallet(
 async def money_transfer_wallet(
     body: MoneyTransfer,
     current_user: User = Depends(get_current_user_from_token),
-    db: AsyncSession = Depends(get_db),
-) -> None:
+    async_session: AsyncSession = Depends(get_db),
+) -> JSONResponse:
 
-    return await _money_transfer_wallet(body, current_user, db)
+    async with async_session.begin():
+        try:
+            user_dal = AsyncUserDAL(async_session)
+            to_user = await user_dal.get_by_id(body.to_user_id)
+
+            transfer_service = CoinsTransferService(
+                from_user=current_user,
+                to_user=to_user,
+                count=body.count,
+                message="Transferred you some coins",
+                db_session=async_session,
+            )
+            transaction_log = await transfer_service()
+        except NoSuchUserFoundInThefamily:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "No Such User Found In The family"},
+            )
+        except NotEnoughCoins:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "You don't have enough coins"},
+            )
+        
+        return JSONResponse(
+                status_code=200,
+                content={"detail": "The transaction was successful."},
+            )
 
 
 # Get transactions on user wallet
@@ -47,9 +78,16 @@ async def get_user_wallet(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=20),
     current_user: User = Depends(get_current_user_from_token),
-    db: AsyncSession = Depends(get_db),
+    async_session: AsyncSession = Depends(get_db)
 ) -> list[WalletTransactionLog]:
 
-    return await _get_user_transactions(
-        user=current_user, async_session=db, page=page, limit=limit
-    )
+    async with async_session.begin():
+        transactions_data = TransactionDataService(async_session)
+        offset = (page - 1) * limit
+        
+        user_transactions = await transactions_data.get_user_transactions(
+            user_id=current_user.id,
+            offset=offset,
+            limit=limit,
+        )
+        return user_transactions

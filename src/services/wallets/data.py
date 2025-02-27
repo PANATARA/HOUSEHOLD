@@ -8,8 +8,8 @@ from core.constants import WalletTransactionENUM
 from db.models.chore import Chore, ChoreCompletion
 from db.models.user import User
 from db.models.wallet import TransactionLog, Wallet
-from schemas.chores import NewChoreSummary
-from schemas.chores_completions import NewChoreCompletionSummaryLite
+from schemas.chores.chores import NewChoreSummary
+from schemas.chores.chores_completions import NewChoreCompletionSummaryLite
 from schemas.users import UserResponse
 from schemas.wallets import ShowWalletBalance, WalletTransactionLog
 

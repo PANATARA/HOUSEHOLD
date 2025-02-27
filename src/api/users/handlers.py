@@ -2,61 +2,100 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.auth_actions import get_current_user_from_token
-from api.users.users_actions import _create_new_user, _get_me_settings, _update_user, show_user
-from schemas.users import UserDetail, UserResponse, UserCreate, UserSettingsShow, UserUpdate
+from core.security import get_current_user_from_token
+from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from db.session import get_db
+from services.users.data import UserDataService
+from services.users.services import UserCreatorService
+from schemas.users import (
+    UserDetail,
+    UserResponse,
+    UserCreate,
+    UserSettingsShow,
+    UserUpdate,
+)
+
 from logging import getLogger
 
 logger = getLogger(__name__)
 
+from fastapi import APIRouter
 user_router = APIRouter()
+
 
 # Create new User
 @user_router.post("/", response_model=UserResponse)
-async def create_user(body: UserCreate, db: AsyncSession = Depends(get_db)) -> UserResponse:
-    try:
-        return await _create_new_user(body, db)
-    except IntegrityError as err:
-        logger.error(err)
-        raise HTTPException(status_code=503, detail=f"Database error: {err}")
-
-# Get user's profile (all info)
-@user_router.get("/me", response_model=UserDetail)
-async def me_user_get(
-    current_user: User = Depends(get_current_user_from_token)
-) -> UserDetail:
-    return await show_user(current_user)
-
-
-@user_router.patch("/", response_model=UserResponse)
-async def me__user_partial_update(
-    body: UserUpdate, 
-    current_user: User = Depends(get_current_user_from_token), 
-    db: AsyncSession = Depends(get_db)
+async def create_user(
+    body: UserCreate, async_session: AsyncSession = Depends(get_db)
 ) -> UserResponse:
-    
-    return await _update_user(
-        user=current_user, 
-        body=body, 
-        async_session=db
+    async with async_session.begin():
+        try:
+            service = UserCreatorService(
+                username=body.username,
+                name=body.name,
+                surname=body.surname,
+                password=body.password,
+                db_session=async_session,
+            )
+            user = await service()
+        except IntegrityError as err:
+            logger.error(err)
+            raise HTTPException(status_code=503, detail=f"Database error: {err}")
+
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        name=user.name,
+        surname=user.surname,
     )
 
 
-@user_router.delete("/")
-async def me_user_delete( 
-    current_user: User = Depends(get_current_user_from_token), 
-    db: AsyncSession = Depends(get_db)
-) -> None:
-    return
+# # Get user's profile (all info)
+@user_router.get("/me",)
+async def me_user_get(
+    current_user: User = Depends(get_current_user_from_token),
+) -> UserDetail:
+    return UserDetail(
+        id=current_user.id,
+        username=current_user.username,
+        name=current_user.name,
+        surname=current_user.surname,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at,
+    )
 
 
-#Get user's settings
-@user_router.get("/me/settings", response_model=UserSettingsShow, summary="Get me settings")
+# Update user
+@user_router.patch("/", response_model=UserResponse)
+async def me__user_partial_update(
+    body: UserUpdate,
+    current_user: User = Depends(get_current_user_from_token),
+    async_session: AsyncSession = Depends(get_db),
+) -> UserResponse:
+
+    async with async_session.begin():
+        user_dal = AsyncUserDAL(async_session)
+        user = await user_dal.update(
+            object_id=current_user.id, fields=body.model_dump()
+        )
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        name=user.name,
+        surname=user.surname,
+    )
+
+
+# # Get user's settings
+@user_router.get(
+    "/me/settings", response_model=UserSettingsShow, summary="Get me settings"
+)
 async def me_user_get_settings(
     current_user: User = Depends(get_current_user_from_token),
-    db: AsyncSession = Depends(get_db)
+    async_session: AsyncSession = Depends(get_db),
 ) -> UserSettingsShow:
-    
-    return await _get_me_settings(current_user, db)
+
+    async with async_session.begin():
+        data_service = UserDataService(async_session)
+        return await data_service.get_user_settings(user_id=current_user.id)

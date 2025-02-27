@@ -1,26 +1,51 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.auth_actions import get_current_user_from_token
-from api.chores.chores_action import _create_family_chore, _get_family_chore
+from core.security import get_current_user_from_token
 from db.models.user import User
 from db.session import get_db
-from schemas.chores import NewChoreCreate, NewChoreDetail, NewChoreSummary
+from schemas.chores.chores import NewChoreCreate, NewChoreDetail, NewChoreSummary
+from schemas.chores.compositions import NewChoreDetailMax
+from services.chores.data import ChoreDataService
+from services.chores.services import ChoreCreatorService
+
 
 from logging import getLogger
+
 logger = getLogger(__name__)
 
 chores_router = APIRouter()
 
+
 # List of all family  chores
-@chores_router.get("", response_model=list[NewChoreSummary])
-async def get_family_chore(
+@chores_router.get("")
+async def get_family_chores(
     current_user: User = Depends(get_current_user_from_token),
-    db: AsyncSession = Depends(get_db),
+    async_session: AsyncSession = Depends(get_db),
 ) -> list[NewChoreSummary]:
 
-    return await _get_family_chore(current_user.family_id, db)
+    async with async_session.begin():
+        return await ChoreDataService(async_session).get_family_chores(
+            current_user.family_id
+        )
+
+
+# Get chore and related objects
+@chores_router.get(path="/{chore_id}")
+async def get_family_chore_detail(
+    chore_id: UUID,
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, le=30),
+    current_user: User = Depends(get_current_user_from_token),
+    async_session: AsyncSession = Depends(get_db),
+) -> list[NewChoreDetailMax]:
+
+    offset = (page - 1) * limit
+    async with async_session.begin():
+        return await ChoreDataService(
+            async_session
+        ).get_family_chore_with_chore_completions(chore_id=chore_id, limit=limit, offset=offset)
 
 
 # Create a new family  chore
@@ -28,30 +53,21 @@ async def get_family_chore(
 async def create_family_chore(
     body: NewChoreCreate,
     current_user: User = Depends(get_current_user_from_token),
-    db: AsyncSession = Depends(get_db),
+    async_session: AsyncSession = Depends(get_db),
 ) -> NewChoreDetail:
-    return await _create_family_chore(
-        body=body, family_id=current_user.family_id, async_session=db
-    )
 
-
-# Delete family chore
-@chores_router.delete(path="/{chore_id}", summary="NOT IMPLEMENTED")
-async def delete_family_chore(
-    chore_id: UUID,
-    current_user: User = Depends(get_current_user_from_token),
-    db: AsyncSession = Depends(get_db),
-) -> None:
-
-    return
-
-
-# Update family chore
-@chores_router.patch(path="/{chore_id}", summary="NOT IMPLEMENTED")
-async def update_family_chore(
-    chore_id: UUID,
-    current_user: User = Depends(get_current_user_from_token),
-    db: AsyncSession = Depends(get_db),
-) -> None:
-
-    return
+    async with async_session.begin():
+        creator_service = ChoreCreatorService(
+            family=current_user.family_id,
+            db_session=async_session,
+            data=body,
+        )
+        new_chore = await creator_service()
+        return NewChoreDetail(
+            id=new_chore.id,
+            name=new_chore.name,
+            description=new_chore.description,
+            icon=new_chore.icon,
+            valuation=new_chore.valuation,
+            created_at=new_chore.created_at,
+        )

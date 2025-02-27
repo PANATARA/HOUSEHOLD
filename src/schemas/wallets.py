@@ -2,7 +2,7 @@ from uuid import UUID
 from pydantic import BaseModel, field_validator
 from decimal import Decimal
 
-from schemas.chores_completions import NewChoreCompletionSummaryLite
+from schemas.chores.chores_completions import NewChoreCompletionSummaryLite
 from schemas.users import UserResponse
 
 
