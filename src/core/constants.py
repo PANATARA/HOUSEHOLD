@@ -1,4 +1,5 @@
 import enum
+from abc import abstractmethod
 
 default_user_settings = {
     "app_theme": "light"
@@ -12,7 +13,6 @@ default_admin_permissions = {
 default_user_permissions = {
     "should_confirm_chore_completion": False,
 }
-from abc import abstractmethod
 
 
 class PostgreSQLEnum(enum.Enum):
@@ -44,3 +44,6 @@ class WalletTransactionENUM(PostgreSQLEnum):
     @classmethod
     def get_enum_name(self):
         return "transaction_type"
+
+
+SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS', 'TRACE']

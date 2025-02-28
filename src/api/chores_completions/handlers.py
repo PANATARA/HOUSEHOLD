@@ -2,8 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.chores_completions.permissions import get_user_and_check_chore_completion_permission
-from core.security import get_current_user_from_token
+from api.permissions import ChoreCompletionPermission, IsAuthenicatedPermission
 from db.models.user import User
 from db.session import get_db
 from schemas.chores.chores_completions import NewChoreCompletionCreate, NewChoreCompletionSummary
@@ -21,7 +20,7 @@ chores_completions_router = APIRouter()
 @chores_completions_router.post("")
 async def create_chore_completion(
     body: NewChoreCompletionCreate,
-    current_user: User = Depends(get_current_user_from_token), 
+    current_user: User = Depends(IsAuthenicatedPermission()), 
     async_session: AsyncSession = Depends(get_db)
 ) -> Response:
     
@@ -42,7 +41,7 @@ async def create_chore_completion(
 async def get_family_chores_completions(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=50),
-    current_user: User = Depends(get_current_user_from_token), 
+    current_user: User = Depends(IsAuthenicatedPermission()), 
     async_session: AsyncSession = Depends(get_db)
 ) -> list[NewChoreCompletionSummary]:
     
@@ -57,7 +56,7 @@ async def get_family_chores_completions(
 @chores_completions_router.get("/{chore_completion_id}")
 async def get_family_chore_completion_detail(
     chore_completion_id: UUID,
-    current_user: User = Depends(get_user_and_check_chore_completion_permission), 
+    current_user: User = Depends(ChoreCompletionPermission()), 
     async_session: AsyncSession = Depends(get_db)
 ) -> NewChoreCompletionDetail:
     

@@ -3,16 +3,13 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.security import get_current_user_from_token
+from api.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission
 from db.session import get_db
 from db.models.user import User
 from schemas.chores.chores_confirmations import NewChoreConfirmationSetStatus
 from schemas.chores.compositions import NewChoreConfirmationDetail
 from services.chores.data import ChoreConfirmationDataService
 from services.chores_completions.services import set_status_chore_confirmation
-from api.chores_confirmations.permissions import (
-    get_user_and_check_chore_confirmation_permission,
-)
 
 
 from logging import getLogger
@@ -24,7 +21,7 @@ chores_confirmations_router = APIRouter()
 # Get my chores confirmations
 @chores_confirmations_router.get("")
 async def get_my_chores_confirmations(
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[NewChoreConfirmationDetail]:
 
@@ -38,7 +35,7 @@ async def get_my_chores_confirmations(
 async def change_status_chore_confirmation(
     chore_confirmation_id: UUID,
     body: NewChoreConfirmationSetStatus,
-    current_user: User = Depends(get_user_and_check_chore_confirmation_permission),
+    current_user: User = Depends(ChoreConfirmationPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
 

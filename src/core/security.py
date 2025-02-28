@@ -1,16 +1,11 @@
-from uuid import UUID
 from datetime import datetime, timezone
 from datetime import timedelta
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from jose import ExpiredSignatureError, JWTError, jwt
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from config import auth_token
-from core.exceptions import credentials_exception, user_not_found
-from db.dals.users import AsyncUserDAL
-from db.session import get_db
-from api.auth.actions import oauth2_scheme
+from core.exceptions import credentials_exception
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
@@ -41,24 +36,3 @@ def get_payload_from_jwt_token(token: str):
         raise credentials_exception
     else:
         return payload
-
-def get_user_id_from_token(token: str) -> UUID:
-    payload = get_payload_from_jwt_token(token=token)
-    user_id: UUID = payload.get("sub")
-
-    if user_id is None:
-        raise credentials_exception    
-    return user_id
-
-
-async def get_current_user_from_token(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
-    
-    user_id: UUID = get_user_id_from_token(token=token)
-    
-    async with db.begin():
-        user_dal = AsyncUserDAL(db)
-        user =  await user_dal.get_by_id(user_id)
-
-    if user is None:
-        raise user_not_found
-    return user

@@ -4,8 +4,7 @@ from fastapi.responses import JSONResponse
 from starlette import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.families.permissions import get_user_and_check_is_family_admin
-from core.security import get_current_user_from_token
+from api.permissions import IsAuthenicatedPermission, IsFamilyAdminPermission, get_user_and_check_is_family_admin
 from db.session import get_db
 from db.dals.families import AsyncFamilyDAL
 from db.models.user import User
@@ -25,7 +24,7 @@ families_router = APIRouter()
 @families_router.post("", response_model=FamilyShow)
 async def create_family(
     body: FamilyCreate,
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> FamilyShow:
 
@@ -49,7 +48,7 @@ async def create_family(
 # Get user family
 @families_router.get("", response_model=FamilyFullShow)
 async def get_my_family(
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> FamilyFullShow:
 
@@ -66,7 +65,7 @@ async def get_my_family(
 # Logout user from family
 @families_router.patch(path="/logout", summary="Logout me from family")
 async def logout_user_from_family(
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
 
@@ -94,7 +93,7 @@ async def logout_user_from_family(
 @families_router.patch(path="/change_admin/{user_id}")
 async def change_family_admin(
     user_id: UUID,
-    current_user: User = Depends(get_user_and_check_is_family_admin),
+    current_user: User = Depends(IsFamilyAdminPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():

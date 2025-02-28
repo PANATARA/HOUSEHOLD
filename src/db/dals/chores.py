@@ -2,14 +2,14 @@ from decimal import Decimal
 from uuid import UUID
 from dataclasses import dataclass
 
-from core.base_dals import BaseDals
+from core.base_dals import BaseDals, DeleteDALMixin
 from db.models.chore import Chore
 from sqlalchemy import select
 from schemas.chores.chores import NewChoreCreate
 
 
 @dataclass
-class AsyncChoreDAL(BaseDals):
+class AsyncChoreDAL(BaseDals, DeleteDALMixin):
 
     class Meta:
         model = Chore

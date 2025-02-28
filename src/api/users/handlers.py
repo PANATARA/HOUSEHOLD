@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.security import get_current_user_from_token
+from api.permissions import IsAuthenicatedPermission
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from db.session import get_db
@@ -54,7 +54,7 @@ async def create_user(
 # # Get user's profile (all info)
 @user_router.get("/me",)
 async def me_user_get(
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
 ) -> UserDetail:
     return UserDetail(
         id=current_user.id,
@@ -70,7 +70,7 @@ async def me_user_get(
 @user_router.patch("/", response_model=UserResponse)
 async def me__user_partial_update(
     body: UserUpdate,
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> UserResponse:
 
@@ -92,7 +92,7 @@ async def me__user_partial_update(
     "/me/settings", response_model=UserSettingsShow, summary="Get me settings"
 )
 async def me_user_get_settings(
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> UserSettingsShow:
 

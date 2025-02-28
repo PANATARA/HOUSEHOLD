@@ -50,6 +50,37 @@ class BaseDals:
         await self.db_session.flush()
         return object
 
+class DeleteDALMixin:
+
+    async def soft_delete(self, object_id: UUID) -> bool:
+        """Soft delete an object by setting `is_active` to `False`.
+
+        Args:
+            object_id (UUID): The ID of the object to soft delete.
+
+        Returns:
+            bool: True if the object was found and updated, False if not found.
+        """
+        
+        if not hasattr(self, 'Meta') or not hasattr(self.Meta, 'model'):
+            raise AttributeError("Class must define 'Meta' class with a 'model' attribute.")
+        
+        if not hasattr(self, 'db_session'):
+            raise AttributeError("Class must define 'db_session' attribute.")
+        
+        query = (
+            update(self.Meta.model)
+            .where(self.Meta.model.id == object_id)
+            .values(is_active=False)
+            .execution_options(synchronize_session="fetch")
+        )
+        result = await self.db_session.execute(query)
+
+        return result.rowcount > 0 
+        
+        
+
+
 
 @dataclass
 class BaseUserPkDals:

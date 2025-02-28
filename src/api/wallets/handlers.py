@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.permissions import IsAuthenicatedPermission
 from core.exceptions import NoSuchUserFoundInThefamily, NotEnoughCoins
-from core.security import get_current_user_from_token
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from db.session import get_db
@@ -23,7 +23,7 @@ wallet_router = APIRouter()
     path="", response_model=ShowWalletBalance, summary="Get user wallet information"
 )
 async def get_user_wallet(
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> ShowWalletBalance:
 
@@ -38,7 +38,7 @@ async def get_user_wallet(
 @wallet_router.post(path="/transfer", summary="Make a transfer of coins to the user")
 async def money_transfer_wallet(
     body: MoneyTransfer,
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
 
@@ -77,7 +77,7 @@ async def money_transfer_wallet(
 async def get_user_wallet(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=20),
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db)
 ) -> list[WalletTransactionLog]:
 

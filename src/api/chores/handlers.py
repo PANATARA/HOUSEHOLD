@@ -1,8 +1,10 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import status
 
-from core.security import get_current_user_from_token
+from api.permissions import ChorePermission, IsAuthenicatedPermission
+from db.dals.chores import AsyncChoreDAL
 from db.models.user import User
 from db.session import get_db
 from schemas.chores.chores import NewChoreCreate, NewChoreDetail, NewChoreSummary
@@ -21,7 +23,7 @@ chores_router = APIRouter()
 # List of all family  chores
 @chores_router.get("")
 async def get_family_chores(
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[NewChoreSummary]:
 
@@ -37,7 +39,7 @@ async def get_family_chore_detail(
     chore_id: UUID,
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=30),
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[NewChoreDetailMax]:
 
@@ -52,7 +54,7 @@ async def get_family_chore_detail(
 @chores_router.post("", response_model=NewChoreDetail)
 async def create_family_chore(
     body: NewChoreCreate,
-    current_user: User = Depends(get_current_user_from_token),
+    current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> NewChoreDetail:
 
@@ -71,3 +73,25 @@ async def create_family_chore(
             valuation=new_chore.valuation,
             created_at=new_chore.created_at,
         )
+
+
+@chores_router.delete(path="/{chore_id}")
+async def get_family_chore_detail(
+    chore_id: UUID,
+    current_user: User = Depends(ChorePermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> Response:
+
+    async with async_session.begin():
+        chore_dal = AsyncChoreDAL(async_session)
+        result = await chore_dal.soft_delete(chore_id)
+        
+        if result:
+            return Response(
+                status_code=status.HTTP_204_NO_CONTENT
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"Chore was not found"}
+            )
