@@ -13,20 +13,20 @@ from services.wallets.services import CoinsTransferService
 
 
 from logging import getLogger
+
 logger = getLogger(__name__)
 
 wallet_router = APIRouter()
 
 
-# Get user wallet
+# Get user's wallet
 @wallet_router.get(
-    path="", response_model=ShowWalletBalance, summary="Get user wallet information"
+    path="", summary="Get user wallet information"
 )
 async def get_user_wallet(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> ShowWalletBalance:
-
     async with async_session.begin():
         wallet_data = await WalletDataService(async_session).get_user_wallet(
             user_id=current_user.id
@@ -41,7 +41,6 @@ async def money_transfer_wallet(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
-
     async with async_session.begin():
         try:
             user_dal = AsyncUserDAL(async_session)
@@ -54,7 +53,7 @@ async def money_transfer_wallet(
                 message="Transferred you some coins",
                 db_session=async_session,
             )
-            transaction_log = await transfer_service()
+            await transfer_service()
         except NoSuchUserFoundInThefamily:
             return JSONResponse(
                 status_code=400,
@@ -65,26 +64,25 @@ async def money_transfer_wallet(
                 status_code=400,
                 content={"detail": "You don't have enough coins"},
             )
-        
+
         return JSONResponse(
-                status_code=200,
-                content={"detail": "The transaction was successful."},
-            )
+            status_code=200,
+            content={"detail": "The transaction was successful."},
+        )
 
 
-# Get transactions on user wallet
-@wallet_router.get(path="/transactions", summary="Get transactions on user wallet")
-async def get_user_wallet(
+# Get transactions user's wallet
+@wallet_router.get(path="/transactions", summary="Get transactions user's wallet")
+async def get_user_wallet_transaction(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=20),
     current_user: User = Depends(IsAuthenicatedPermission()),
-    async_session: AsyncSession = Depends(get_db)
+    async_session: AsyncSession = Depends(get_db),
 ) -> list[WalletTransactionLog]:
-
     async with async_session.begin():
         transactions_data = TransactionDataService(async_session)
         offset = (page - 1) * limit
-        
+
         user_transactions = await transactions_data.get_user_transactions(
             user_id=current_user.id,
             offset=offset,

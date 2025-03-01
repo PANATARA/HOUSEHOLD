@@ -20,7 +20,7 @@ from logging import getLogger
 
 logger = getLogger(__name__)
 
-from fastapi import APIRouter
+
 user_router = APIRouter()
 
 
@@ -67,13 +67,12 @@ async def me_user_get(
 
 
 # Update user
-@user_router.patch("/", response_model=UserResponse)
+@user_router.patch("/me", response_model=UserResponse)
 async def me__user_partial_update(
     body: UserUpdate,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> UserResponse:
-
     async with async_session.begin():
         user_dal = AsyncUserDAL(async_session)
         user = await user_dal.update(
@@ -87,7 +86,7 @@ async def me__user_partial_update(
     )
 
 
-# # Get user's settings
+# Get user's settings
 @user_router.get(
     "/me/settings", response_model=UserSettingsShow, summary="Get me settings"
 )
@@ -95,7 +94,6 @@ async def me_user_get_settings(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> UserSettingsShow:
-
     async with async_session.begin():
         data_service = UserDataService(async_session)
         return await data_service.get_user_settings(user_id=current_user.id)

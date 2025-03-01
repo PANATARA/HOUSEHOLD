@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from starlette import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.permissions import IsAuthenicatedPermission
+from api.permissions import FamilyInvitePermission, IsAuthenicatedPermission
 from core.security import (
     create_access_token,
     get_payload_from_jwt_token,
@@ -29,7 +29,7 @@ families_invitations_router = APIRouter()
 @families_invitations_router.post(path="/invite", summary="Generate invite token")
 async def generate_invite_token(
     body: UserInviteParametr,
-    current_user: User = Depends(IsAuthenicatedPermission()),
+    current_user: User = Depends(FamilyInvitePermission()),
 ) -> InviteToken:
     payload = body.model_dump()
     payload["family_id"] = str(current_user.family_id)

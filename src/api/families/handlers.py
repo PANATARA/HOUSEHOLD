@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from starlette import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.permissions import IsAuthenicatedPermission, IsFamilyAdminPermission, get_user_and_check_is_family_admin
+from api.permissions import IsAuthenicatedPermission, IsFamilyAdminPermission
 from db.session import get_db
 from db.dals.families import AsyncFamilyDAL
 from db.models.user import User
@@ -34,7 +34,7 @@ async def create_family(
                 name=body.name, user=current_user, db_session=async_session
             )
             family = family_creator_service()
-        except ValueError as e:
+        except ValueError:
             return JSONResponse(
                 status_code=400,
                 content={"detail": "The user is already a family member"},
@@ -45,7 +45,7 @@ async def create_family(
             return FamilyShow(name=family.name)
 
 
-# Get user family
+# Get user's family
 @families_router.get("", response_model=FamilyFullShow)
 async def get_my_family(
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -57,7 +57,7 @@ async def get_my_family(
             current_user.family_id
         )
         if data is None:
-            raise HTTPException(status_code=404, detail=f"Family not found")
+            raise HTTPException(status_code=404, detail="Family not found")
 
         return data
 

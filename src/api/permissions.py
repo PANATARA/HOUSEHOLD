@@ -1,37 +1,13 @@
-from uuid import UUID
-from fastapi import Depends
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.actions import oauth2_scheme
 from core.constants import SAFE_METHODS
 from core.permissions import BasePermission
-from core.security import get_payload_from_jwt_token
 from db.dals.users import AsyncUserDAL
 from db.models import User
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
-from db.session import get_db
 from core.exceptions import permission_denided, user_not_found
-
-
-async def get_user_and_check_is_family_admin(
-    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
-) -> User:
-
-    payload = get_payload_from_jwt_token(token)
-
-    user_id: UUID = payload.get("sub")
-    user_is_family_admin: bool = payload.get("is_family_admin")
-    if not user_is_family_admin:
-        raise permission_denided
-
-    async with db.begin():
-        user_dal = AsyncUserDAL(db)
-        user = await user_dal.get_by_id(user_id)
-
-    if user is None:
-        raise user_not_found
-    return user
+from db.models.user import UserFamilyPermissions
 
 
 class IsAuthenicatedPermission(BasePermission):
@@ -158,4 +134,35 @@ class ChoreConfirmationPermission(BasePermission):
 
         if user is None:
             raise permission_denided
+        return user
+    
+
+class FamilyInvitePermission(BasePermission):
+
+    async def get_user_and_check_permission(
+        self,
+        token_payload: dict[str, any],
+        http_method: str,
+        async_session: AsyncSession,
+        **kwargs
+    ) -> User:
+
+        user_id = token_payload.get("sub")
+        query = select(User).where(
+            User.id == user_id,
+            exists().where(
+                (UserFamilyPermissions.user_id == user_id) &
+                (UserFamilyPermissions.can_invite_users == True)
+            ).correlate(User)
+        )
+        result = await async_session.execute(query)
+        user = result.scalars().first()
+
+        if user is None:
+            raise permission_denided
+        
+        user_is_family_admin = token_payload.get("is_family_admin")
+        if user_is_family_admin:
+            raise user
+        
         return user

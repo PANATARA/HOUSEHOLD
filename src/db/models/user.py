@@ -61,5 +61,6 @@ class UserFamilyPermissions(Base, BaseModel):
         )
     )
     should_confirm_chore_completion: Mapped[bool]
+    can_invite_users: Mapped[bool] = True
     
     user: Mapped["User"] = relationship("User", back_populates="permissions")
