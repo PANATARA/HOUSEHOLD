@@ -17,8 +17,9 @@ logger = getLogger(__name__)
 chores_completions_router = APIRouter()
 
 # Create a new chore completion
-@chores_completions_router.post("")
+@chores_completions_router.post(path="/{chore-id}")
 async def create_chore_completion(
+    chore_id: UUID,
     body: NewChoreCompletionCreate,
     current_user: User = Depends(IsAuthenicatedPermission()), 
     async_session: AsyncSession = Depends(get_db)
@@ -27,7 +28,7 @@ async def create_chore_completion(
     async with async_session.begin():
         creator_service = CreateChoreCompletion(
             user=current_user,
-            chore_id=body.chore_id,
+            chore_id=chore_id,
             message=body.message,
             db_session=async_session,
         )
