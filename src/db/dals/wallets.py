@@ -2,9 +2,9 @@ from uuid import UUID
 from dataclasses import dataclass
 from decimal import Decimal
 
-from core.base_dals import BaseDals, BaseUserPkDals
+from core.base_dals import BaseUserPkDals
 from sqlalchemy import exists, select, update
-from db.models.wallet import TransactionLog, Wallet
+from db.models.wallet import Wallet
 
 
 @dataclass
@@ -53,10 +53,3 @@ class AsyncWalletDAL(BaseUserPkDals):
     
     async def delete_wallet_user(self, user: UUID) -> None:
         return
-
-
-@dataclass
-class AsyncTransactionLogDAL(BaseDals):
-
-    class Meta:
-        model = TransactionLog

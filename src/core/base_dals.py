@@ -2,9 +2,6 @@ from dataclasses import dataclass
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from uuid import UUID
 
 from db.models.declarative_base import Base
 

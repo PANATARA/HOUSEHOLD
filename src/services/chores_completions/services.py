@@ -8,7 +8,7 @@ from db.dals.chores_completions import AsyncChoreConfirmationDAL, AsyncChoreComp
 from db.dals.families import AsyncFamilyDAL
 from db.models.chore import Chore, ChoreCompletion
 from db.models.user import User
-from services.wallets.services import CoinsCreditService
+from services.wallets.services import CoinsRewardService
 
 
 @dataclass
@@ -84,7 +84,7 @@ class ApproveChoreCompletion(BaseService):
 
     async def send_reward(self):
         chore_completion = await AsyncChoreCompletionDAL(self.db_session).get_by_id(self.chore_completion_id)
-        service = CoinsCreditService(
+        service = CoinsRewardService(
             chore_completion=chore_completion,
             message="income",
             db_session=self.db_session,

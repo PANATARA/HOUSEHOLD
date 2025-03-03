@@ -17,23 +17,33 @@ class Product(Base, BaseModel):
 
     family_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(
-            column="family.id", 
+            column="family.id",
             ondelete="CASCADE",
         )
     )
     seller_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(
-            column="users.id", 
+            column="users.id",
             ondelete="SET NULL",
         )
     )
     buyer_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(
-            column="users.id", 
+            column="users.id",
             ondelete="SET NULL",
         )
     )
 
     def __repr__(self):
         return super().__repr__()
-    
+
+
+class ProductBuyer(Base, BaseModel):
+    __tablename__ = "product_buyers"
+
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("products.id", ondelete="CASCADE")
+    )
+    buyer_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )

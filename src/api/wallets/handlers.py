@@ -7,7 +7,7 @@ from core.exceptions import NoSuchUserFoundInThefamily, NotEnoughCoins
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from db.session import get_db
-from schemas.wallets import MoneyTransfer, ShowWalletBalance, WalletTransactionLog
+from schemas.wallets import MoneyTransfer, NewWalletTransaction, ShowWalletBalance
 from services.wallets.data import TransactionDataService, WalletDataService
 from services.wallets.services import CoinsTransferService
 
@@ -78,12 +78,12 @@ async def get_user_wallet_transaction(
     limit: int = Query(10, le=20),
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> list[WalletTransactionLog]:
+) -> list[NewWalletTransaction]:
     async with async_session.begin():
         transactions_data = TransactionDataService(async_session)
         offset = (page - 1) * limit
 
-        user_transactions = await transactions_data.get_user_transactions(
+        user_transactions = await transactions_data.get_union_user_transactions(
             user_id=current_user.id,
             offset=offset,
             limit=limit,

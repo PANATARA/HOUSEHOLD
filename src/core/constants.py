@@ -44,5 +44,21 @@ class WalletTransactionENUM(PostgreSQLEnum):
     def get_enum_name(self):
         return "transaction_type"
 
+class PeerTransactionENUM(PostgreSQLEnum):
+    transfer = "transfer"
+    purchase = "purchase"
+
+    @classmethod
+    def get_enum_name(self):
+        return "peer_transaction"
+
+
+class RewardTransactionENUM(PostgreSQLEnum):
+    reward_for_chore = "reward_for_chore"
+
+    @classmethod
+    def get_enum_name(self):
+        return "system_transaction"
+
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS', 'TRACE']

@@ -3,14 +3,15 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal
 
-from core.constants import WalletTransactionENUM
 from core.exceptions import NoSuchUserFoundInThefamily, NotEnoughCoins
 from core.services import BaseService
 from db.dals.chores import AsyncChoreDAL
-from db.dals.wallets import AsyncTransactionLogDAL, AsyncWalletDAL
+from db.dals.coins_transactions import PeerTransactionDAL, RewardTransactionDAL
+from db.dals.wallets import AsyncWalletDAL
 from db.models.chore import ChoreCompletion
 from db.models.user import User
-from db.models.wallet import TransactionLog, Wallet
+from db.models.wallet import PeerTransaction, RewardTransaction, Wallet
+from schemas.coins_transactions import CreateRewardTransaction, CreateTransferTransaction
 
 
 @dataclass
@@ -46,7 +47,7 @@ class CoinsTransferService(BaseService):
     message: str
     db_session: AsyncSession
 
-    async def execute(self) -> TransactionLog | None:
+    async def execute(self) -> PeerTransaction | None:
         wallet_dal = AsyncWalletDAL(self.db_session)
         await self._take_coins(wallet_dal)
         await self._add_coins(wallet_dal)
@@ -65,15 +66,14 @@ class CoinsTransferService(BaseService):
         await wallet_dal.add_balance(user_id=self.to_user.id, amount=self.count)
 
     async def _create_transaction_log(self):
-        fields = {
-            "description": self.message,
-            "transaction_type": WalletTransactionENUM.transfer.value,
-            "coins": self.count,
-            "from_user_id": self.from_user.id,
-            "to_user_id": self.to_user.id,
-        }
-        transaction_log_dal = AsyncTransactionLogDAL(self.db_session)
-        return await transaction_log_dal.create(fields=fields)
+        data = CreateTransferTransaction(
+            detail=self.message,
+            coins=self.count,
+            to_user_id=self.to_user.id,
+            from_user_id=self.from_user.id,
+        )
+        transaction_log_dal = PeerTransactionDAL(self.db_session)
+        return await transaction_log_dal.create_transfer_transaction(data=data)
 
     async def validate(self):
         if self.from_user.family_id != self.to_user.family_id:
@@ -81,7 +81,7 @@ class CoinsTransferService(BaseService):
 
 
 @dataclass
-class CoinsCreditService(BaseService):
+class CoinsRewardService(BaseService):
     """
     Service for accruing coins for completing chore
     """
@@ -90,7 +90,7 @@ class CoinsCreditService(BaseService):
     message: str
     db_session: AsyncSession
 
-    async def execute(self) -> TransactionLog | None:
+    async def execute(self) -> RewardTransaction | None:
         user_id = self.chore_completion.completed_by_id
         amount = await AsyncChoreDAL(self.db_session).get_chore_valutation(
             self.chore_completion.chore_id
@@ -104,12 +104,11 @@ class CoinsCreditService(BaseService):
         await wallet_dal.add_balance(user_id=user_id, amount=amount)
 
     async def _create_transaction_log(self, user_id: UUID, amount: Decimal):
-        fields = {
-            "description": self.message,
-            "transaction_type": WalletTransactionENUM.income.value,
-            "coins": amount,
-            "to_user_id": user_id,
-            "chore_completion_id": self.chore_completion.id,
-        }
-        transaction_log_dal = AsyncTransactionLogDAL(self.db_session)
-        return await transaction_log_dal.create(fields=fields)
+        data = CreateRewardTransaction(
+            detail = self.message,
+            coins = amount,
+            to_user_id =  user_id,
+            chore_completion_id =  self.chore_completion.id,
+        )
+        transaction_log_dal = RewardTransactionDAL(self.db_session)
+        return await transaction_log_dal.create_reward_for_chore_transaction(data=data)

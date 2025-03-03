@@ -1,17 +1,14 @@
 from uuid import UUID
 from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import case, or_, select
+from sqlalchemy import String, case, cast, func, literal, select
 from sqlalchemy.orm import aliased
 
-from core.constants import WalletTransactionENUM
 from db.models.chore import Chore, ChoreCompletion
+from db.models.product import Product
 from db.models.user import User
-from db.models.wallet import TransactionLog, Wallet
-from schemas.chores.chores import NewChoreSummary
-from schemas.chores.chores_completions import NewChoreCompletionSummaryLite
-from schemas.users import UserResponse
-from schemas.wallets import ShowWalletBalance, WalletTransactionLog
+from db.models.wallet import PeerTransaction, RewardTransaction, Wallet
+from schemas.wallets import NewWalletTransaction, ShowWalletBalance
 
 
 @dataclass
@@ -47,83 +44,83 @@ class TransactionDataService:
 
     db_session: AsyncSession
 
-    async def get_user_transactions(
+    async def get_union_user_transactions(
         self, user_id: UUID, offset: int, limit: int
-    ) -> list[WalletTransactionLog]:
-        wt = aliased(TransactionLog)
-
-        query = (
-            select(
+    ) -> list[NewWalletTransaction]:
+            u = aliased(User)
+            p = aliased(Product)
+            cc = aliased(ChoreCompletion)
+            c = aliased(Chore)
+            
+            peer_transactions_query = select(
+                PeerTransaction.id,
+                PeerTransaction.detail,
+                PeerTransaction.coins,
+                cast(PeerTransaction.transaction_type, String),
                 case(
-                    (wt.transaction_type == WalletTransactionENUM.purchase.value, case(
-                        (wt.from_user_id == user_id, 'purchase'),
-                        (wt.to_user_id == user_id, 'selling'),
+                    (PeerTransaction.to_user_id == user_id, 'incoming'),
+                    (PeerTransaction.from_user_id == user_id, 'outgoing')
+                ).label("transaction_direction"),
+                PeerTransaction.created_at,
+                func.json_build_object(
+                    'id', u.id,
+                    'username', u.username,
+                    'name', u.name,
+                    'surname', u.surname
+                ).label("other_user"),
+                case(
+                    (p.id.isnot(None), func.json_build_object(
+                        'id', p.id,
+                        'icon', p.icon,
+                        'name', p.name
                     )),
-                    (wt.transaction_type == WalletTransactionENUM.income.value, case(
-                        (wt.to_user_id == user_id, 'earning'),
-                    )),
-                    (wt.transaction_type == WalletTransactionENUM.transfer.value, case(
-                        (wt.from_user_id == user_id, 'outgoing transfer'),
-                        (wt.to_user_id == user_id, 'incoming transfer'),
-                    )),
-                    else_='unknown'
-                ).label("transaction_type"),
-                wt.description.label("message"),
-                wt.created_at.label("datetime"),
-                wt.coins.label("coins"),
-                User.id.label("user_id"),
-                User.username.label("user_username"),
-                User.name.label("user_name"),
-                User.surname.label("user_surname"),
-                ChoreCompletion.id.label("chore_completion_id"),
-                ChoreCompletion.created_at.label("chore_completion_created_at"),
-                Chore.id.label("chore_completion_chore_id"),
-                Chore.name.label("chore_completion_chore_name"),
-                Chore.icon.label("chore_completion_chore_icon"),
-                Chore.valuation.label("chore_completion_chore_valuation")
+                    else_=None
+                ).label("product"),
+                literal(None).label("chore_completion"),
+            ).join(
+                u, (u.id == PeerTransaction.from_user_id) & (PeerTransaction.from_user_id != user_id) |
+                (u.id == PeerTransaction.to_user_id) & (PeerTransaction.to_user_id != user_id),
+                isouter=True
+            ).join(
+                p, p.id == PeerTransaction.product_id, isouter=True
+            ).where(
+                (PeerTransaction.to_user_id == user_id) | (PeerTransaction.from_user_id == user_id)
             )
-            .outerjoin(
-                User, 
-                or_(
-                    (wt.from_user_id == User.id) & (wt.from_user_id != user_id),
-                    (wt.to_user_id == User.id) & (wt.to_user_id != user_id)
-                )
+            
+            reward_transactions_query = select(
+                RewardTransaction.id,
+                RewardTransaction.detail,
+                RewardTransaction.coins,
+                cast(RewardTransaction.transaction_type, String),
+                func.text("incoming").label("transaction_direction"),
+                RewardTransaction.created_at,
+                literal(None).label("product"),
+                literal(None).label("other_user"),
+                func.json_build_object(
+                    'id', RewardTransaction.chore_completion_id,
+                    'completed_at', cc.created_at,
+                    'chore', func.json_build_object(
+                        'id', c.id,
+                        'name', c.name,
+                        'icon', c.icon,
+                        'valuation', c.valuation
+                    )
+                ).label("chore_completion")
+            ).join(
+                cc, RewardTransaction.chore_completion_id == cc.id, isouter=True
+            ).join(
+                c, c.id == cc.chore_id, isouter=True
+            ).where(
+                RewardTransaction.to_user_id == user_id
             )
-            .outerjoin(
-                ChoreCompletion, wt.chore_completion_id==ChoreCompletion.id
-            )
-            .outerjoin(
-                Chore, ChoreCompletion.chore_id==Chore.id
-            )
-            .where((wt.from_user_id == user_id) | (wt.to_user_id == user_id))
-            .order_by(wt.created_at.desc())
-            .limit(limit)
-            .offset(offset)
-        )
-        query_result = await self.db_session.execute(query)
-        raw_data = query_result.mappings().all()
-
-        return [
-            WalletTransactionLog(
-                description = item["message"],
-                transaction_type = item["transaction_type"],
-                coins = item["coins"],
-                user = UserResponse(
-                    id=item["user_id"],
-                    username=item["user_username"],
-                    name=item["user_name"],
-                    surname=item["user_surname"],
-                ) if item["user_id"] else None,
-                chore_completion = NewChoreCompletionSummaryLite(
-                    id=item["chore_completion_id"],
-                    chore=NewChoreSummary(
-                        id = item["chore_completion_chore_id"],
-                        name = item["chore_completion_chore_name"],
-                        icon = item["chore_completion_chore_icon"],
-                        valuation = item["chore_completion_chore_valuation"],
-                    ),
-                    completed_at=item["chore_completion_created_at"]
-                ) if item["chore_completion_id"] else None,
-            )
-            for item in raw_data
-        ]
+            
+            union_query = peer_transactions_query.union_all(reward_transactions_query)
+            final_query = union_query.limit(limit).offset(offset)
+            query_result = await self.db_session.execute(final_query)
+            raw_data = query_result.mappings().all()
+            
+            result = []
+            for item in raw_data:
+                result.append(NewWalletTransaction.model_validate(item))
+            
+            return result

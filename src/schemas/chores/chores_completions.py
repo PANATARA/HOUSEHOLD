@@ -7,7 +7,6 @@ from schemas.users import UserResponse
 
 
 class NewChoreCompletionCreate(BaseModel):
-    chore_id: UUID
     message: str
 
 
