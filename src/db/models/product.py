@@ -27,12 +27,7 @@ class Product(Base, BaseModel):
             ondelete="SET NULL",
         )
     )
-    buyer_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey(
-            column="users.id",
-            ondelete="SET NULL",
-        )
-    )
+
 
     def __repr__(self):
         return super().__repr__()

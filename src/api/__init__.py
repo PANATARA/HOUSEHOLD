@@ -6,3 +6,4 @@ from .families.handlers import families_router
 from .families_invitations.handlers import families_invitations_router
 from .users.handlers import user_router
 from .wallets.handlers import wallet_router
+from .products.handlers import product_router

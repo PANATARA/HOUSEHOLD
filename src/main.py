@@ -18,7 +18,8 @@ from api import (
     chores_router,
     chores_completions_router,
     wallet_router,
-    chores_confirmations_router
+    chores_confirmations_router,
+    product_router
 )
 
 
@@ -71,6 +72,8 @@ main_api_router.include_router(chores_confirmations_router, prefix="/families/ch
 main_api_router.include_router(chores_router, prefix="/families/chores", tags=["Chore"])
 
 main_api_router.include_router(wallet_router, prefix="/users/wallets", tags=["Wallet"])
+
+main_api_router.include_router(product_router, prefix="/families/products", tags=["Products"])
 
 app.include_router(main_api_router)
 
