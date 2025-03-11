@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.constants import StatusConfirmENUM
+from core.exceptions import ChoreCompletionCanNotBeChanged, ChoreNotFoundError
 from core.services import BaseService
 from db.dals.chores_completions import AsyncChoreConfirmationDAL, AsyncChoreCompletionDAL
 from db.dals.families import AsyncFamilyDAL
@@ -15,7 +16,7 @@ from services.wallets.services import CoinsRewardService
 class CreateChoreCompletion(BaseService):
 
     user: User
-    chore_id: Chore | UUID
+    chore: Chore
     message: str
     db_session: AsyncSession
 
@@ -25,7 +26,7 @@ class CreateChoreCompletion(BaseService):
         chore_completion = await self._create_chore_completion(status)
 
         if users is None:
-            service = ApproveChoreCompletion(chore_completion_id=chore_completion.id, db_session=self.db_session)
+            service = ApproveChoreCompletion(chore_completion=chore_completion, db_session=self.db_session)
             await service.run_process()
         else:
             await self._create_chores_confirmations(users, chore_completion.id)
@@ -38,7 +39,7 @@ class CreateChoreCompletion(BaseService):
             fields={
                 "message": self.message,
                 "completed_by_id": self.user.id,
-                "chore_id": self.chore_id,
+                "chore_id": self.chore.id,
                 "status": status,
             }
         )
@@ -62,13 +63,14 @@ class CreateChoreCompletion(BaseService):
             users_ids=users_ids, chore_completion_id=chore_completion_id
         )
 
-    async def validate(self):
-        return
+    def validate(self):
+        if not self.chore.is_active:
+            raise ChoreNotFoundError()
 
 
 @dataclass
 class ApproveChoreCompletion(BaseService):
-    chore_completion_id: UUID
+    chore_completion: ChoreCompletion
     db_session: AsyncSession
 
     async def process(self) -> None:
@@ -78,26 +80,26 @@ class ApproveChoreCompletion(BaseService):
     async def change_chore_completion_status(self):
         chore_completion_dal = AsyncChoreCompletionDAL(db_session=self.db_session)
         await chore_completion_dal.update(
-            object_id=self.chore_completion_id,
+            object_id=self.chore_completion.id,
             fields={"status": StatusConfirmENUM.approved.value}
         )
 
     async def send_reward(self):
-        chore_completion = await AsyncChoreCompletionDAL(self.db_session).get_by_id(self.chore_completion_id)
         service = CoinsRewardService(
-            chore_completion=chore_completion,
+            chore_completion=self.chore_completion,
             message="income",
             db_session=self.db_session,
         )
         await service.run_process()
 
-    async def validate(self):
-        return
+    def validate(self):
+        if self.chore_completion.status != StatusConfirmENUM.awaits:
+            raise ChoreCompletionCanNotBeChanged()
 
 
 @dataclass
 class CancellChoreCompletion(BaseService):
-    chore_completion_id: UUID
+    chore_completion: UUID
     db_session: AsyncSession
 
     async def process(self) -> None:
@@ -110,8 +112,9 @@ class CancellChoreCompletion(BaseService):
             fields={"status": StatusConfirmENUM.canceled.value}
         )
 
-    async def validate(self):
-        return
+    def validate(self):
+        if self.chore_completion.status != StatusConfirmENUM.awaits:
+            raise ChoreCompletionCanNotBeChanged()
 
 
 async def set_status_chore_confirmation(
@@ -124,9 +127,13 @@ async def set_status_chore_confirmation(
             "status": status
         }
     )
+    chore_completion_dal = AsyncChoreCompletionDAL(db_session=db_session)
+    chore_completion = chore_completion_dal.get_by_id(
+        chore_confirmation.chore_completion_id
+    ) 
     if status == StatusConfirmENUM.canceled.value:
         service = CancellChoreCompletion(
-                chore_completion_id=chore_confirmation.chore_completion_id,
+                chore_completion=chore_completion,
                 db_session=db_session
             )
         await service.run_process()
@@ -137,7 +144,7 @@ async def set_status_chore_confirmation(
         )
         if count_chores_confirmations == 0:
             service = ApproveChoreCompletion(
-                chore_completion_id=chore_confirmation.chore_completion_id,
+                chore_completion=chore_completion,
                 db_session=db_session
             )
             await service.run_process()

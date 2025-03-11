@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.constants import PeerTransactionENUM
-from core.exceptions import DebugErorr, ProductNotFoundErorr
+from core.exceptions import DebugError, ProductNotFoundError
 from core.services import BaseService
 from db.dals.products import AsyncProductDAL
 from db.dals.users import AsyncUserDAL
@@ -43,8 +43,8 @@ class PurchaseService(BaseService):
             object_id=self.product.id, fields={"is_active": False} 
         )
 
-    async def validate(self):
+    def validate(self):
         if not self.product.is_active:
-            raise ProductNotFoundErorr
+            raise ProductNotFoundError
         if self.product.seller_id == self.user.id:
-            raise DebugErorr
+            raise DebugError

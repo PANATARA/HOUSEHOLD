@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from config.coins_settings import PURCHASE_RATE, TRANSFER_RATE
 from core.constants import PeerTransactionENUM
-from core.exceptions import NoSuchUserFoundInThefamily, NotEnoughCoins
+from core.exceptions import NoSuchUserFoundInTheFamily, NotEnoughCoins
 from core.services import BaseService
 from db.dals.chores import AsyncChoreDAL
 from db.dals.coins_transactions import PeerTransactionDAL, RewardTransactionDAL
@@ -67,9 +67,9 @@ class CoinsTransferService(BaseService):
         return await peer_transaction_service.run_process()
 
 
-    async def validate(self):
+    def validate(self):
         if self.from_user.family_id != self.to_user.family_id:
-            raise NoSuchUserFoundInThefamily()
+            raise NoSuchUserFoundInTheFamily()
 
 
 @dataclass
@@ -108,6 +108,20 @@ class CoinsRewardService(BaseService):
 
 @dataclass
 class PeerTransactionService(BaseService):
+    """
+    Service for handling peer-to-peer transactions, including coin transfers and product buying
+
+    This service is intended to be used by other services within the system.
+    It should not be called directly by external requests or end-users.
+
+    Attributes:
+        to_user (User): The user receiving the transaction.
+        from_user (User): The user sending the transaction.
+        data (CreatePeerTransaction): The transaction details.
+        transaction_type (PeerTransactionENUM): The type of the transaction (purchase or transfer).
+        db_session (AsyncSession): The database session for executing queries.
+        product (Product | None): The product associated with the transaction, if any.
+    """
     to_user: User
     from_user: User
     data: CreatePeerTransaction
@@ -149,3 +163,7 @@ class PeerTransactionService(BaseService):
         }
         transaction_log_dal = PeerTransactionDAL(self.db_session)
         return await transaction_log_dal.create(fields=data)
+    
+    def validate(self):
+        if self.to_user.family_id != self.from_user.family_id:
+            raise NoSuchUserFoundInTheFamily()

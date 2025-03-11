@@ -35,15 +35,6 @@ class StatusConfirmENUM(PostgreSQLEnum):
         return "status_confirm"
 
 
-class WalletTransactionENUM(PostgreSQLEnum):
-    transfer = "transfer"
-    purchase = "purchase"
-    income = "income"
-
-    @classmethod
-    def get_enum_name(self):
-        return "transaction_type"
-
 class PeerTransactionENUM(PostgreSQLEnum):
     transfer = "transfer"
     purchase = "purchase"

@@ -2,7 +2,7 @@ from uuid import UUID
 from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.exceptions import UserCannotLeaveFamily
+from core.exceptions import UserCannotLeaveFamily, UserIsAlreadyFamilyMember
 from core.services import BaseService
 from core import constants
 from db.dals.families import AsyncFamilyDAL
@@ -19,7 +19,7 @@ from services.wallets.services import WalletCreatorService
 class FamilyCreatorService(BaseService):
     """Create and return a new Family"""
     name: str
-    user: User | UUID # User who creates a family
+    user: User # User who creates a family
     db_session: AsyncSession
 
     async def process(self) -> Family:
@@ -47,9 +47,10 @@ class FamilyCreatorService(BaseService):
         default_chores = ChoreCreatorService(family, self.db_session, data)
         return await default_chores.run_process()
 
-    async def validate(self):
+    def validate(self):
         "Validate the user is not a member of any family"
-        return
+        if self.user.family_id is not None:
+            raise UserIsAlreadyFamilyMember()
     
 @dataclass
 class AddUserToFamilyService(BaseService):
@@ -79,10 +80,10 @@ class AddUserToFamilyService(BaseService):
         user_wallet = WalletCreatorService(self.user, self.db_session)
         return await user_wallet.run_process()
 
-    async def validate(self):
+    def validate(self):
         "Validate the user is not a member of any family"
         if self.user.family_id is not None:
-            raise ValueError("The user is already a member of a family")
+            raise UserIsAlreadyFamilyMember()
 
 
 @dataclass
@@ -111,7 +112,7 @@ class LogoutUserFromFamilyService(BaseService):
 
     async def validate(self):
        family_dal = AsyncFamilyDAL(self.db_session)
-       if family_dal.user_is_family_admin(self.user.id, self.user.family_id):
+       if await family_dal.user_is_family_admin(self.user.id, self.user.family_id):
            raise UserCannotLeaveFamily()
        
 

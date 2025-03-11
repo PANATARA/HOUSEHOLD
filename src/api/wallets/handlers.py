@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import IsAuthenicatedPermission
-from core.exceptions import NoSuchUserFoundInThefamily, NotEnoughCoins
+from core.exceptions import NoSuchUserFoundInTheFamily, NotEnoughCoins
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from db.session import get_db
@@ -54,21 +54,21 @@ async def money_transfer_wallet(
                 db_session=async_session,
             )
             await transfer_service.run_process()
-        except NoSuchUserFoundInThefamily:
-            return JSONResponse(
-                status_code=400,
-                content={"detail": "No Such User Found In The family"},
+        except NoSuchUserFoundInTheFamily:
+            raise HTTPException(
+                status_code=404,
+                detail="No Such User Found In The family"
             )
         except NotEnoughCoins:
-            return JSONResponse(
+            raise HTTPException(
                 status_code=400,
-                content={"detail": "You don't have enough coins"},
+                detail="You don't have enough coins"
             )
 
-        return JSONResponse(
-            status_code=200,
-            content={"detail": "The transaction was successful."},
-        )
+    return JSONResponse(
+        status_code=200,
+        content={"detail": "The transaction was successful."},
+    )
 
 
 # Get transactions user's wallet

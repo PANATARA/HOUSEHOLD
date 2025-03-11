@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import ChoreCompletionPermission, IsAuthenicatedPermission
+from db.dals.chores import AsyncChoreDAL
 from db.models.user import User
 from db.session import get_db
 from schemas.chores.chores_completions import NewChoreCompletionCreate, NewChoreCompletionSummary
@@ -26,9 +27,10 @@ async def create_chore_completion(
 ) -> Response:
     
     async with async_session.begin():
+        chore = AsyncChoreDAL(async_session).get_by_id(chore_id)
         creator_service = CreateChoreCompletion(
             user=current_user,
-            chore_id=chore_id,
+            chore=chore,
             message=body.message,
             db_session=async_session,
         )
