@@ -64,7 +64,7 @@ async def create_family_chore(
             db_session=async_session,
             data=body,
         )
-        new_chore = await creator_service()
+        new_chore = await creator_service.run_process()
         return NewChoreDetail(
             id=new_chore.id,
             name=new_chore.name,

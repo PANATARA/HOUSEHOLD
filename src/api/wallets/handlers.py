@@ -53,7 +53,7 @@ async def money_transfer_wallet(
                 message="Transferred you some coins",
                 db_session=async_session,
             )
-            await transfer_service()
+            await transfer_service.run_process()
         except NoSuchUserFoundInThefamily:
             return JSONResponse(
                 status_code=400,

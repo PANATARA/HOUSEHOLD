@@ -1,15 +1,23 @@
 from fastapi import HTTPException
 from starlette import status
 
-class UserCannotLeaveFamily(Exception):
+class UserCannotLeaveFamily(BaseException):
     pass
 
 
-class NoSuchUserFoundInThefamily(Exception):
+class NoSuchUserFoundInThefamily(BaseException):
     pass
 
 
-class NotEnoughCoins(Exception):
+class NotEnoughCoins(BaseException):
+    pass
+
+
+class ProductNotFoundErorr(BaseException):
+    pass
+
+
+class DebugErorr(BaseException):
     pass
 
 

@@ -3,19 +3,13 @@ from uuid import UUID
 from pydantic import BaseModel
 
 
-class _Transaction(BaseModel):
+class CreatePeerTransaction(BaseModel):
+    detail: str
+    coins: Decimal
+
+
+class CreateRewardTransaction(BaseModel):
     detail: str
     coins: Decimal
     to_user_id: UUID
-
-
-class CreatePurchaseTransaction(_Transaction):
-    product_id: UUID
-
-
-class CreateTransferTransaction(_Transaction):
-    from_user_id: UUID
-
-
-class CreateRewardTransaction(_Transaction):
     chore_completion_id: UUID

@@ -3,25 +3,30 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal
 
+from config.coins_settings import PURCHASE_RATE, TRANSFER_RATE
+from core.constants import PeerTransactionENUM
 from core.exceptions import NoSuchUserFoundInThefamily, NotEnoughCoins
 from core.services import BaseService
 from db.dals.chores import AsyncChoreDAL
 from db.dals.coins_transactions import PeerTransactionDAL, RewardTransactionDAL
 from db.dals.wallets import AsyncWalletDAL
 from db.models.chore import ChoreCompletion
+from db.models.product import Product
 from db.models.user import User
 from db.models.wallet import PeerTransaction, RewardTransaction, Wallet
-from schemas.coins_transactions import CreateRewardTransaction, CreateTransferTransaction
+from schemas.coins_transactions import CreatePeerTransaction, CreateRewardTransaction
 
 
 @dataclass
 class WalletCreatorService(BaseService):
-    """Create and return a new User's wallet"""
+    """
+    Creates a new user wallet and deletes the old one if it exists
+    """
 
     user: User
     db_session: AsyncSession
 
-    async def execute(self) -> Wallet:
+    async def process(self) -> Wallet:
         wallet = await self._create_wallet()
         return wallet
 
@@ -47,33 +52,20 @@ class CoinsTransferService(BaseService):
     message: str
     db_session: AsyncSession
 
-    async def execute(self) -> PeerTransaction | None:
-        wallet_dal = AsyncWalletDAL(self.db_session)
-        await self._take_coins(wallet_dal)
-        await self._add_coins(wallet_dal)
-        transaction_log = await self._create_transaction_log()
-
-        return transaction_log
-
-    async def _take_coins(self, wallet_dal: AsyncWalletDAL) -> Decimal | None:
-        result = await wallet_dal.deduct_balance(
-            user_id=self.from_user.id, amount=self.count
+    async def process(self) -> PeerTransaction | None:
+        data = CreatePeerTransaction(
+            detail = self.message,
+            coins = self.count,
         )
-        if result is None:
-            raise NotEnoughCoins()
-
-    async def _add_coins(self, wallet_dal: AsyncWalletDAL):
-        await wallet_dal.add_balance(user_id=self.to_user.id, amount=self.count)
-
-    async def _create_transaction_log(self):
-        data = CreateTransferTransaction(
-            detail=self.message,
-            coins=self.count,
-            to_user_id=self.to_user.id,
-            from_user_id=self.from_user.id,
+        peer_transaction_service = PeerTransactionService(
+            to_user = self.to_user,
+            from_user = self.from_user,
+            data=data,
+            transaction_type=PeerTransactionENUM.transfer,
+            db_session=self.db_session,
         )
-        transaction_log_dal = PeerTransactionDAL(self.db_session)
-        return await transaction_log_dal.create_transfer_transaction(data=data)
+        return await peer_transaction_service.run_process()
+
 
     async def validate(self):
         if self.from_user.family_id != self.to_user.family_id:
@@ -90,7 +82,7 @@ class CoinsRewardService(BaseService):
     message: str
     db_session: AsyncSession
 
-    async def execute(self) -> RewardTransaction | None:
+    async def process(self) -> RewardTransaction | None:
         user_id = self.chore_completion.completed_by_id
         amount = await AsyncChoreDAL(self.db_session).get_chore_valutation(
             self.chore_completion.chore_id
@@ -112,3 +104,48 @@ class CoinsRewardService(BaseService):
         )
         transaction_log_dal = RewardTransactionDAL(self.db_session)
         return await transaction_log_dal.create_reward_for_chore_transaction(data=data)
+
+
+@dataclass
+class PeerTransactionService(BaseService):
+    to_user: User
+    from_user: User
+    data: CreatePeerTransaction
+    transaction_type: PeerTransactionENUM
+    db_session: AsyncSession
+    product: Product | None = None
+
+    async def process(self) -> PeerTransaction | None:
+        await self._take_coins()
+        await self._add_coins()
+        transaction_log = await self._create_transaction_log()
+
+        return transaction_log
+
+    async def _take_coins(self) -> None:
+        wallet_dal = AsyncWalletDAL(self.db_session)
+        result = await wallet_dal.deduct_balance(
+            user_id=self.from_user.id, amount=self.data.coins
+        )
+        if result is None:
+            raise NotEnoughCoins()
+
+    async def _add_coins(self) -> None:
+        if self.transaction_type == PeerTransactionENUM.purchase:
+            total_coins = Decimal(self.data.coins * PURCHASE_RATE)
+        elif self.transaction_type == PeerTransactionENUM.transfer:
+            total_coins = Decimal(self.data.coins * TRANSFER_RATE)
+        wallet_dal = AsyncWalletDAL(self.db_session)
+        await wallet_dal.add_balance(user_id=self.to_user.id, amount=total_coins)
+
+    async def _create_transaction_log(self):
+        data = {
+            "detail": self.data.detail,
+            "coins": self.data.coins,
+            "to_user_id": self.to_user.id,
+            "from_user_id": self.from_user.id,
+            "product_id": self.product.id if self.product else None,
+            "transaction_type": self.transaction_type,
+        }
+        transaction_log_dal = PeerTransactionDAL(self.db_session)
+        return await transaction_log_dal.create(fields=data)

@@ -32,7 +32,7 @@ async def create_chore_completion(
             message=body.message,
             db_session=async_session,
         )
-        await creator_service()
+        await creator_service.run_process()
     return Response(
         status_code=204,
     )

@@ -22,7 +22,7 @@ class FamilyCreatorService(BaseService):
     user: User | UUID # User who creates a family
     db_session: AsyncSession
 
-    async def execute(self) -> Family:
+    async def process(self) -> Family:
         family = await self._create_family()
         await self._add_user_to_family(family)
         await self._create_default_family_chore(family)
@@ -40,12 +40,12 @@ class FamilyCreatorService(BaseService):
             permissions=UserFamilyPermissionModel(**constants.default_admin_permissions),
             db_session=self.db_session
         )
-        await new_member()
+        await new_member.run_process()
 
     async def _create_default_family_chore(self, family: Family) -> None:
         data = await get_default_chore_data()
         default_chores = ChoreCreatorService(family, self.db_session, data)
-        return await default_chores()
+        return await default_chores.run_process()
 
     async def validate(self):
         "Validate the user is not a member of any family"
@@ -59,7 +59,7 @@ class AddUserToFamilyService(BaseService):
     permissions: UserFamilyPermissionModel
     db_session: AsyncSession
 
-    async def execute(self) -> Family:
+    async def process(self) -> Family:
         await self._add_user_to_family()
         await self._create_user_wallet()
         await self._create_permissions(self.permissions)
@@ -77,7 +77,7 @@ class AddUserToFamilyService(BaseService):
 
     async def _create_user_wallet(self) -> Wallet:
         user_wallet = WalletCreatorService(self.user, self.db_session)
-        return await user_wallet()
+        return await user_wallet.run_process()
 
     async def validate(self):
         "Validate the user is not a member of any family"
@@ -91,7 +91,7 @@ class LogoutUserFromFamilyService(BaseService):
     user: User
     db_session: AsyncSession
 
-    async def execute(self) -> None:
+    async def process(self) -> None:
         await self._update_user_field()
         await self._delete_user_permissions()
         await self._delete_user_wallet()
@@ -121,8 +121,8 @@ class FamilyDeleterService(BaseService):
     family: Family
     db_session: AsyncSession
 
-    async def execute(self) -> Family:
-        return super().execute()
+    async def process(self) -> Family:
+        return super().process()
 
     async def validate(self):
         return super().validate()

@@ -19,14 +19,14 @@ class CreateChoreCompletion(BaseService):
     message: str
     db_session: AsyncSession
 
-    async def execute(self) -> ChoreCompletion:
+    async def process(self) -> ChoreCompletion:
         status = StatusConfirmENUM.awaits.value
         users = await self._get_users_should_confirm_chore_completion()
         chore_completion = await self._create_chore_completion(status)
 
         if users is None:
             service = ApproveChoreCompletion(chore_completion_id=chore_completion.id, db_session=self.db_session)
-            await service()
+            await service.run_process()
         else:
             await self._create_chores_confirmations(users, chore_completion.id)
 
@@ -71,7 +71,7 @@ class ApproveChoreCompletion(BaseService):
     chore_completion_id: UUID
     db_session: AsyncSession
 
-    async def execute(self) -> None:
+    async def process(self) -> None:
         await self.change_chore_completion_status()
         await self.send_reward()
 
@@ -89,7 +89,7 @@ class ApproveChoreCompletion(BaseService):
             message="income",
             db_session=self.db_session,
         )
-        await service()
+        await service.run_process()
 
     async def validate(self):
         return
@@ -100,7 +100,7 @@ class CancellChoreCompletion(BaseService):
     chore_completion_id: UUID
     db_session: AsyncSession
 
-    async def execute(self) -> None:
+    async def process(self) -> None:
         await self.change_status_chore_completion()
 
     async def change_status_chore_completion(self) -> None:
@@ -129,7 +129,7 @@ async def set_status_chore_confirmation(
                 chore_completion_id=chore_confirmation.chore_completion_id,
                 db_session=db_session
             )
-        await service()
+        await service.run_process()
     else:    
         count_chores_confirmations = await chore_confirmation_dal.count_status_chore_confirmation(
             chore_completion_id=chore_confirmation.chore_completion_id,
@@ -140,4 +140,4 @@ async def set_status_chore_confirmation(
                 chore_completion_id=chore_confirmation.chore_completion_id,
                 db_session=db_session
             )
-            await service()
+            await service.run_process()

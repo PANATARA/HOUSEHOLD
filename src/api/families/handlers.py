@@ -33,7 +33,7 @@ async def create_family(
             family_creator_service = FamilyCreatorService(
                 name=body.name, user=current_user, db_session=async_session
             )
-            family = family_creator_service()
+            family = family_creator_service.run_process()
         except ValueError:
             return JSONResponse(
                 status_code=400,
@@ -73,7 +73,7 @@ async def logout_user_from_family(
         try:
             await LogoutUserFromFamilyService(
                 user=current_user, db_session=async_session
-            )()
+            ).run_process()
 
         except UserCannotLeaveFamily:
             return JSONResponse(

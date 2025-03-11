@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, Query
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import IsAuthenicatedPermission
 
+from core.exceptions import ProductNotFoundErorr
 from db.dals.products import AsyncProductDAL
 from db.models.user import User
 from db.session import get_db
@@ -12,6 +14,7 @@ from logging import getLogger
 
 from schemas.products import CreateNewProductSchema, ProductFullSchema, ProductWithSellerSchema
 from services.products.data import ProductDataService
+from services.products.services import PurchaseService
 
 logger = getLogger(__name__)
 
@@ -65,3 +68,27 @@ async def get_family_active_products(
         offset = (page - 1) * limit
         product_data = ProductDataService(async_session)
         return await product_data.get_family_active_products(current_user.family_id, limit, offset)
+
+
+# Buy a product
+@product_router.get(path="/buy/{product_id}")
+async def buy_active_products(
+    product_id: UUID, 
+    current_user: User = Depends(IsAuthenicatedPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> Response:
+    async with async_session.begin():
+        try:
+            product = await AsyncProductDAL(async_session).get_by_id(product_id)
+            if not product:
+                raise ProductNotFoundErorr
+            
+            service = PurchaseService(product=product, user=current_user, db_session=async_session)
+            await service()
+        except ProductNotFoundErorr:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT
+    )

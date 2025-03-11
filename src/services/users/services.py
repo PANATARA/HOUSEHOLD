@@ -16,7 +16,7 @@ class UserCreatorService(BaseService):
     password: str
     db_session: AsyncSession
 
-    async def execute(self) -> User:
+    async def process(self) -> User:
         user = await self._create_user(
             {
                 "username": self.username,

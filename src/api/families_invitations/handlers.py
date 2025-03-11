@@ -73,7 +73,7 @@ async def join_to_family(
             db_session=async_session,
         )
         try:
-            await service()
+            await service.run_process()
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,

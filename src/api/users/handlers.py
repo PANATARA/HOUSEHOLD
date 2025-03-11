@@ -38,7 +38,7 @@ async def create_user(
                 password=body.password,
                 db_session=async_session,
             )
-            user = await service()
+            user = await service.run_process()
         except IntegrityError as err:
             logger.error(err)
             raise HTTPException(status_code=503, detail=f"Database error: {err}")

@@ -16,7 +16,7 @@ class ChoreCreatorService(BaseService):
     db_session: AsyncSession
     data: NewChoreCreate | list[NewChoreCreate]
 
-    async def execute(self) -> None:
+    async def process(self) -> None:
         return await self._create_chores()
     
     async def _create_chores(self) -> Chore | None:
