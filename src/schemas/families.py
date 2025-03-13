@@ -1,10 +1,7 @@
-from datetime import datetime, timedelta
-import re
+from datetime import timedelta
 from pydantic import BaseModel
 
 from schemas.users import UserResponse
-
-LETTER_MATCH_PATTERN = re.compile(r"^[а-яА-Яa-zA-Z\-]+$")
 
 
 class TunedModel(BaseModel):
@@ -13,11 +10,14 @@ class TunedModel(BaseModel):
 
         from_attributes = True
 
+
 class FamilyCreate(BaseModel):
     name: str
 
+
 class FamilyShow(BaseModel):
     name: str
+
 
 class FamilyFullShow(BaseModel):
     name: str
@@ -25,7 +25,7 @@ class FamilyFullShow(BaseModel):
 
     class Config:
         orm_mode = True
-        from_attributes = True 
+        from_attributes = True
 
 
 class UserInviteParametr(BaseModel):

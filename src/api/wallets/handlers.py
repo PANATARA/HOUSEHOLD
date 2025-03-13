@@ -3,7 +3,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import IsAuthenicatedPermission
-from core.exceptions import NoSuchUserFoundInTheFamily, NotEnoughCoins
+from core.exceptions.wallets import NotEnoughCoins
+from core.exceptions.families import UserNotFoundInFamily
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from db.session import get_db
@@ -44,7 +45,7 @@ async def money_transfer_wallet(
     async with async_session.begin():
         try:
             user_dal = AsyncUserDAL(async_session)
-            to_user = await user_dal.get_by_id(body.to_user_id)
+            to_user = await user_dal.get_or_raise(body.to_user_id)
 
             transfer_service = CoinsTransferService(
                 from_user=current_user,
@@ -54,7 +55,7 @@ async def money_transfer_wallet(
                 db_session=async_session,
             )
             await transfer_service.run_process()
-        except NoSuchUserFoundInTheFamily:
+        except UserNotFoundInFamily:
             raise HTTPException(
                 status_code=404,
                 detail="No Such User Found In The family"

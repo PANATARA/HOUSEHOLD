@@ -1,5 +1,4 @@
 from uuid import UUID
-from dataclasses import dataclass
 from decimal import Decimal
 
 from core.base_dals import BaseUserPkDals
@@ -7,8 +6,7 @@ from sqlalchemy import exists, select, update
 from db.models.wallet import Wallet
 
 
-@dataclass
-class AsyncWalletDAL(BaseUserPkDals):
+class AsyncWalletDAL(BaseUserPkDals[Wallet]):
 
     class Meta:
         model = Wallet
@@ -16,7 +14,7 @@ class AsyncWalletDAL(BaseUserPkDals):
     async def exist_wallet_user(self, user: UUID) -> bool:
         query = select(exists().where(Wallet.user_id == user))
         result = await self.db_session.execute(query)
-        return result.scalar()
+        return bool(result.scalar() or False)
     
     async def get_user_balance(self, user_id: UUID) -> Decimal | None:
         query = select(Wallet.balance).where(Wallet.user_id == user_id)

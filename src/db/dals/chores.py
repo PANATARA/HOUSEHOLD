@@ -1,18 +1,16 @@
-from decimal import Decimal
 from uuid import UUID
-from dataclasses import dataclass
 
-from core.base_dals import BaseDals, DeleteDALMixin
+from core.base_dals import BaseDals, DeleteDALMixin, GetOrRaiseMixin
+from core.exceptions.chores import ChoreNotFoundError
 from db.models.chore import Chore
 from sqlalchemy import select
 from schemas.chores.chores import NewChoreCreate
 
 
-@dataclass
-class AsyncChoreDAL(BaseDals, DeleteDALMixin):
+class AsyncChoreDAL(BaseDals[Chore], GetOrRaiseMixin[Chore], DeleteDALMixin[Chore]):
 
-    class Meta:
-        model = Chore
+    model = Chore
+    not_found_exception = ChoreNotFoundError
 
     async def create_chores_many(self, family_id: UUID, chores_data: list[NewChoreCreate]) -> list[Chore]:
 
@@ -32,8 +30,10 @@ class AsyncChoreDAL(BaseDals, DeleteDALMixin):
 
         return chores
     
-    async def get_chore_valutation(self, chore_id: UUID) -> Decimal:
+    async def get_chore_valutation(self, chore_id: UUID) -> int | None:
         query = select(Chore.valuation).where(Chore.id==chore_id)
         query_result = await self.db_session.execute(query)
         valutation = query_result.fetchone()
-        return valutation[0]
+        if valutation is not None:
+            return valutation[0]
+        return None

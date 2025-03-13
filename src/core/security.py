@@ -5,7 +5,7 @@ from jose import ExpiredSignatureError, JWTError, jwt
 from starlette import status
 
 from config import auth_token
-from core.exceptions import credentials_exception
+from core.exceptions.http_exceptions import credentials_exception
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()

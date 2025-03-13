@@ -1,45 +1,36 @@
-from typing import Union
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
-from dataclasses import dataclass
 
-from core.base_dals import BaseDals
+from core.base_dals import BaseDals, GetOrRaiseMixin
+from core.exceptions.users import UserNotFoundError
 from db.models.user import User, UserFamilyPermissions, UserSettings
 from sqlalchemy import select
 
-@dataclass
-class AsyncUserDAL(BaseDals):
-    db_session: AsyncSession
 
-    class Meta:
-        model = User
+class AsyncUserDAL(BaseDals[User], GetOrRaiseMixin[User]):
 
-    async def get_user_by_username(self, username: str) -> Union[User, None]:
+    model = User
+    not_found_exception = UserNotFoundError
+
+    async def get_user_by_username(self, username: str) -> User | None:
         query = select(User).where(User.username == username)
         result = await self.db_session.execute(query)
         user = result.fetchone()
-        if user is not None:
-            return user[0]
+        return user[0] if user is not None else None
     
     async def get_users_where_permission(self, family_id: UUID):
         pass
 
 
+class AsyncUserSettingsDAL(BaseDals[UserSettings]):
 
-@dataclass
-class AsyncUserSettingsDAL(BaseDals):
-    db_session: AsyncSession
+    model = UserSettings
 
     async def get_settings_by_user_id(self, user_id):
         pass
 
-    class Meta:
-        model = UserSettings
+
+class AsyncUserFamilyPermissionsDAL(BaseDals[UserFamilyPermissions]):
+
+    model = UserFamilyPermissions
 
 
-@dataclass
-class AsyncUserFamilyPermissionsDAL(BaseDals):
-    db_session: AsyncSession
-
-    class Meta:
-        model = UserFamilyPermissions

@@ -1,8 +1,9 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.permissions import ChoreCompletionPermission, IsAuthenicatedPermission
+from api.permissions import ChoreCompletionPermission, FamilyMemberPermission, IsAuthenicatedPermission
+from core.exceptions.chores import ChoreNotFoundError
 from db.dals.chores import AsyncChoreDAL
 from db.models.user import User
 from db.session import get_db
@@ -27,14 +28,20 @@ async def create_chore_completion(
 ) -> Response:
     
     async with async_session.begin():
-        chore = AsyncChoreDAL(async_session).get_by_id(chore_id)
-        creator_service = CreateChoreCompletion(
-            user=current_user,
-            chore=chore,
-            message=body.message,
-            db_session=async_session,
-        )
-        await creator_service.run_process()
+        try:
+            chore = await AsyncChoreDAL(async_session).get_or_raise(chore_id)
+            creator_service = CreateChoreCompletion(
+                user=current_user,
+                chore=chore,
+                message=body.message,
+                db_session=async_session,
+            )
+            await creator_service.run_process()
+        except ChoreNotFoundError:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chore not found"
+            )
     return Response(
         status_code=204,
     )
@@ -44,7 +51,7 @@ async def create_chore_completion(
 async def get_family_chores_completions(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=50),
-    current_user: User = Depends(IsAuthenicatedPermission()), 
+    current_user: User = Depends(FamilyMemberPermission()), 
     async_session: AsyncSession = Depends(get_db)
 ) -> list[NewChoreCompletionSummary]:
     
@@ -61,7 +68,7 @@ async def get_family_chore_completion_detail(
     chore_completion_id: UUID,
     current_user: User = Depends(ChoreCompletionPermission()), 
     async_session: AsyncSession = Depends(get_db)
-) -> NewChoreCompletionDetail:
+) -> NewChoreCompletionDetail | None:
     
     async with async_session.begin():
         data_service = ChoreCompletionDataService(async_session)

@@ -8,7 +8,7 @@ from db.dals.users import AsyncUserDAL, AsyncUserSettingsDAL
 from db.models.user import User, UserSettings
 
 @dataclass
-class UserCreatorService(BaseService):
+class UserCreatorService(BaseService[User]):
     """Create and return a new Family"""
     username: str
     name: str

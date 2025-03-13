@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,7 +7,7 @@ from core.permissions import BasePermission
 from db.dals.users import AsyncUserDAL
 from db.models import User
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
-from core.exceptions import permission_denided, user_not_found
+from core.exceptions.http_exceptions import permission_denided, user_not_found, credentials_exception
 from db.models.user import UserFamilyPermissions
 
 
@@ -14,18 +15,39 @@ class IsAuthenicatedPermission(BasePermission):
 
     async def get_user_and_check_permission(
         self,
-        token_payload: dict[str, any],
+        token_payload: dict[str, Any],
         http_method: str,
         async_session: AsyncSession,
         **kwargs
     ) -> User:
 
         user_id = token_payload.get("sub")
+        if user_id is None:
+            raise permission_denided
         user_dal = AsyncUserDAL(async_session)
-        user = await user_dal.get_by_id(user_id)
+        user = await user_dal.get_or_raise(user_id)
+        
+        return user
 
-        if user is None:
-            raise user_not_found
+
+class FamilyMemberPermission(IsAuthenicatedPermission):
+
+    async def get_user_and_check_permission(
+        self,
+        token_payload: dict[str, Any],
+        http_method: str,
+        async_session: AsyncSession,
+        **kwargs) -> User:
+
+        user = await super().get_user_and_check_permission(
+            token_payload = token_payload,
+            http_method = http_method,
+            async_session = async_session,
+            **kwargs
+        )
+        
+        if user.family_id is None:
+            raise permission_denided
         return user
 
 
@@ -33,7 +55,7 @@ class IsFamilyAdminPermission(BasePermission):
 
     async def get_user_and_check_permission(
         self,
-        token_payload: dict[str, any],
+        token_payload: dict[str, Any],
         http_method: str,
         async_session: AsyncSession,
         **kwargs
@@ -42,6 +64,8 @@ class IsFamilyAdminPermission(BasePermission):
         if not user_is_family_admin:
             raise permission_denided
         user_id = token_payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
         user_dal = AsyncUserDAL(async_session)
         user = await user_dal.get_by_id(user_id)
 
@@ -54,7 +78,7 @@ class ChorePermission(BasePermission):
 
     async def get_user_and_check_permission(
         self,
-        token_payload: dict[str, any],
+        token_payload: dict[str, Any],
         http_method: str,
         async_session: AsyncSession,
         **kwargs
@@ -62,7 +86,6 @@ class ChorePermission(BasePermission):
         user_is_family_admin = token_payload.get("is_family_admin")
         if http_method not in SAFE_METHODS and not user_is_family_admin:
             raise permission_denided
-
         chore_id = kwargs.get("chore_id")
         user_id = token_payload.get("sub")
         query = select(User).where(
@@ -84,7 +107,7 @@ class ChoreCompletionPermission(BasePermission):
 
     async def get_user_and_check_permission(
         self,
-        token_payload: dict[str, any],
+        token_payload: dict[str, Any],
         http_method: str,
         async_session: AsyncSession,
         **kwargs
@@ -113,7 +136,7 @@ class ChoreConfirmationPermission(BasePermission):
 
     async def get_user_and_check_permission(
         self,
-        token_payload: dict[str, any],
+        token_payload: dict[str, Any],
         http_method: str,
         async_session: AsyncSession,
         **kwargs
@@ -141,7 +164,7 @@ class FamilyInvitePermission(BasePermission):
 
     async def get_user_and_check_permission(
         self,
-        token_payload: dict[str, any],
+        token_payload: dict[str, Any],
         http_method: str,
         async_session: AsyncSession,
         **kwargs
@@ -152,7 +175,7 @@ class FamilyInvitePermission(BasePermission):
             User.id == user_id,
             exists().where(
                 (UserFamilyPermissions.user_id == user_id) &
-                (UserFamilyPermissions.can_invite_users == True)
+                (UserFamilyPermissions.can_invite_users == True)  # noqa: E712
             ).correlate(User)
         )
         result = await async_session.execute(query)
@@ -162,7 +185,7 @@ class FamilyInvitePermission(BasePermission):
             raise permission_denided
         
         user_is_family_admin = token_payload.get("is_family_admin")
-        if user_is_family_admin:
-            raise user
+        if not user_is_family_admin:
+            raise permission_denided
         
         return user

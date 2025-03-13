@@ -6,11 +6,11 @@ from core.constants import (
     PeerTransactionENUM,
     RewardTransactionENUM,
 )
-from db.models.base_model import BaseModel
+from db.models.base_model import BaseModel, BaseUserModel
 from db.models.declarative_base import Base
 
 
-class Wallet(Base, BaseModel):
+class Wallet(Base, BaseUserModel):
     __tablename__ = "wallets"
     """
     User wallet model
@@ -18,13 +18,6 @@ class Wallet(Base, BaseModel):
 
     balance: Mapped[DECIMAL] = mapped_column(
         DECIMAL(10, 2), default=0.00, nullable=False
-    )
-
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(
-            column="users.id",
-            ondelete="CASCADE",
-        )
     )
 
     def __repr__(self):

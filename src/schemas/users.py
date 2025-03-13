@@ -1,10 +1,9 @@
 from datetime import datetime
-import re
 from uuid import UUID
 from fastapi import HTTPException
 from pydantic import BaseModel, field_validator
 
-LETTER_MATCH_PATTERN = re.compile(r"^[а-яА-Яa-zA-Z\-]+$")
+from config.validation import LETTER_MATCH_PATTERN, PASSWORD_PATTERN
 
 
 class TunedModel(BaseModel):
@@ -18,7 +17,7 @@ class UserResponse(TunedModel):
     id: UUID
     username: str 
     name: str
-    surname: str
+    surname: str | None
 
     class Config:
         orm_mode = True
@@ -44,6 +43,15 @@ class UserCreate(BaseModel):
         if not LETTER_MATCH_PATTERN.match(value):
             raise HTTPException(
                 status_code=422, detail="Surname should contains only letters"
+            )
+        return value
+
+
+    @field_validator("password")
+    def validate_password(cls, value):
+        if not PASSWORD_PATTERN.match(value):
+            raise HTTPException(
+                status_code=422, detail="Password validation Error"
             )
         return value
 
@@ -83,6 +91,6 @@ class UserDetail(BaseModel):
     id: UUID
     username:str
     name: str
-    surname: str
+    surname: str | None
     created_at: datetime
     updated_at: datetime

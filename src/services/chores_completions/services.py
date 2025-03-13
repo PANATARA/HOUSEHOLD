@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.constants import StatusConfirmENUM
-from core.exceptions import ChoreCompletionCanNotBeChanged, ChoreNotFoundError
+from core.exceptions.chores import  ChoreNotFoundError
+from core.exceptions.chores_completion import ChoreCompletionCanNotBeChanged
 from core.services import BaseService
 from db.dals.chores_completions import AsyncChoreConfirmationDAL, AsyncChoreCompletionDAL
 from db.dals.families import AsyncFamilyDAL
@@ -99,7 +100,7 @@ class ApproveChoreCompletion(BaseService):
 
 @dataclass
 class CancellChoreCompletion(BaseService):
-    chore_completion: UUID
+    chore_completion: ChoreCompletion
     db_session: AsyncSession
 
     async def process(self) -> None:
@@ -108,7 +109,7 @@ class CancellChoreCompletion(BaseService):
     async def change_status_chore_completion(self) -> None:
         chore_completion_dal = AsyncChoreCompletionDAL(db_session=self.db_session)
         await chore_completion_dal.update(
-            object_id=self.chore_completion_id,
+            object_id=self.chore_completion.id,
             fields={"status": StatusConfirmENUM.canceled.value}
         )
 
@@ -128,9 +129,9 @@ async def set_status_chore_confirmation(
         }
     )
     chore_completion_dal = AsyncChoreCompletionDAL(db_session=db_session)
-    chore_completion = chore_completion_dal.get_by_id(
+    chore_completion = await chore_completion_dal.get_or_raise(
         chore_confirmation.chore_completion_id
-    ) 
+    )
     if status == StatusConfirmENUM.canceled.value:
         service = CancellChoreCompletion(
                 chore_completion=chore_completion,
@@ -140,7 +141,7 @@ async def set_status_chore_confirmation(
     else:    
         count_chores_confirmations = await chore_confirmation_dal.count_status_chore_confirmation(
             chore_completion_id=chore_confirmation.chore_completion_id,
-            status=StatusConfirmENUM.awaits.value
+            status=StatusConfirmENUM.awaits
         )
         if count_chores_confirmations == 0:
             service = ApproveChoreCompletion(

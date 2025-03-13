@@ -1,4 +1,3 @@
-from uuid import UUID
 from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,14 +11,14 @@ from schemas.chores.chores import NewChoreCreate
 @dataclass
 class ChoreCreatorService(BaseService):
     """Create and return a new Family"""
-    family: Family | UUID
+    family: Family
     db_session: AsyncSession
     data: NewChoreCreate | list[NewChoreCreate]
 
-    async def process(self) -> None:
+    async def process(self) -> Chore | list[Chore]:
         return await self._create_chores()
     
-    async def _create_chores(self) -> Chore | None:
+    async def _create_chores(self) -> Chore | list[Chore]:
         chore_dal = AsyncChoreDAL(self.db_session)
         if isinstance(self.data, list):
             return await chore_dal.create_chores_many(

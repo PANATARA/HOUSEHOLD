@@ -5,7 +5,8 @@ from decimal import Decimal
 
 from config.coins_settings import PURCHASE_RATE, TRANSFER_RATE
 from core.constants import PeerTransactionENUM
-from core.exceptions import NoSuchUserFoundInTheFamily, NotEnoughCoins
+from core.exceptions.families import UserNotFoundInFamily
+from core.exceptions.wallets import NotEnoughCoins
 from core.services import BaseService
 from db.dals.chores import AsyncChoreDAL
 from db.dals.coins_transactions import PeerTransactionDAL, RewardTransactionDAL
@@ -18,7 +19,7 @@ from schemas.coins_transactions import CreatePeerTransaction, CreateRewardTransa
 
 
 @dataclass
-class WalletCreatorService(BaseService):
+class WalletCreatorService(BaseService[Wallet]):
     """
     Creates a new user wallet and deletes the old one if it exists
     """
@@ -69,11 +70,11 @@ class CoinsTransferService(BaseService):
 
     def validate(self):
         if self.from_user.family_id != self.to_user.family_id:
-            raise NoSuchUserFoundInTheFamily()
+            raise UserNotFoundInFamily()
 
 
 @dataclass
-class CoinsRewardService(BaseService):
+class CoinsRewardService(BaseService[RewardTransaction]):
     """
     Service for accruing coins for completing chore
     """
@@ -82,7 +83,7 @@ class CoinsRewardService(BaseService):
     message: str
     db_session: AsyncSession
 
-    async def process(self) -> RewardTransaction | None:
+    async def process(self) -> RewardTransaction:
         user_id = self.chore_completion.completed_by_id
         amount = await AsyncChoreDAL(self.db_session).get_chore_valutation(
             self.chore_completion.chore_id
@@ -166,4 +167,4 @@ class PeerTransactionService(BaseService):
     
     def validate(self):
         if self.to_user.family_id != self.from_user.family_id:
-            raise NoSuchUserFoundInTheFamily()
+            raise UserNotFoundInFamily()

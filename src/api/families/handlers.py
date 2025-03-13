@@ -11,7 +11,7 @@ from db.models.user import User
 from schemas.families import FamilyCreate, FamilyFullShow, FamilyShow
 from services.families.data import FamilyDataService
 from services.families.services import FamilyCreatorService, LogoutUserFromFamilyService
-from core.exceptions import UserCannotLeaveFamily, user_not_found
+from core.exceptions.families import FamilyNotFoundError, UserCannotLeaveFamily, UserIsAlreadyFamilyMember
 
 from logging import getLogger
 
@@ -33,14 +33,14 @@ async def create_family(
             family_creator_service = FamilyCreatorService(
                 name=body.name, user=current_user, db_session=async_session
             )
-            family = family_creator_service.run_process()
-        except ValueError:
-            return JSONResponse(
+            family = await family_creator_service.run_process()
+        except UserIsAlreadyFamilyMember:
+            raise HTTPException(
                 status_code=400,
-                content={"detail": "The user is already a family member"},
+                detail="The user is already a family member",
             )
         except Exception as e:
-            return JSONResponse(status_code=400, content={"detail": str(e)})
+            raise HTTPException(status_code=400, detail=  str(e))
         else:
             return FamilyShow(name=family.name)
 
@@ -50,16 +50,17 @@ async def create_family(
 async def get_my_family(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyFullShow:
+) -> FamilyFullShow | None:
 
     async with async_session.begin():
-        data = await FamilyDataService(async_session).get_family_with_users(
-            current_user.family_id
-        )
-        if data is None:
+        family_id = current_user.family_id
+        if family_id is None:
             raise HTTPException(status_code=404, detail="Family not found")
+        
+        family_data_service = FamilyDataService(async_session)
+        family = await family_data_service.get_family_with_users(family_id)
 
-        return data
+        return family
 
 
 # Logout user from family
@@ -98,12 +99,12 @@ async def change_family_admin(
 ) -> JSONResponse:
     async with async_session.begin():
         family_dal = AsyncFamilyDAL(async_session)
-        if await family_dal.user_is_family_member(user_id, current_user.family_id):
-            await family_dal.update(
-                object_id=current_user.family_id, fields={"family_admin_id": user_id}
-            )
-        else:
-            raise user_not_found
+        family_id = current_user.family_id
+        if family_id is None:
+            raise FamilyNotFoundError
+        await family_dal.update(
+            object_id=family_id, fields={"family_admin_id": user_id}
+        )
     return JSONResponse(
         content={"detail": "New family administrator appointed"},
         status_code=status.HTTP_200_OK,

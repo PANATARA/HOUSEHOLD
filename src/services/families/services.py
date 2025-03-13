@@ -1,8 +1,7 @@
-from uuid import UUID
 from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.exceptions import UserCannotLeaveFamily, UserIsAlreadyFamilyMember
+from core.exceptions.families import UserCannotLeaveFamily, UserIsAlreadyFamilyMember
 from core.services import BaseService
 from core import constants
 from db.dals.families import AsyncFamilyDAL
@@ -16,10 +15,11 @@ from services.wallets.services import WalletCreatorService
 
 
 @dataclass
-class FamilyCreatorService(BaseService):
+class FamilyCreatorService(BaseService[Family]):
     """Create and return a new Family"""
+
     name: str
-    user: User # User who creates a family
+    user: User  # User who creates a family
     db_session: AsyncSession
 
     async def process(self) -> Family:
@@ -27,18 +27,22 @@ class FamilyCreatorService(BaseService):
         await self._add_user_to_family(family)
         await self._create_default_family_chore(family)
         return family
-    
+
     async def _create_family(self) -> Family:
         family_dal = AsyncFamilyDAL(self.db_session)
-        new_family = await family_dal.create({"name": self.name, "family_admin_id": self.user.id})
+        new_family = await family_dal.create(
+            {"name": self.name, "family_admin_id": self.user.id}
+        )
         return new_family
 
     async def _add_user_to_family(self, family: Family) -> None:
         new_member = AddUserToFamilyService(
-            family=family, 
+            family=family,
             user=self.user,
-            permissions=UserFamilyPermissionModel(**constants.default_admin_permissions),
-            db_session=self.db_session
+            permissions=UserFamilyPermissionModel(
+                **constants.default_admin_permissions
+            ),
+            db_session=self.db_session,
         )
         await new_member.run_process()
 
@@ -51,10 +55,12 @@ class FamilyCreatorService(BaseService):
         "Validate the user is not a member of any family"
         if self.user.family_id is not None:
             raise UserIsAlreadyFamilyMember()
-    
+
+
 @dataclass
 class AddUserToFamilyService(BaseService):
     """Create and return a new Family"""
+
     family: Family
     user: User
     permissions: UserFamilyPermissionModel
@@ -63,12 +69,12 @@ class AddUserToFamilyService(BaseService):
     async def process(self) -> Family:
         await self._add_user_to_family()
         await self._create_user_wallet()
-        await self._create_permissions(self.permissions)
+        await self._create_permissions(self.permissions.model_dump())
         return self.family
 
-    async def _add_user_to_family(self) -> Family:
+    async def _add_user_to_family(self) -> None:
         user_dal = AsyncUserDAL(self.db_session)
-        await user_dal.update(self.user, {"family_id" : self.family.id})
+        await user_dal.update(self.user.id, {"family_id": self.family.id})
 
     async def _create_permissions(self, fields: dict) -> UserFamilyPermissions:
         perm_dal = AsyncUserFamilyPermissionsDAL(self.db_session)
@@ -89,6 +95,7 @@ class AddUserToFamilyService(BaseService):
 @dataclass
 class LogoutUserFromFamilyService(BaseService):
     """Logout user from family"""
+
     user: User
     db_session: AsyncSession
 
@@ -99,10 +106,7 @@ class LogoutUserFromFamilyService(BaseService):
 
     async def _update_user_field(self) -> None:
         user_dal = AsyncUserDAL(self.db_session)
-        await user_dal.update(
-            self.user.id,
-            {"family_id": None} 
-        )
+        await user_dal.update(self.user.id, {"family_id": None})
 
     async def _delete_user_permissions(self) -> None:
         pass
@@ -111,19 +115,6 @@ class LogoutUserFromFamilyService(BaseService):
         pass
 
     async def validate(self):
-       family_dal = AsyncFamilyDAL(self.db_session)
-       if await family_dal.user_is_family_admin(self.user.id, self.user.family_id):
-           raise UserCannotLeaveFamily()
-       
-
-@dataclass
-class FamilyDeleterService(BaseService):
-    """Delete Family"""
-    family: Family
-    db_session: AsyncSession
-
-    async def process(self) -> Family:
-        return super().process()
-
-    async def validate(self):
-        return super().validate()
+        family_dal = AsyncFamilyDAL(self.db_session)
+        if await family_dal.user_is_family_admin(self.user.id, self.user.family_id):
+            raise UserCannotLeaveFamily()

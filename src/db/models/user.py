@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy import Boolean, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.models.base_model import BaseModel
+from db.models.base_model import BaseModel, BaseUserModel
 from db.models.declarative_base import Base
 
 
@@ -35,15 +35,9 @@ class User(Base, BaseModel):
         return super().__repr__()
 
 
-class UserSettings(Base, BaseModel):
+class UserSettings(Base, BaseUserModel):
     __tablename__ = "users_settings"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(
-            column="users.id", 
-            ondelete="CASCADE",
-        )
-    )
     user: Mapped["User"] = relationship("User", back_populates="settings")
     app_theme: Mapped[str]
 
@@ -51,15 +45,9 @@ class UserSettings(Base, BaseModel):
         return super().__repr__()
 
 
-class UserFamilyPermissions(Base, BaseModel):
+class UserFamilyPermissions(Base, BaseUserModel):
     __tablename__= "users_family_permissions"
     
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(
-            column="users.id", 
-            ondelete="CASCADE",
-        )
-    )
     should_confirm_chore_completion: Mapped[bool]
     can_invite_users: Mapped[bool] = True
     

@@ -1,25 +1,21 @@
-from dataclasses import dataclass
 from uuid import UUID
-
 from sqlalchemy import func, select
 
-from core.base_dals import BaseDals
+from core.base_dals import BaseDals, GetOrRaiseMixin
 from core.constants import StatusConfirmENUM
+from core.exceptions.chores_completion import ChoreCompletionNotFoundError 
 from db.models.chore import ChoreCompletion, ChoreConfirmation
 
 
-@dataclass
-class AsyncChoreCompletionDAL(BaseDals):
+class AsyncChoreCompletionDAL(BaseDals[ChoreCompletion], GetOrRaiseMixin):
 
-    class Meta:
-        model = ChoreCompletion
+    model = ChoreCompletion
+    not_found_exception = ChoreCompletionNotFoundError
 
 
-@dataclass
-class AsyncChoreConfirmationDAL(BaseDals):
+class AsyncChoreConfirmationDAL(BaseDals[ChoreConfirmation]):
 
-    class Meta:
-        model = ChoreConfirmation
+    model = ChoreConfirmation
 
     async def create_many_chore_confirmation(
         self, users_ids: list[UUID], chore_completion_id: UUID
@@ -40,7 +36,7 @@ class AsyncChoreConfirmationDAL(BaseDals):
 
     async def count_status_chore_confirmation(
         self, chore_completion_id: UUID, status: StatusConfirmENUM
-    ) -> int:
+    ) -> int | None:
         
         query = (
             select(func.count())

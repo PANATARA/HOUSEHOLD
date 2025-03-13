@@ -64,15 +64,14 @@ async def join_to_family(
         user_permissions = UserFamilyPermissionModel(
             **{key: payload[key] for key in allowed_fields if key in payload}
         )
-
-        family = await AsyncFamilyDAL(async_session).get_by_id(family_id)
-        service = AddUserToFamilyService(
-            family=family,
-            user=current_user,
-            permissions=user_permissions,
-            db_session=async_session,
-        )
         try:
+            family = await AsyncFamilyDAL(async_session).get_or_raise(family_id)
+            service = AddUserToFamilyService(
+                family=family,
+                user=current_user,
+                permissions=user_permissions,
+                db_session=async_session,
+            )
             await service.run_process()
         except ValueError:
             raise HTTPException(

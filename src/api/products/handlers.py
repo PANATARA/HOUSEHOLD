@@ -1,10 +1,11 @@
+from decimal import Decimal
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import IsAuthenicatedPermission
 
-from core.exceptions import ProductNotFoundErorr
+from core.exceptions.products import ProductNotFoundError
 from db.dals.products import AsyncProductDAL
 from db.models.user import User
 from db.session import get_db
@@ -40,7 +41,7 @@ async def create_product(
             name=new_product.name,
             description=new_product.description,
             icon=new_product.icon,
-            price=new_product.price,
+            price=Decimal(new_product.price),
             is_active=new_product.is_active,
             created_at=new_product.created_at,
         )
@@ -67,7 +68,10 @@ async def get_family_active_products(
     async with async_session.begin():
         offset = (page - 1) * limit
         product_data = ProductDataService(async_session)
-        return await product_data.get_family_active_products(current_user.family_id, limit, offset)
+        family_id = current_user.family_id
+        if family_id is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        return await product_data.get_family_active_products(family_id, limit, offset)
 
 
 # Buy a product
@@ -81,11 +85,11 @@ async def buy_active_products(
         try:
             product = await AsyncProductDAL(async_session).get_by_id(product_id)
             if not product:
-                raise ProductNotFoundErorr
+                raise ProductNotFoundError
             
             service = PurchaseService(product=product, user=current_user, db_session=async_session)
-            await service()
-        except ProductNotFoundErorr:
+            await service.run_process()
+        except ProductNotFoundError:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND
             )

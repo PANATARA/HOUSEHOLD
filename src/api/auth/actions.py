@@ -1,4 +1,3 @@
-from typing import Union
 from uuid import UUID
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +15,7 @@ async def _get_user_by_id_for_auth(user_id: UUID, session: AsyncSession):
         return await user_dal.get_by_id(user_id)
 
 
-async def authenticate_user(username: str, password: str, db: AsyncSession) -> Union[User, None]:
+async def authenticate_user(username: str, password: str, db: AsyncSession) -> User | None:
     
     async with db.begin():
         user_dal = AsyncUserDAL(db)

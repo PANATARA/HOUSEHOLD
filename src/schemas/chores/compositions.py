@@ -26,6 +26,7 @@ class NewChoreConfirmationDetail(BaseModel):
     chore_completion: NewChoreCompletionSummary
     status: StatusConfirmENUM
 
+
 class NewChoreDetailMax(BaseModel):
     chore: NewChoreDetail
     chores_completion: list[NewChoreCompletion | None]

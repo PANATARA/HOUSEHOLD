@@ -1,109 +1,162 @@
-from dataclasses import dataclass
+from typing import Type, TypeVar, Generic
+from abc import ABC
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 
-from db.models.declarative_base import Base
+from db.models.base_model import BaseModel, BaseUserModel
+
+T = TypeVar('T', bound=BaseModel)
 
 
+class BaseDal(Generic[T], ABC):
+    model: Type[T]
 
-@dataclass
-class BaseDals:
-    """Implementation of basic CRUD operation"""
-    db_session: AsyncSession
+    def __init__(self, db_session: AsyncSession):
+        if not hasattr(self, "model"):
+            raise AttributeError("Class must define a model attribute.")
+        self.db_session = db_session
 
-    class Meta:
-        model = None
 
-    async def get_by_id(self, object_id: UUID) -> Base | None:
-        query = select(self.Meta.model).where(self.Meta.model.id == object_id)
+class BaseDals(BaseDal[T], ABC):
+    """Implementation of basic CRUD operations"""
+
+    async def get_by_id(self, object_id: UUID) -> T | None:
+        query = select(self.model).where(self.model.id == object_id)
         result = await self.db_session.execute(query)
-        object = result.scalar_one_or_none()
-        return object
+        return result.scalar_one_or_none()
 
-    async def create(self, fields: dict) -> Base | None:
-        object = self.Meta.model(**fields)
-        self.db_session.add(object)
+    async def create(self, fields: dict) -> T:
+        obj = self.model(**fields)
+        self.db_session.add(obj)
         await self.db_session.flush()
-        await self.db_session.refresh(object)
-        return object
+        await self.db_session.refresh(obj)
+        return obj
 
-    async def update(self, object_id: UUID | Base, fields: dict)-> Base | None:
-        object = None
+    async def update(self, object_id: UUID, fields: dict) -> T | None:
+        obj =  await self.get_by_id(object_id)
 
-        if isinstance(object_id, UUID):
-            object = await self.get_by_id(object_id)
-        else:
-            object = object_id
-
-        if not object:
+        if obj is None:
             return None
 
         for field, value in fields.items():
             if value is not None:
-                setattr(object, field, value)
+                setattr(obj, field, value)
 
-        self.db_session.add(object)
+        self.db_session.add(obj)
         await self.db_session.flush()
-        return object
+        return obj
+    
 
-class DeleteDALMixin:
+class DeleteDALMixin(BaseDal[T], ABC):
+    """Soft delete an object by setting `is_active` to `False`.
 
+    Args:
+        object_id (UUID): The ID of the object to soft delete.
+
+    Returns:
+        bool: True if the object was found and updated, False if not found.
+
+    Requirements for the subclass:
+        - Must define a `Meta` class with the following attributes:
+            - `model` (the SQLAlchemy model where the search is performed)
+        - Must have a `db_session` attribute to execute queries.
+    """
+    
     async def soft_delete(self, object_id: UUID) -> bool:
-        """Soft delete an object by setting `is_active` to `False`.
 
-        Args:
-            object_id (UUID): The ID of the object to soft delete.
+        if not hasattr(self.model, "is_active"):
+            raise AttributeError("Model must define 'is_active' field.")
 
-        Returns:
-            bool: True if the object was found and updated, False if not found.
-        """
-        
-        if not hasattr(self, 'Meta') or not hasattr(self.Meta, 'model'):
-            raise AttributeError("Class must define 'Meta' class with a 'model' attribute.")
-        
-        if not hasattr(self, 'db_session'):
-            raise AttributeError("Class must define 'db_session' attribute.")
-        
         query = (
-            update(self.Meta.model)
-            .where(self.Meta.model.id == object_id)
+            update(self.model)
+            .where(self.model.id == object_id)
             .values(is_active=False)
             .execution_options(synchronize_session="fetch")
         )
         result = await self.db_session.execute(query)
 
-        return result.rowcount > 0 
+        return result.rowcount > 0
+
+
+class GetOrRaiseMixin(BaseDal[T], ABC):
+    """
+    Mixin for retrieving a database object or raising an exception if the object is not found.
+
+    This mixin provides the `get_or_raise` method, which performs an SQL query 
+    to retrieve an object by a specified field (default: 'id'). If the object 
+    is not found, it raises the exception defined in `Meta.not_found_exception`.
+
+    Requirements for the subclass:
+    - Must define a `Meta` class with the following attributes:
+      - `model` (the SQLAlchemy model where the search is performed)
+      - `not_found_exception` (the exception to raise when the object is not found)
+    - Must have a `db_session` attribute to execute queries.
+
+    Example usage:
+    
+    ```python
+    class AsyncUserDAL(BaseDals, GetOrRaiseMixin):
         
-        
+        model = User
+        not_found_exception = UserNotFound
 
+    user_dal = AsyncUserDAL(db_session)
+    
+    # Retrieve a user by ID or raise an exception
+    user = await user_dal.get_or_raise(user_id)
 
+    # Retrieve a user by email
+    user = await user_dal.get_or_raise("admin@example.com", field_name="email")
+    ```
+    """
 
-@dataclass
-class BaseUserPkDals:
-    """Implementation of basic CRUD operation"""
-    db_session: AsyncSession
+    not_found_exception: Type[Exception]
 
-    class Meta:
-        model = None
+    async def get_or_raise(self, object_id: UUID) -> T:
 
-    async def get_by_user_id(self, user_id: UUID) -> Base | None:
-        query = select(self.Meta.model).where(self.Meta.model.user_id == user_id)
+        if not hasattr(self, "not_found_exception"):
+            raise AttributeError("Class must define 'not_found_exception' attribute.")
+
+        query = select(self.model).where(self.model.id == object_id)
         result = await self.db_session.execute(query)
         object = result.scalar_one_or_none()
+
+        if object is None:
+            raise self.not_found_exception()
+
         return object
 
-    async def create(self, fields: dict) -> Base | None:
-        object = self.Meta.model(**fields)
-        self.db_session.add(object)
+
+T_U = TypeVar("T_U", bound=BaseUserModel)
+
+
+class BaseUserPkDals(Generic[T_U], ABC):
+    """Implementation of basic CRUD operation"""
+
+    model: Type[T_U]
+
+    def __init__(self, db_session: AsyncSession, *args, **kwargs):
+        self.db_session = db_session
+        super().__init__(*args, **kwargs)
+
+    async def get_by_user_id(self, user_id: UUID) -> T_U | None:
+        query = select(self.model).where(self.model.user_id == user_id)
+        result = await self.db_session.execute(query)
+        obj = result.scalar_one_or_none()
+        return obj
+
+    async def create(self, fields: dict) -> T_U:
+        obj = self.model(**fields)
+        self.db_session.add(obj)
         await self.db_session.flush()
-        return object
+        await self.db_session.refresh(obj)
+        return obj
 
     async def update_by_user_id(self, user_id: UUID, fields: dict) -> None:
-
         query = (
-            update(self.Meta.model)
-            .where(self.Meta.model.user_id==user_id)
+            update(self.model)
+            .where(self.model.user_id == user_id)
             .values(**fields)
         )
         await self.db_session.execute(query)

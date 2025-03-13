@@ -1,5 +1,6 @@
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
 
 from api.auth.actions import oauth2_scheme
 from core.security import get_payload_from_jwt_token
@@ -27,7 +28,7 @@ class BasePermission:
 
     async def get_user_and_check_permission(
         self,
-        token_payload: dict[str, any],
+        token_payload: dict[str, Any],
         http_method: str,
         async_session: AsyncSession,
         **kwargs

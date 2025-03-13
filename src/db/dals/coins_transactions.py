@@ -1,23 +1,17 @@
-from dataclasses import dataclass
-
 from core.base_dals import BaseDals
 from db.models.wallet import PeerTransaction, RewardTransaction
 from schemas.coins_transactions import CreateRewardTransaction
 from core.constants import RewardTransactionENUM
 
 
-@dataclass
-class PeerTransactionDAL(BaseDals):
+class PeerTransactionDAL(BaseDals[PeerTransaction]):
 
-    class Meta:
-        model = PeerTransaction    
+    model = PeerTransaction    
 
 
-@dataclass
-class RewardTransactionDAL(BaseDals):
+class RewardTransactionDAL(BaseDals[RewardTransaction]):
 
-    class Meta:
-        model = RewardTransaction
+    model = RewardTransaction
     
     def create_reward_for_chore_transaction(self, data: CreateRewardTransaction):
         transaction_type = RewardTransactionENUM.reward_for_chore.value

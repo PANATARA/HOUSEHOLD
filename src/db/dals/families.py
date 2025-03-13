@@ -1,17 +1,16 @@
 from uuid import UUID
-from dataclasses import dataclass
 from sqlalchemy import and_, exists, select
 
-from core.base_dals import BaseDals
+from core.base_dals import BaseDals, GetOrRaiseMixin
+from core.exceptions.families import FamilyNotFoundError
 from db.models.family import Family
 from db.models.user import User, UserFamilyPermissions
 
 
-@dataclass
-class AsyncFamilyDAL(BaseDals):
+class AsyncFamilyDAL(BaseDals[Family], GetOrRaiseMixin[Family]):
 
-    class Meta:
-        model = Family
+    model = Family
+    not_found_exception = FamilyNotFoundError
 
     async def get_family_admin(self, family_id: UUID) -> list[UUID] | None:
         pass
@@ -23,7 +22,7 @@ class AsyncFamilyDAL(BaseDals):
             )
         )
         result = await self.db_session.execute(query)
-        return result.scalar()
+        return bool(result.scalar())
 
     async def user_is_family_member(self, user_id: UUID, family_id: UUID) -> bool:
         query = select(
@@ -32,7 +31,7 @@ class AsyncFamilyDAL(BaseDals):
             )
         )
         result = await self.db_session.execute(query)
-        return result.scalar()
+        return bool(result.scalar())
         
     async def get_users_should_confirm_chore_completion(
         self, family_id: UUID, excluded_user_ids: list[UUID]
@@ -45,6 +44,6 @@ class AsyncFamilyDAL(BaseDals):
             .where(User.id.notin_(excluded_user_ids))
         )
         query_result = await self.db_session.execute(query)
-        users_ids = query_result.scalars().all()
+        users_ids = list(query_result.scalars().all())
 
-        return None if not users_ids else users_ids
+        return users_ids if users_ids else None

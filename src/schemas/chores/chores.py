@@ -22,6 +22,6 @@ class NewChoreDetail(BaseModel):
     id: UUID
     name: str
     description: str
-    icon: str = Field
+    icon: str
     valuation: Decimal
     created_at: datetime

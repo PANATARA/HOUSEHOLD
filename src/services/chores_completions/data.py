@@ -6,14 +6,10 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
 from sqlalchemy import case
 
-
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
-from schemas.chores.chores import NewChoreSummary
 from schemas.chores.chores_completions import NewChoreCompletionSummary
-from schemas.chores.chores_confirmations import NewChoreConfirmationSummary
 from schemas.chores.compositions import NewChoreCompletionDetail
-from schemas.users import UserResponse
 
 
 @dataclass
@@ -25,59 +21,70 @@ class ChoreCompletionDataService:
     async def get_family_chore_completion(
         self, family_id: UUID, offset: int, limit: int
     ) -> list[NewChoreCompletionSummary]:
-        """Returns a pydantic model of the chores logs"""
-        cl = aliased(ChoreCompletion)
-        c = aliased(Chore)
-        u = aliased(User)
+        """
+        Retrieves a list of chore completion records for a specific family, 
+        including details of the completed chores and the users who completed them.
+
+        Args:
+            family_id (UUID): The ID of the family whose chore completions are to be fetched.
+            offset (int): The number of records to skip for pagination.
+            limit (int): The maximum number of records to retrieve.
+
+        Returns:
+            list[NewChoreCompletionSummary]: A list of `NewChoreCompletionSummary` Pydantic models 
+            representing the details of the completed chores, including chore information, 
+            the user who completed it, and the completion status.
+        """
 
         query = (
             select(
-                cl.id.label("chore_completion_id"),
-                c.id.label("chore_id"),
-                c.name.label("chore_name"),
-                c.icon.label("chore_icon"),
-                c.valuation.label("chore_valuation"),
-                u.id.label("completed_by_id"),
-                u.username.label("completed_by_username"),
-                u.name.label("completed_by_name"),
-                u.surname.label("completed_by_surname"),
-                cl.created_at.label("chore_completion_completed_at"),
-                cl.status.label("chore_completion_status"),
+                ChoreCompletion.id.label("id"),
+                func.json_build_object(
+                    "id", Chore.id,
+                    "name", Chore.name,
+                    "icon", Chore.icon,
+                    "valuation", Chore.valuation
+                ).label("chore"),
+                func.json_build_object(
+                    "id", User.id,
+                    "username", User.username,
+                    "name", User.name,
+                    "surname", User.surname
+                ).label("completed_by"),
+                ChoreCompletion.created_at.label("completed_at"),
+                ChoreCompletion.status.label("status"),
             )
-            .join(u, cl.completed_by_id == u.id)
-            .join(c, cl.chore_id == c.id)
-            .where(c.family_id == family_id)
-            .order_by(cl.created_at.desc())
+            .join(User, ChoreCompletion.completed_by_id == User.id)
+            .join(Chore, ChoreCompletion.chore_id == Chore.id)
+            .where(Chore.family_id == family_id)
+            .order_by(ChoreCompletion.created_at.desc())
             .limit(limit)
             .offset(offset)
         )
         query_result = await self.db_session.execute(query)
         raw_data = query_result.mappings().all()
         chores_completions = [
-            NewChoreCompletionSummary(
-                id=data["chore_completion_id"],
-                chore=NewChoreSummary(
-                    id=data["chore_id"],
-                    name=data["chore_name"],
-                    icon=data["chore_icon"],
-                    valuation=data["chore_valuation"],
-                ),
-                completed_by=UserResponse(
-                    id=data["completed_by_id"],
-                    username=data["completed_by_username"],
-                    name=data["completed_by_name"],
-                    surname=data["completed_by_surname"],
-                ),
-                completed_at=data["chore_completion_completed_at"],
-                status=data["chore_completion_status"],
-            )
-            for data in raw_data
+            NewChoreCompletionSummary.model_validate(item)
+            for item in raw_data
         ]
         return chores_completions
 
     async def get_family_chore_completion_detail(
         self, chore_completion_id: UUID
-    ) -> NewChoreCompletionDetail | None:
+    ) -> NewChoreCompletionDetail | None:    
+        """
+        Retrieves the detailed information for a specific chore completion, 
+        including the chore details, the user who completed it, and the users 
+        who have confirmed the completion.
+
+        Args:
+            chore_completion_id (UUID): The ID of the chore completion whose details are to be fetched.
+
+        Returns:
+            NewChoreCompletionDetail | None: A Pydantic model representing the details of the 
+            specified chore completion, including the chore, the user who completed it, 
+            the status, and the users who confirmed it. Returns None if no matching completion is found.
+        """
         confirm_user = aliased(User)
 
         query = (
@@ -90,7 +97,7 @@ class ChoreCompletionDataService:
                     "valuation", Chore.valuation,
                 ).label("chore"),
                 func.json_build_object(
-                    "id", User.id.label("id"),
+                    "id", User.id,
                     "username", User.username,
                     "name", User.name,
                     "surname", User.surname

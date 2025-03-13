@@ -3,8 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import status
 
-from api.permissions import ChorePermission, IsAuthenicatedPermission, IsFamilyAdminPermission
+from api.permissions import (
+    ChorePermission,
+    FamilyMemberPermission,
+    IsFamilyAdminPermission,
+)
 from db.dals.chores import AsyncChoreDAL
+from db.dals.families import AsyncFamilyDAL
 from db.models.user import User
 from db.session import get_db
 from schemas.chores.chores import NewChoreCreate, NewChoreDetail, NewChoreSummary
@@ -23,10 +28,9 @@ chores_router = APIRouter()
 # List of all family  chores
 @chores_router.get("")
 async def get_family_chores(
-    current_user: User = Depends(IsAuthenicatedPermission()),
+    current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> list[NewChoreSummary]:
-
+) -> list[NewChoreSummary] | None:
     async with async_session.begin():
         return await ChoreDataService(async_session).get_family_chores(
             current_user.family_id
@@ -41,13 +45,15 @@ async def get_family_chore_detail(
     limit: int = Query(10, le=30),
     current_user: User = Depends(ChorePermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> list[NewChoreDetailMax]:
-
+) -> NewChoreDetailMax:
     offset = (page - 1) * limit
     async with async_session.begin():
-        return await ChoreDataService(
-            async_session
-        ).get_family_chore_with_chore_completions(chore_id=chore_id, limit=limit, offset=offset)
+        
+        chore_data_service = ChoreDataService(async_session)
+        data = await chore_data_service.get_family_chore_with_chore_completions(
+            chore_id=chore_id, limit=limit, offset=offset
+        )
+        return data
 
 
 # Create a new family  chore
@@ -57,10 +63,12 @@ async def create_family_chore(
     current_user: User = Depends(IsFamilyAdminPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> NewChoreDetail:
-
     async with async_session.begin():
+        family = await AsyncFamilyDAL(async_session).get_or_raise(
+            current_user.family_id
+        )
         creator_service = ChoreCreatorService(
-            family=current_user.family_id,
+            family=family,
             db_session=async_session,
             data=body,
         )
@@ -81,17 +89,13 @@ async def delete_family_chore(
     current_user: User = Depends(ChorePermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> Response:
-
     async with async_session.begin():
         chore_dal = AsyncChoreDAL(async_session)
         result = await chore_dal.soft_delete(chore_id)
-        
+
         if result:
-            return Response(
-                status_code=status.HTTP_204_NO_CONTENT
-            )
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
         else:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={"Chore was not found"}
+                status_code=status.HTTP_404_NOT_FOUND, detail={"Chore was not found"}
             )
