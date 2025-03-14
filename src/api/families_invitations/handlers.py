@@ -1,29 +1,28 @@
 from datetime import timedelta
+from logging import getLogger
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
-from starlette import status
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from api.permissions import FamilyInvitePermission, IsAuthenicatedPermission
+from core.qr_code import get_qr_code
 from core.security import (
     create_access_token,
     get_payload_from_jwt_token,
 )
-from db.session import get_db
 from db.dals.families import AsyncFamilyDAL
 from db.models.user import User
+from db.session import get_db
 from schemas.families import InviteToken, UserInviteParametr
 from schemas.users import UserFamilyPermissionModel
 from services.families.services import AddUserToFamilyService
 
-from core.qr_code import get_qr_code
-
-
-from logging import getLogger
-
 logger = getLogger(__name__)
 
 families_invitations_router = APIRouter()
+
 
 # Generate invite token
 @families_invitations_router.post(path="/invite", summary="Generate invite token")
@@ -49,7 +48,9 @@ async def generate_invite_token(
 
 
 # Join to family by invite-token
-@families_invitations_router.post(path="/join/{invite_token}", summary="Join to family by invite-token")
+@families_invitations_router.post(
+    path="/join/{invite_token}", summary="Join to family by invite-token"
+)
 async def join_to_family(
     invite_token: str,
     current_user: User = Depends(IsAuthenicatedPermission()),

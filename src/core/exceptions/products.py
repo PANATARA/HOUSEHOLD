@@ -3,6 +3,7 @@ from core.exceptions.base_exceptions import ObjectNotFoundError
 
 class ProductError(Exception):
     """Base exception for all errors related to product actions."""
+
     pass
 
 

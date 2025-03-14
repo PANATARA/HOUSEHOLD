@@ -1,10 +1,12 @@
+from logging import getLogger
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import IsAuthenicatedPermission
-from core.exceptions.wallets import NotEnoughCoins
 from core.exceptions.families import UserNotFoundInFamily
+from core.exceptions.wallets import NotEnoughCoins
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from db.session import get_db
@@ -12,18 +14,13 @@ from schemas.wallets import MoneyTransfer, NewWalletTransaction, ShowWalletBalan
 from services.wallets.data import TransactionDataService, WalletDataService
 from services.wallets.services import CoinsTransferService
 
-
-from logging import getLogger
-
 logger = getLogger(__name__)
 
 wallet_router = APIRouter()
 
 
 # Get user's wallet
-@wallet_router.get(
-    path="", summary="Get user wallet information"
-)
+@wallet_router.get(path="", summary="Get user wallet information")
 async def get_user_wallet(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -57,14 +54,10 @@ async def money_transfer_wallet(
             await transfer_service.run_process()
         except UserNotFoundInFamily:
             raise HTTPException(
-                status_code=404,
-                detail="No Such User Found In The family"
+                status_code=404, detail="No Such User Found In The family"
             )
         except NotEnoughCoins:
-            raise HTTPException(
-                status_code=400,
-                detail="You don't have enough coins"
-            )
+            raise HTTPException(status_code=400, detail="You don't have enough coins")
 
     return JSONResponse(
         status_code=200,

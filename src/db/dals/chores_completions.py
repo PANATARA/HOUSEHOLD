@@ -1,9 +1,10 @@
 from uuid import UUID
+
 from sqlalchemy import func, select
 
 from core.base_dals import BaseDals, GetOrRaiseMixin
 from core.constants import StatusConfirmENUM
-from core.exceptions.chores_completion import ChoreCompletionNotFoundError 
+from core.exceptions.chores_completion import ChoreCompletionNotFoundError
 from db.models.chore import ChoreCompletion, ChoreConfirmation
 
 
@@ -37,13 +38,13 @@ class AsyncChoreConfirmationDAL(BaseDals[ChoreConfirmation]):
     async def count_status_chore_confirmation(
         self, chore_completion_id: UUID, status: StatusConfirmENUM
     ) -> int | None:
-        
+
         query = (
             select(func.count())
             .select_from(ChoreConfirmation)
             .where(
                 ChoreConfirmation.chore_completion_id == chore_completion_id,
-                ChoreConfirmation.status == status
+                ChoreConfirmation.status == status,
             )
         )
         query_result = await self.db_session.execute(query)

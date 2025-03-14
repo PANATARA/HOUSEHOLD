@@ -1,4 +1,5 @@
 from uuid import UUID
+
 from fastapi import HTTPException
 from pydantic import BaseModel, field_validator
 
@@ -14,7 +15,7 @@ class TunedModel(BaseModel):
 
 class UserSummarySchema(TunedModel):
     id: UUID
-    username: str 
+    username: str
     name: str
     surname: str | None
 
@@ -45,13 +46,10 @@ class UserCreate(BaseModel):
             )
         return value
 
-
     @field_validator("password")
     def validate_password(cls, value):
         if not PASSWORD_PATTERN.match(value):
-            raise HTTPException(
-                status_code=422, detail="Password validation Error"
-            )
+            raise HTTPException(status_code=422, detail="Password validation Error")
         return value
 
 
@@ -75,7 +73,7 @@ class UserUpdate(BaseModel):
                 status_code=422, detail="Surname should contains only letters"
             )
         return value
-    
+
 
 class UserFamilyPermissionModel(BaseModel):
     should_confirm_chore_completion: bool

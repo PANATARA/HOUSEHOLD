@@ -1,6 +1,4 @@
-
 from fastapi import HTTPException, status
-
 
 permission_denided = HTTPException(
     status_code=status.HTTP_403_FORBIDDEN,

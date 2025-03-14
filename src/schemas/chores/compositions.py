@@ -5,7 +5,10 @@ from pydantic import BaseModel
 
 from core.constants import StatusConfirmENUM
 from schemas.chores.chores import NewChoreDetail, NewChoreSummary
-from schemas.chores.chores_completions import NewChoreCompletion, NewChoreCompletionSummary
+from schemas.chores.chores_completions import (
+    NewChoreCompletion,
+    NewChoreCompletionSummary,
+)
 from schemas.chores.chores_confirmations import NewChoreConfirmationSummary
 from schemas.users import UserSummarySchema
 
@@ -22,6 +25,7 @@ class NewChoreCompletionDetail(BaseModel):
 
 class NewChoreConfirmationDetail(BaseModel):
     """Only for a specific user"""
+
     id: UUID
     chore_completion: NewChoreCompletionSummary
     status: StatusConfirmENUM

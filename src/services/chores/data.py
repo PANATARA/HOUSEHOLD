@@ -1,5 +1,6 @@
-from uuid import UUID
 from dataclasses import dataclass
+from uuid import UUID
+
 from sqlalchemy import case, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -15,9 +16,7 @@ from schemas.chores.compositions import NewChoreConfirmationDetail, NewChoreDeta
 class ChoreDataService:
     db_session: AsyncSession
 
-    async def get_family_chores(
-        self, family_id: UUID
-    ) -> list[NewChoreSummary] | None:
+    async def get_family_chores(self, family_id: UUID) -> list[NewChoreSummary] | None:
         """
         Retrieves a list of chores associated with a specific family.
 
@@ -130,8 +129,8 @@ class ChoreConfirmationDataService:
         """
         Fetches the list of chore confirmations for a specific user.
 
-        This method retrieves the details of chore confirmations made by the specified user, including 
-        information about the completed chore, the user who completed it, the completion status, 
+        This method retrieves the details of chore confirmations made by the specified user, including
+        information about the completed chore, the user who completed it, the completion status,
         and the confirmation status.
 
         Args:
@@ -150,21 +149,34 @@ class ChoreConfirmationDataService:
             select(
                 clc.id.label("id"),
                 func.json_build_object(
-                    "id", cl.id,
-                    "chore", func.json_build_object(
-                        "id", c.id,
-                        "name", c.name,
-                        "icon", c.icon,
-                        "valuation", c.valuation,
+                    "id",
+                    cl.id,
+                    "chore",
+                    func.json_build_object(
+                        "id",
+                        c.id,
+                        "name",
+                        c.name,
+                        "icon",
+                        c.icon,
+                        "valuation",
+                        c.valuation,
                     ),
-                    "completed_by", func.json_build_object(
-                        "id", u.id,
-                        "username", u.username,
-                        "name", u.name,
-                        "surname", u.surname,
+                    "completed_by",
+                    func.json_build_object(
+                        "id",
+                        u.id,
+                        "username",
+                        u.username,
+                        "name",
+                        u.name,
+                        "surname",
+                        u.surname,
                     ),
-                    "completed_at", cl.created_at,
-                    "status", cl.status,
+                    "completed_at",
+                    cl.created_at,
+                    "status",
+                    cl.status,
                 ).label("chore_completion"),
                 clc.created_at.label("created_at"),
                 clc.status.label("status"),
@@ -179,8 +191,7 @@ class ChoreConfirmationDataService:
         raw_data = query_result.mappings().all()
 
         confirmations = [
-            NewChoreConfirmationDetail.model_validate(item) 
-            for item in raw_data
+            NewChoreConfirmationDetail.model_validate(item) for item in raw_data
         ]
 
         return confirmations

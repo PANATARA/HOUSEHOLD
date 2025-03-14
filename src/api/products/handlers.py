@@ -1,19 +1,20 @@
 from decimal import Decimal
+from logging import getLogger
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import IsAuthenicatedPermission
-
 from core.exceptions.products import ProductNotFoundError
 from db.dals.products import AsyncProductDAL
 from db.models.user import User
 from db.session import get_db
-
-
-from logging import getLogger
-
-from schemas.products import CreateNewProductSchema, ProductFullSchema, ProductWithSellerSchema
+from schemas.products import (
+    CreateNewProductSchema,
+    ProductFullSchema,
+    ProductWithSellerSchema,
+)
 from services.products.data import ProductDataService
 from services.products.services import PurchaseService
 
@@ -46,6 +47,7 @@ async def create_product(
             created_at=new_product.created_at,
         )
 
+
 # Get a list of user's products
 @product_router.get(path="/users")
 async def get_user_products(
@@ -77,7 +79,7 @@ async def get_family_active_products(
 # Buy a product
 @product_router.get(path="/buy/{product_id}")
 async def buy_active_products(
-    product_id: UUID, 
+    product_id: UUID,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> Response:
@@ -86,13 +88,11 @@ async def buy_active_products(
             product = await AsyncProductDAL(async_session).get_by_id(product_id)
             if not product:
                 raise ProductNotFoundError
-            
-            service = PurchaseService(product=product, user=current_user, db_session=async_session)
+
+            service = PurchaseService(
+                product=product, user=current_user, db_session=async_session
+            )
             await service.run_process()
         except ProductNotFoundError:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND
-            )
-    return Response(
-        status_code=status.HTTP_204_NO_CONTENT
-    )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

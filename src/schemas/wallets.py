@@ -1,7 +1,8 @@
 from datetime import datetime
-from uuid import UUID
-from pydantic import BaseModel, field_validator
 from decimal import Decimal
+from uuid import UUID
+
+from pydantic import BaseModel, field_validator
 
 from schemas.chores.chores_completions import NewChoreCompletionSummaryLite
 from schemas.products import ProductLiteSchema
@@ -17,10 +18,10 @@ class MoneyTransfer(BaseModel):
     to_user_id: UUID
     count: Decimal
 
-    @field_validator('count')
+    @field_validator("count")
     def check_count(cls, value):
         if value <= 0:
-            raise ValueError('Error')
+            raise ValueError("Error")
         return value
 
 

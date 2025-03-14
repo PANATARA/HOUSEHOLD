@@ -1,0 +1,19 @@
+[tool.black]
+line_length = 88
+target_version = ['py38', 'py39', 'py310']
+include = '\.pyi?$'
+# Исключаем папки и файлы
+extend_exclude = '''
+(
+    migrations
+)
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+combine_as_imports = true
+skip = [
+    "migrations", "venv", ".mypy_cache", "__pycache__"
+]

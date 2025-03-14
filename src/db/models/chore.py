@@ -1,4 +1,5 @@
 import uuid
+
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -36,9 +37,14 @@ class ChoreCompletion(Base, BaseModel):
         ForeignKey(column="users.id", ondelete="SET NULL")
     )
     status = mapped_column(
-        Enum(StatusConfirmENUM, name=StatusConfirmENUM.get_enum_name(), create_type=False, native_enum=False),
+        Enum(
+            StatusConfirmENUM,
+            name=StatusConfirmENUM.get_enum_name(),
+            create_type=False,
+            native_enum=False,
+        ),
         nullable=False,
-        default=StatusConfirmENUM.awaits.value
+        default=StatusConfirmENUM.awaits.value,
     )
     message: Mapped[str] = mapped_column(String(50))
 
@@ -53,7 +59,12 @@ class ChoreConfirmation(Base, BaseUserModel):
         ForeignKey(column="chore_completion.id", ondelete="CASCADE")
     )
     status = mapped_column(
-        Enum(StatusConfirmENUM, name=StatusConfirmENUM.get_enum_name(), create_type=False, native_enum=False),
+        Enum(
+            StatusConfirmENUM,
+            name=StatusConfirmENUM.get_enum_name(),
+            create_type=False,
+            native_enum=False,
+        ),
         nullable=False,
-        default=StatusConfirmENUM.awaits.value
+        default=StatusConfirmENUM.awaits.value,
     )

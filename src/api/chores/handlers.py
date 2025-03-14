@@ -1,7 +1,8 @@
+from logging import getLogger
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import status
 
 from api.permissions import (
     ChorePermission,
@@ -16,9 +17,6 @@ from schemas.chores.chores import NewChoreCreate, NewChoreDetail, NewChoreSummar
 from schemas.chores.compositions import NewChoreDetailMax
 from services.chores.data import ChoreDataService
 from services.chores.services import ChoreCreatorService
-
-
-from logging import getLogger
 
 logger = getLogger(__name__)
 
@@ -48,7 +46,7 @@ async def get_family_chore_detail(
 ) -> NewChoreDetailMax:
     offset = (page - 1) * limit
     async with async_session.begin():
-        
+
         chore_data_service = ChoreDataService(async_session)
         data = await chore_data_service.get_family_chore_with_chore_completions(
             chore_id=chore_id, limit=limit, offset=offset

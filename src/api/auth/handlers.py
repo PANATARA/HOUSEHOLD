@@ -1,17 +1,15 @@
 from datetime import timedelta
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
-from fastapi import status
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import auth_token
 from api.auth.actions import authenticate_user
-from db.dals.families import AsyncFamilyDAL
-from schemas.auth import Token
-from db.session import get_db
+from config import auth_token
 from core.security import create_access_token
+from db.dals.families import AsyncFamilyDAL
+from db.session import get_db
+from schemas.auth import Token
 
 login_router = APIRouter()
 

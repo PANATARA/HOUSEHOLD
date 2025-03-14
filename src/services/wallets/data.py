@@ -1,7 +1,8 @@
-from uuid import UUID
 from dataclasses import dataclass
-from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
+
 from sqlalchemy import String, case, cast, func, literal, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from db.models.chore import Chore, ChoreCompletion
@@ -47,47 +48,60 @@ class TransactionDataService:
     async def get_union_user_transactions(
         self, user_id: UUID, offset: int, limit: int
     ) -> list[NewWalletTransaction]:
-            u = aliased(User)
-            p = aliased(Product)
-            cc = aliased(ChoreCompletion)
-            c = aliased(Chore)
-            
-            peer_transactions_query = select(
+        u = aliased(User)
+        p = aliased(Product)
+        cc = aliased(ChoreCompletion)
+        c = aliased(Chore)
+
+        peer_transactions_query = (
+            select(
                 PeerTransaction.id,
                 PeerTransaction.detail,
                 PeerTransaction.coins,
                 cast(PeerTransaction.transaction_type, String),
                 case(
-                    (PeerTransaction.to_user_id == user_id, 'incoming'),
-                    (PeerTransaction.from_user_id == user_id, 'outgoing')
+                    (PeerTransaction.to_user_id == user_id, "incoming"),
+                    (PeerTransaction.from_user_id == user_id, "outgoing"),
                 ).label("transaction_direction"),
                 PeerTransaction.created_at,
                 func.json_build_object(
-                    'id', u.id,
-                    'username', u.username,
-                    'name', u.name,
-                    'surname', u.surname
+                    "id",
+                    u.id,
+                    "username",
+                    u.username,
+                    "name",
+                    u.name,
+                    "surname",
+                    u.surname,
                 ).label("other_user"),
                 case(
-                    (p.id.isnot(None), func.json_build_object(
-                        'id', p.id,
-                        'icon', p.icon,
-                        'name', p.name
-                    )),
-                    else_=None
+                    (
+                        p.id.isnot(None),
+                        func.json_build_object(
+                            "id", p.id, "icon", p.icon, "name", p.name
+                        ),
+                    ),
+                    else_=None,
                 ).label("product"),
                 literal(None).label("chore_completion"),
-            ).join(
-                u, (u.id == PeerTransaction.from_user_id) & (PeerTransaction.from_user_id != user_id) |
-                (u.id == PeerTransaction.to_user_id) & (PeerTransaction.to_user_id != user_id),
-                isouter=True
-            ).join(
-                p, p.id == PeerTransaction.product_id, isouter=True
-            ).where(
-                (PeerTransaction.to_user_id == user_id) | (PeerTransaction.from_user_id == user_id)
             )
-            
-            reward_transactions_query = select(
+            .join(
+                u,
+                (u.id == PeerTransaction.from_user_id)
+                & (PeerTransaction.from_user_id != user_id)
+                | (u.id == PeerTransaction.to_user_id)
+                & (PeerTransaction.to_user_id != user_id),
+                isouter=True,
+            )
+            .join(p, p.id == PeerTransaction.product_id, isouter=True)
+            .where(
+                (PeerTransaction.to_user_id == user_id)
+                | (PeerTransaction.from_user_id == user_id)
+            )
+        )
+
+        reward_transactions_query = (
+            select(
                 RewardTransaction.id,
                 RewardTransaction.detail,
                 RewardTransaction.coins,
@@ -97,30 +111,35 @@ class TransactionDataService:
                 literal(None).label("product"),
                 literal(None).label("other_user"),
                 func.json_build_object(
-                    'id', RewardTransaction.chore_completion_id,
-                    'completed_at', cc.created_at,
-                    'chore', func.json_build_object(
-                        'id', c.id,
-                        'name', c.name,
-                        'icon', c.icon,
-                        'valuation', c.valuation
-                    )
-                ).label("chore_completion")
-            ).join(
-                cc, RewardTransaction.chore_completion_id == cc.id, isouter=True
-            ).join(
-                c, c.id == cc.chore_id, isouter=True
-            ).where(
-                RewardTransaction.to_user_id == user_id
+                    "id",
+                    RewardTransaction.chore_completion_id,
+                    "completed_at",
+                    cc.created_at,
+                    "chore",
+                    func.json_build_object(
+                        "id",
+                        c.id,
+                        "name",
+                        c.name,
+                        "icon",
+                        c.icon,
+                        "valuation",
+                        c.valuation,
+                    ),
+                ).label("chore_completion"),
             )
-            
-            union_query = peer_transactions_query.union_all(reward_transactions_query)
-            final_query = union_query.limit(limit).offset(offset)
-            query_result = await self.db_session.execute(final_query)
-            raw_data = query_result.mappings().all()
-            
-            result = []
-            for item in raw_data:
-                result.append(NewWalletTransaction.model_validate(item))
-            
-            return result
+            .join(cc, RewardTransaction.chore_completion_id == cc.id, isouter=True)
+            .join(c, c.id == cc.chore_id, isouter=True)
+            .where(RewardTransaction.to_user_id == user_id)
+        )
+
+        union_query = peer_transactions_query.union_all(reward_transactions_query)
+        final_query = union_query.limit(limit).offset(offset)
+        query_result = await self.db_session.execute(final_query)
+        raw_data = query_result.mappings().all()
+
+        result = []
+        for item in raw_data:
+            result.append(NewWalletTransaction.model_validate(item))
+
+        return result

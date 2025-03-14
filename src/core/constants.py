@@ -1,9 +1,7 @@
 import enum
 from abc import abstractmethod
 
-default_user_settings = {
-    "app_theme": "light"
-}
+default_user_settings = {"app_theme": "light"}
 
 default_admin_permissions = {
     "should_confirm_chore_completion": True,
@@ -25,11 +23,12 @@ class PostgreSQLEnum(enum.Enum):
     def get_enum_name(self) -> str:
         raise NotImplementedError("Please implement in the Enum class")
 
+
 class StatusConfirmENUM(PostgreSQLEnum):
     awaits = "awaits"
-    canceled  ="canceled"
+    canceled = "canceled"
     approved = "approved"
-    
+
     @classmethod
     def get_enum_name(self):
         return "status_confirm"
@@ -52,4 +51,4 @@ class RewardTransactionENUM(PostgreSQLEnum):
         return "system_transaction"
 
 
-SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS', 'TRACE']
+SAFE_METHODS = ["GET", "HEAD", "OPTIONS", "TRACE"]

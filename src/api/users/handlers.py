@@ -1,3 +1,5 @@
+from logging import getLogger
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,16 +8,14 @@ from api.permissions import IsAuthenicatedPermission
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from db.session import get_db
-from services.users.data import UserDataService
-from services.users.services import UserCreatorService
 from schemas.users import (
-    UserSummarySchema,
     UserCreate,
     UserSettingsShow,
+    UserSummarySchema,
     UserUpdate,
 )
-
-from logging import getLogger
+from services.users.data import UserDataService
+from services.users.services import UserCreatorService
 
 logger = getLogger(__name__)
 
@@ -51,7 +51,9 @@ async def create_user(
 
 
 # # Get user's profile (all info)
-@user_router.get("/me",)
+@user_router.get(
+    "/me",
+)
 async def me_user_get(
     current_user: User = Depends(IsAuthenicatedPermission()),
 ) -> UserSummarySchema:

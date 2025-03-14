@@ -1,9 +1,10 @@
-from abc import ABCMeta, abstractmethod
 import asyncio
+from abc import ABCMeta, abstractmethod
 from collections.abc import Callable
 from typing import Generic, TypeVar
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 class BaseService(Generic[T], metaclass=ABCMeta):
     """

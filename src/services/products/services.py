@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.constants import PeerTransactionENUM
@@ -14,19 +15,21 @@ from services.wallets.services import PeerTransactionService
 
 @dataclass
 class PurchaseService(BaseService):
-    product: Product 
+    product: Product
     user: User
     db_session: AsyncSession
 
     async def process(self):
         data = CreatePeerTransaction(
-            detail = "message",
-            coins = self.product.price,
+            detail="message",
+            coins=self.product.price,
         )
-        from_user = await AsyncUserDAL(self.db_session).get_by_id(self.product.seller_id)
+        from_user = await AsyncUserDAL(self.db_session).get_by_id(
+            self.product.seller_id
+        )
         peer_transaction_service = PeerTransactionService(
-            to_user = self.user,
-            from_user = from_user,
+            to_user=self.user,
+            from_user=from_user,
             product=self.product,
             data=data,
             transaction_type=PeerTransactionENUM.purchase,
@@ -36,12 +39,10 @@ class PurchaseService(BaseService):
         await self._change_product_activity()
 
         return transaction_log
-    
+
     async def _change_product_activity(self) -> None:
         product_dal = AsyncProductDAL(self.db_session)
-        await product_dal.update(
-            object_id=self.product.id, fields={"is_active": False} 
-        )
+        await product_dal.update(object_id=self.product.id, fields={"is_active": False})
 
     def validate(self):
         if not self.product.is_active:

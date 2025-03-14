@@ -1,5 +1,6 @@
 from datetime import datetime
 from uuid import UUID
+
 from pydantic import BaseModel
 
 from schemas.chores.chores import NewChoreSummary
@@ -22,6 +23,7 @@ class NewChoreCompletionSummary(BaseModel):
     completed_by: UserSummarySchema
     completed_at: datetime
     status: str
+
 
 class NewChoreCompletion(BaseModel):
     id: UUID

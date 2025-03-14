@@ -1,9 +1,10 @@
 from uuid import UUID
 
+from sqlalchemy import select
+
 from core.base_dals import BaseDals, GetOrRaiseMixin
 from core.exceptions.users import UserNotFoundError
 from db.models.user import User, UserFamilyPermissions, UserSettings
-from sqlalchemy import select
 
 
 class AsyncUserDAL(BaseDals[User], GetOrRaiseMixin[User]):
@@ -16,7 +17,7 @@ class AsyncUserDAL(BaseDals[User], GetOrRaiseMixin[User]):
         result = await self.db_session.execute(query)
         user = result.fetchone()
         return user[0] if user is not None else None
-    
+
     async def get_users_where_permission(self, family_id: UUID):
         pass
 
@@ -32,5 +33,3 @@ class AsyncUserSettingsDAL(BaseDals[UserSettings]):
 class AsyncUserFamilyPermissionsDAL(BaseDals[UserFamilyPermissions]):
 
     model = UserFamilyPermissions
-
-

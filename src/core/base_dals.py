@@ -1,12 +1,13 @@
-from typing import Type, TypeVar, Generic
 from abc import ABC
+from typing import Generic, Type, TypeVar
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models.base_model import BaseModel, BaseUserModel
 
-T = TypeVar('T', bound=BaseModel)
+T = TypeVar("T", bound=BaseModel)
 
 
 class BaseDal(Generic[T], ABC):
@@ -34,7 +35,7 @@ class BaseDals(BaseDal[T], ABC):
         return obj
 
     async def update(self, object_id: UUID, fields: dict) -> T | None:
-        obj =  await self.get_by_id(object_id)
+        obj = await self.get_by_id(object_id)
 
         if obj is None:
             return None
@@ -46,7 +47,7 @@ class BaseDals(BaseDal[T], ABC):
         self.db_session.add(obj)
         await self.db_session.flush()
         return obj
-    
+
 
 class DeleteDALMixin(BaseDal[T], ABC):
     """Soft delete an object by setting `is_active` to `False`.
@@ -62,7 +63,7 @@ class DeleteDALMixin(BaseDal[T], ABC):
             - `model` (the SQLAlchemy model where the search is performed)
         - Must have a `db_session` attribute to execute queries.
     """
-    
+
     async def soft_delete(self, object_id: UUID) -> bool:
 
         if not hasattr(self.model, "is_active"):
@@ -83,8 +84,8 @@ class GetOrRaiseMixin(BaseDal[T], ABC):
     """
     Mixin for retrieving a database object or raising an exception if the object is not found.
 
-    This mixin provides the `get_or_raise` method, which performs an SQL query 
-    to retrieve an object by a specified field (default: 'id'). If the object 
+    This mixin provides the `get_or_raise` method, which performs an SQL query
+    to retrieve an object by a specified field (default: 'id'). If the object
     is not found, it raises the exception defined in `Meta.not_found_exception`.
 
     Requirements for the subclass:
@@ -94,15 +95,15 @@ class GetOrRaiseMixin(BaseDal[T], ABC):
     - Must have a `db_session` attribute to execute queries.
 
     Example usage:
-    
+
     ```python
     class AsyncUserDAL(BaseDals, GetOrRaiseMixin):
-        
+
         model = User
         not_found_exception = UserNotFound
 
     user_dal = AsyncUserDAL(db_session)
-    
+
     # Retrieve a user by ID or raise an exception
     user = await user_dal.get_or_raise(user_id)
 
@@ -154,11 +155,7 @@ class BaseUserPkDals(Generic[T_U], ABC):
         return obj
 
     async def update_by_user_id(self, user_id: UUID, fields: dict) -> None:
-        query = (
-            update(self.model)
-            .where(self.model.user_id == user_id)
-            .values(**fields)
-        )
+        query = update(self.model).where(self.model.user_id == user_id).values(**fields)
         await self.db_session.execute(query)
         await self.db_session.flush()
         return None

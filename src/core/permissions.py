@@ -1,6 +1,7 @@
+from typing import Any
+
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any
 
 from api.auth.actions import oauth2_scheme
 from core.security import get_payload_from_jwt_token
@@ -22,7 +23,7 @@ class BasePermission:
                 token_payload=token_payload,
                 http_method=request.method,
                 async_session=async_session,
-                **request.path_params
+                **request.path_params,
             )
         return user
 
@@ -31,6 +32,6 @@ class BasePermission:
         token_payload: dict[str, Any],
         http_method: str,
         async_session: AsyncSession,
-        **kwargs
+        **kwargs,
     ) -> User:
         raise NotImplementedError

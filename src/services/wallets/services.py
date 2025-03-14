@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal
+from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.coins_settings import PURCHASE_RATE, TRANSFER_RATE
 from core.constants import PeerTransactionENUM
@@ -47,6 +48,7 @@ class CoinsTransferService(BaseService):
     """
     Service for transferring coins between two users of the same family
     """
+
     from_user: User
     to_user: User
     count: Decimal
@@ -55,18 +57,17 @@ class CoinsTransferService(BaseService):
 
     async def process(self) -> PeerTransaction | None:
         data = CreatePeerTransaction(
-            detail = self.message,
-            coins = self.count,
+            detail=self.message,
+            coins=self.count,
         )
         peer_transaction_service = PeerTransactionService(
-            to_user = self.to_user,
-            from_user = self.from_user,
+            to_user=self.to_user,
+            from_user=self.from_user,
             data=data,
             transaction_type=PeerTransactionENUM.transfer,
             db_session=self.db_session,
         )
         return await peer_transaction_service.run_process()
-
 
     def validate(self):
         if self.from_user.family_id != self.to_user.family_id:
@@ -91,17 +92,17 @@ class CoinsRewardService(BaseService[RewardTransaction]):
         await self._add_coins(user_id, amount)
         transaction = await self._create_transaction_log(user_id, amount)
         return transaction
-    
+
     async def _add_coins(self, user_id: UUID, amount: Decimal):
         wallet_dal = AsyncWalletDAL(self.db_session)
         await wallet_dal.add_balance(user_id=user_id, amount=amount)
 
     async def _create_transaction_log(self, user_id: UUID, amount: Decimal):
         data = CreateRewardTransaction(
-            detail = self.message,
-            coins = amount,
-            to_user_id =  user_id,
-            chore_completion_id =  self.chore_completion.id,
+            detail=self.message,
+            coins=amount,
+            to_user_id=user_id,
+            chore_completion_id=self.chore_completion.id,
         )
         transaction_log_dal = RewardTransactionDAL(self.db_session)
         return await transaction_log_dal.create_reward_for_chore_transaction(data=data)
@@ -123,6 +124,7 @@ class PeerTransactionService(BaseService):
         db_session (AsyncSession): The database session for executing queries.
         product (Product | None): The product associated with the transaction, if any.
     """
+
     to_user: User
     from_user: User
     data: CreatePeerTransaction
@@ -164,7 +166,7 @@ class PeerTransactionService(BaseService):
         }
         transaction_log_dal = PeerTransactionDAL(self.db_session)
         return await transaction_log_dal.create(fields=data)
-    
+
     def validate(self):
         if self.to_user.family_id != self.from_user.family_id:
             raise UserNotFoundInFamily()

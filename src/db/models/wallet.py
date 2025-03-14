@@ -1,4 +1,5 @@
 import uuid
+
 from sqlalchemy import DECIMAL, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -28,6 +29,7 @@ class BaseTransaction(Base, BaseModel):
     """
     Basic model of financial transactions
     """
+
     __abstract__ = True
 
     detail: Mapped[str]
@@ -41,6 +43,7 @@ class PeerTransaction(BaseTransaction):
     """
     A model for storing financial transactions between users only
     """
+
     __tablename__ = "peer_transactions"
 
     transaction_type: Mapped[PeerTransactionENUM] = mapped_column(
@@ -64,6 +67,7 @@ class RewardTransaction(BaseTransaction):
     """
     A model for storing financial transactions between an application and a user
     """
+
     __tablename__ = "reward_transactions"
 
     transaction_type: Mapped[RewardTransactionENUM] = mapped_column(

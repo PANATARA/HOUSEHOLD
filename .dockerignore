@@ -10,3 +10,4 @@ __pycache__/
 .git
 LICENSE
 README.md
+requirements-dev

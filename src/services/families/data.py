@@ -1,5 +1,6 @@
-from uuid import UUID
 from dataclasses import dataclass
+from uuid import UUID
+
 from pydantic import TypeAdapter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +33,7 @@ class FamilyDataService:
         )
 
         rows = result.mappings().all()
-        
+
         if rows is None:
             return None
 

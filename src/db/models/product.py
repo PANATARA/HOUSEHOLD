@@ -1,4 +1,5 @@
 import uuid
+
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -28,9 +29,9 @@ class Product(Base, BaseModel):
         )
     )
 
-
     def __repr__(self):
         return super().__repr__()
+
 
 # delete in the future
 class ProductBuyer(Base, BaseModel):

@@ -1,18 +1,18 @@
+from logging import getLogger
 from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission
-from db.session import get_db
 from db.models.user import User
+from db.session import get_db
 from schemas.chores.chores_confirmations import NewChoreConfirmationSetStatus
 from schemas.chores.compositions import NewChoreConfirmationDetail
 from services.chores.data import ChoreConfirmationDataService
 from services.chores_completions.services import set_status_chore_confirmation
 
-
-from logging import getLogger
 logger = getLogger(__name__)
 
 chores_confirmations_router = APIRouter()

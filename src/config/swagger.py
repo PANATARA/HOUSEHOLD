@@ -1,4 +1,3 @@
-
 swagger_ui_settings = {
     "deepLinking": True,
     "displayOperationId": True,

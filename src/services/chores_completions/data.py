@@ -1,10 +1,11 @@
-from uuid import UUID
 from dataclasses import dataclass
+from uuid import UUID
+
+from sqlalchemy import case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
-from sqlalchemy import case
 
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
@@ -22,7 +23,7 @@ class ChoreCompletionDataService:
         self, family_id: UUID, offset: int, limit: int
     ) -> list[NewChoreCompletionSummary]:
         """
-        Retrieves a list of chore completion records for a specific family, 
+        Retrieves a list of chore completion records for a specific family,
         including details of the completed chores and the users who completed them.
 
         Args:
@@ -31,8 +32,8 @@ class ChoreCompletionDataService:
             limit (int): The maximum number of records to retrieve.
 
         Returns:
-            list[NewChoreCompletionSummary]: A list of `NewChoreCompletionSummary` Pydantic models 
-            representing the details of the completed chores, including chore information, 
+            list[NewChoreCompletionSummary]: A list of `NewChoreCompletionSummary` Pydantic models
+            representing the details of the completed chores, including chore information,
             the user who completed it, and the completion status.
         """
 
@@ -40,16 +41,24 @@ class ChoreCompletionDataService:
             select(
                 ChoreCompletion.id.label("id"),
                 func.json_build_object(
-                    "id", Chore.id,
-                    "name", Chore.name,
-                    "icon", Chore.icon,
-                    "valuation", Chore.valuation
+                    "id",
+                    Chore.id,
+                    "name",
+                    Chore.name,
+                    "icon",
+                    Chore.icon,
+                    "valuation",
+                    Chore.valuation,
                 ).label("chore"),
                 func.json_build_object(
-                    "id", User.id,
-                    "username", User.username,
-                    "name", User.name,
-                    "surname", User.surname
+                    "id",
+                    User.id,
+                    "username",
+                    User.username,
+                    "name",
+                    User.name,
+                    "surname",
+                    User.surname,
                 ).label("completed_by"),
                 ChoreCompletion.created_at.label("completed_at"),
                 ChoreCompletion.status.label("status"),
@@ -64,25 +73,24 @@ class ChoreCompletionDataService:
         query_result = await self.db_session.execute(query)
         raw_data = query_result.mappings().all()
         chores_completions = [
-            NewChoreCompletionSummary.model_validate(item)
-            for item in raw_data
+            NewChoreCompletionSummary.model_validate(item) for item in raw_data
         ]
         return chores_completions
 
     async def get_family_chore_completion_detail(
         self, chore_completion_id: UUID
-    ) -> NewChoreCompletionDetail | None:    
+    ) -> NewChoreCompletionDetail | None:
         """
-        Retrieves the detailed information for a specific chore completion, 
-        including the chore details, the user who completed it, and the users 
+        Retrieves the detailed information for a specific chore completion,
+        including the chore details, the user who completed it, and the users
         who have confirmed the completion.
 
         Args:
             chore_completion_id (UUID): The ID of the chore completion whose details are to be fetched.
 
         Returns:
-            NewChoreCompletionDetail | None: A Pydantic model representing the details of the 
-            specified chore completion, including the chore, the user who completed it, 
+            NewChoreCompletionDetail | None: A Pydantic model representing the details of the
+            specified chore completion, including the chore, the user who completed it,
             the status, and the users who confirmed it. Returns None if no matching completion is found.
         """
         confirm_user = aliased(User)
@@ -91,16 +99,24 @@ class ChoreCompletionDataService:
             select(
                 ChoreCompletion.id.label("id"),
                 func.json_build_object(
-                    "id", Chore.id,
-                    "name", Chore.name,
-                    "icon", Chore.icon,
-                    "valuation", Chore.valuation,
+                    "id",
+                    Chore.id,
+                    "name",
+                    Chore.name,
+                    "icon",
+                    Chore.icon,
+                    "valuation",
+                    Chore.valuation,
                 ).label("chore"),
                 func.json_build_object(
-                    "id", User.id,
-                    "username", User.username,
-                    "name", User.name,
-                    "surname", User.surname
+                    "id",
+                    User.id,
+                    "username",
+                    User.username,
+                    "name",
+                    User.name,
+                    "surname",
+                    User.surname,
                 ).label("completed_by"),
                 ChoreCompletion.created_at.label("completed_at"),
                 ChoreCompletion.message.label("message"),
@@ -108,19 +124,26 @@ class ChoreCompletionDataService:
                 func.json_agg(
                     case(
                         (
-                            ChoreConfirmation.id.isnot(None), 
+                            ChoreConfirmation.id.isnot(None),
                             func.json_build_object(
-                                "id", ChoreConfirmation.id,
-                                "user", func.json_build_object(
-                                    "id", confirm_user.id,
-                                    "username", confirm_user.username,
-                                    "name", confirm_user.name,
-                                    "surname", confirm_user.surname,
+                                "id",
+                                ChoreConfirmation.id,
+                                "user",
+                                func.json_build_object(
+                                    "id",
+                                    confirm_user.id,
+                                    "username",
+                                    confirm_user.username,
+                                    "name",
+                                    confirm_user.name,
+                                    "surname",
+                                    confirm_user.surname,
                                 ),
-                                "status", ChoreConfirmation.status,
-                            )
+                                "status",
+                                ChoreConfirmation.status,
+                            ),
                         ),
-                        else_=None
+                        else_=None,
                     )
                 ).label("confirmed_by"),
             )

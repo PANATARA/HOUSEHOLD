@@ -1,4 +1,4 @@
-from core.exceptions.base_exceptions import ObjectNotFoundError, ConflictError
+from core.exceptions.base_exceptions import ConflictError, ObjectNotFoundError
 
 
 class FamilyError(Exception):

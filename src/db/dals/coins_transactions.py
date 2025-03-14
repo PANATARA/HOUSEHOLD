@@ -1,18 +1,18 @@
 from core.base_dals import BaseDals
+from core.constants import RewardTransactionENUM
 from db.models.wallet import PeerTransaction, RewardTransaction
 from schemas.coins_transactions import CreateRewardTransaction
-from core.constants import RewardTransactionENUM
 
 
 class PeerTransactionDAL(BaseDals[PeerTransaction]):
 
-    model = PeerTransaction    
+    model = PeerTransaction
 
 
 class RewardTransactionDAL(BaseDals[RewardTransaction]):
 
     model = RewardTransaction
-    
+
     def create_reward_for_chore_transaction(self, data: CreateRewardTransaction):
         transaction_type = RewardTransactionENUM.reward_for_chore.value
         raw_data = data.model_dump()

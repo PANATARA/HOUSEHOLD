@@ -1,5 +1,6 @@
-from uuid import UUID
 from dataclasses import dataclass
+from uuid import UUID
+
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,28 +34,36 @@ class ProductDataService:
         self, family_id: UUID, limit: int, offset: int
     ) -> list[ProductWithSellerSchema]:
         """Returns a pydantic model of the product"""
-        query = select(
-            Product.id,
-            Product.name,
-            Product.description,
-            Product.icon,
-            Product.price,
-            Product.is_active,
-            Product.created_at,
-            func.json_build_object(
-                "id", User.id,
-                "username", User.username,
-                "name", User.name,
-                "surname", User.surname,
-            ).label("seller"),
-        ).where(
-            and_(
-                Product.family_id == family_id, 
+        query = (
+            select(
+                Product.id,
+                Product.name,
+                Product.description,
+                Product.icon,
+                Product.price,
                 Product.is_active,
+                Product.created_at,
+                func.json_build_object(
+                    "id",
+                    User.id,
+                    "username",
+                    User.username,
+                    "name",
+                    User.name,
+                    "surname",
+                    User.surname,
+                ).label("seller"),
             )
-        ).join(
-            User, User.id==Product.seller_id
-        ).limit(limit).offset(offset)
+            .where(
+                and_(
+                    Product.family_id == family_id,
+                    Product.is_active,
+                )
+            )
+            .join(User, User.id == Product.seller_id)
+            .limit(limit)
+            .offset(offset)
+        )
         query_result = await self.db_session.execute(query)
         raw_data = query_result.mappings().all()
 
