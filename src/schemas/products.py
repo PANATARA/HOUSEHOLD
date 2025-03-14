@@ -3,13 +3,14 @@ from decimal import Decimal
 from uuid import UUID
 from pydantic import BaseModel
 
-from schemas.users import UserResponse
+from schemas.users import UserSummarySchema
 
 
-class ProductSchema(BaseModel):
+class ProductLiteSchema(BaseModel):
     id: UUID
     name: str
     icon: str
+
 
 class CreateNewProductSchema(BaseModel):
     name: str
@@ -29,4 +30,4 @@ class ProductFullSchema(BaseModel):
 
 
 class ProductWithSellerSchema(ProductFullSchema):
-    seller: UserResponse
+    seller: UserSummarySchema

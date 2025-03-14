@@ -9,8 +9,7 @@ from db.session import get_db
 from services.users.data import UserDataService
 from services.users.services import UserCreatorService
 from schemas.users import (
-    UserDetail,
-    UserResponse,
+    UserSummarySchema,
     UserCreate,
     UserSettingsShow,
     UserUpdate,
@@ -25,10 +24,10 @@ user_router = APIRouter()
 
 
 # Create new User
-@user_router.post("/", response_model=UserResponse)
+@user_router.post("/", response_model=UserSummarySchema)
 async def create_user(
     body: UserCreate, async_session: AsyncSession = Depends(get_db)
-) -> UserResponse:
+) -> UserSummarySchema:
     async with async_session.begin():
         try:
             service = UserCreatorService(
@@ -43,7 +42,7 @@ async def create_user(
             logger.error(err)
             raise HTTPException(status_code=503, detail=f"Database error: {err}")
 
-    return UserResponse(
+    return UserSummarySchema(
         id=user.id,
         username=user.username,
         name=user.name,
@@ -55,30 +54,28 @@ async def create_user(
 @user_router.get("/me",)
 async def me_user_get(
     current_user: User = Depends(IsAuthenicatedPermission()),
-) -> UserDetail:
-    return UserDetail(
+) -> UserSummarySchema:
+    return UserSummarySchema(
         id=current_user.id,
         username=current_user.username,
         name=current_user.name,
         surname=current_user.surname,
-        created_at=current_user.created_at,
-        updated_at=current_user.updated_at,
     )
 
 
 # Update user
-@user_router.patch("/me", response_model=UserResponse)
+@user_router.patch("/me", response_model=UserSummarySchema)
 async def me__user_partial_update(
     body: UserUpdate,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> UserResponse:
+) -> UserSummarySchema:
     async with async_session.begin():
         user_dal = AsyncUserDAL(async_session)
         user = await user_dal.update(
             object_id=current_user.id, fields=body.model_dump()
         )
-    return UserResponse(
+    return UserSummarySchema(
         id=user.id,
         username=user.username,
         name=user.name,

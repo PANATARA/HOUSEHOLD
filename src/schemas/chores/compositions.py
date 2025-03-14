@@ -7,13 +7,13 @@ from core.constants import StatusConfirmENUM
 from schemas.chores.chores import NewChoreDetail, NewChoreSummary
 from schemas.chores.chores_completions import NewChoreCompletion, NewChoreCompletionSummary
 from schemas.chores.chores_confirmations import NewChoreConfirmationSummary
-from schemas.users import UserResponse
+from schemas.users import UserSummarySchema
 
 
 class NewChoreCompletionDetail(BaseModel):
     id: UUID
     chore: NewChoreSummary
-    completed_by: UserResponse
+    completed_by: UserSummarySchema
     completed_at: datetime
     status: str
     message: str

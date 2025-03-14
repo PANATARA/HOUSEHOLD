@@ -4,8 +4,8 @@ from pydantic import BaseModel, field_validator
 from decimal import Decimal
 
 from schemas.chores.chores_completions import NewChoreCompletionSummaryLite
-from schemas.products import ProductSchema
-from schemas.users import UserResponse
+from schemas.products import ProductLiteSchema
+from schemas.users import UserSummarySchema
 
 
 class ShowWalletBalance(BaseModel):
@@ -18,19 +18,11 @@ class MoneyTransfer(BaseModel):
     count: Decimal
 
     @field_validator('count')
-    def check_age(cls, value):
+    def check_count(cls, value):
         if value <= 0:
             raise ValueError('Error')
         return value
 
-
-class WalletTransactionLog(BaseModel):
-    description: str
-    transaction_type: str
-    coins: Decimal
-    user: UserResponse | None
-    # product: ProductModel
-    chore_completion: NewChoreCompletionSummaryLite | None 
 
 class NewWalletTransaction(BaseModel):
     id: UUID
@@ -39,6 +31,6 @@ class NewWalletTransaction(BaseModel):
     transaction_type: str
     transaction_direction: str
     created_at: datetime
-    other_user: UserResponse | None
-    product: ProductSchema | None
+    other_user: UserSummarySchema | None
+    product: ProductLiteSchema | None
     chore_completion: NewChoreCompletionSummaryLite | None

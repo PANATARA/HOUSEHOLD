@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import UUID
 from fastapi import HTTPException
 from pydantic import BaseModel, field_validator
@@ -13,7 +12,7 @@ class TunedModel(BaseModel):
         from_attributes = True
 
 
-class UserResponse(TunedModel):
+class UserSummarySchema(TunedModel):
     id: UUID
     username: str 
     name: str
@@ -85,12 +84,3 @@ class UserFamilyPermissionModel(BaseModel):
 class UserSettingsShow(BaseModel):
     user_id: UUID
     app_theme: str
-
-
-class UserDetail(BaseModel):
-    id: UUID
-    username:str
-    name: str
-    surname: str | None
-    created_at: datetime
-    updated_at: datetime

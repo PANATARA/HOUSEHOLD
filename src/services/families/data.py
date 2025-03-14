@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.models.family import Family
 from db.models.user import User
 from schemas.families import FamilyFullShow
-from schemas.users import UserResponse
+from schemas.users import UserSummarySchema
 
 
 @dataclass
@@ -46,7 +46,7 @@ class FamilyDataService:
             }
             for row in rows
         ]
-        user_adapter = TypeAdapter(list[UserResponse])
+        user_adapter = TypeAdapter(list[UserSummarySchema])
         members = user_adapter.validate_python(users)
 
         return FamilyFullShow(name=family_data["family_name"], members=members)

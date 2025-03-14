@@ -2,12 +2,12 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from core.constants import StatusConfirmENUM
-from schemas.users import UserResponse
+from schemas.users import UserSummarySchema
 
 
 class NewChoreConfirmationSummary(BaseModel):
     id: UUID
-    user: UserResponse
+    user: UserSummarySchema
     status: StatusConfirmENUM
 
 

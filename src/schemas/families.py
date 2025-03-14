@@ -1,7 +1,7 @@
 from datetime import timedelta
 from pydantic import BaseModel
 
-from schemas.users import UserResponse
+from schemas.users import UserSummarySchema
 
 
 class TunedModel(BaseModel):
@@ -21,7 +21,7 @@ class FamilyShow(BaseModel):
 
 class FamilyFullShow(BaseModel):
     name: str
-    members: list[UserResponse]
+    members: list[UserSummarySchema]
 
     class Config:
         orm_mode = True
