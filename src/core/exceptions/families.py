@@ -13,7 +13,7 @@ class FamilyNotFoundError(FamilyError, ObjectNotFoundError):
 
 
 class UserNotFoundInFamily(FamilyError, ObjectNotFoundError):
-    def __init__(self, message="No such user found in the family"):
+    def __init__(self, message="The user could not be found in this family"):
         super().__init__(message)
 
 

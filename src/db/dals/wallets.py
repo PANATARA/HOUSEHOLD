@@ -8,7 +8,6 @@ from db.models.wallet import Wallet
 
 
 class AsyncWalletDAL(BaseUserPkDals[Wallet]):
-
     class Meta:
         model = Wallet
 
@@ -36,7 +35,20 @@ class AsyncWalletDAL(BaseUserPkDals[Wallet]):
 
         return result.scalar()
 
-    async def deduct_balance(self, user_id: UUID, amount: Decimal) -> Decimal | None:
+    async def check_and_deduct_balance(self, user_id: UUID, amount: Decimal) -> Decimal | None:
+        """
+        Deducts the specified amount from the user's wallet balance if sufficient funds are available.
+
+        This method performs an atomic update to ensure that the balance does not become negative.
+        If the user's balance is insufficient, the update will not be executed, and None will be returned.
+
+        Args:
+            user_id (UUID): The unique identifier of the user whose balance should be deducted.
+            amount (Decimal): The amount to deduct from the user's wallet.
+
+        Returns:
+            Decimal | None: The updated balance if the deduction was successful, or None if the balance was insufficient.
+        """
         query = (
             update(Wallet)
             .where(Wallet.user_id == user_id)

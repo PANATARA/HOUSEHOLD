@@ -26,23 +26,29 @@ class BaseService(Generic[T], metaclass=ABCMeta):
     """
 
     def get_validators(self) -> list[Callable]:
+        """Returns a list of validator functions."""
         return []
 
     async def validate(self) -> None:
+        """Executes all validators (both sync and async)."""
         validators = self.get_validators()
+        tasks = []
+        
         for validator in validators:
             if asyncio.iscoroutinefunction(validator):
-                await validator()
+                tasks.append(validator())  # Собираем асинхронные задачи
             else:
-                validator()
+                validator()  # Вызываем синхронные валидаторы сразу
+
+        if tasks:
+            await asyncio.gather(*tasks)  # Дожидаемся выполнения всех асинхронных валидаторов
 
     async def run_process(self) -> T:
-        if asyncio.iscoroutinefunction(self.validate):
-            await self.validate()
-        else:
-            self.validate()
+        """Runs validation and then executes the `process` method."""
+        await self.validate()
         return await self.process()
 
     @abstractmethod
     async def process(self) -> T:
+        """Abstract method that must be implemented in subclasses."""
         raise NotImplementedError("Please implement in the service class")

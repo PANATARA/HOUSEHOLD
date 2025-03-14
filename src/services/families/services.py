@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core import constants
-from core.exceptions.families import UserCannotLeaveFamily, UserIsAlreadyFamilyMember
+from core.exceptions.families import UserCannotLeaveFamily
 from core.services import BaseService
+from core.validators import validate_user_not_in_family
 from db.dals.families import AsyncFamilyDAL
 from db.dals.users import AsyncUserDAL, AsyncUserFamilyPermissionsDAL
 from db.models.family import Family
@@ -52,10 +53,10 @@ class FamilyCreatorService(BaseService[Family]):
         default_chores = ChoreCreatorService(family, self.db_session, data)
         return await default_chores.run_process()
 
-    def validate(self):
-        "Validate the user is not a member of any family"
-        if self.user.family_id is not None:
-            raise UserIsAlreadyFamilyMember()
+    def get_validators(self):
+        return [
+            lambda: validate_user_not_in_family(self.user)
+        ]
 
 
 @dataclass
@@ -87,10 +88,10 @@ class AddUserToFamilyService(BaseService):
         user_wallet = WalletCreatorService(self.user, self.db_session)
         return await user_wallet.run_process()
 
-    def validate(self):
-        "Validate the user is not a member of any family"
-        if self.user.family_id is not None:
-            raise UserIsAlreadyFamilyMember()
+    def get_validators(self):
+        return [
+            lambda: validate_user_not_in_family(self.user)
+        ]
 
 
 @dataclass

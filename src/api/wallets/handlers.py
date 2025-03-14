@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.permissions import IsAuthenicatedPermission
-from core.exceptions.families import UserNotFoundInFamily
+from api.permissions import FamilyMemberPermission
+from core.exceptions.base_exceptions import ObjectNotFoundError
 from core.exceptions.wallets import NotEnoughCoins
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
@@ -22,7 +22,7 @@ wallet_router = APIRouter()
 # Get user's wallet
 @wallet_router.get(path="", summary="Get user wallet information")
 async def get_user_wallet(
-    current_user: User = Depends(IsAuthenicatedPermission()),
+    current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> ShowWalletBalance:
     async with async_session.begin():
@@ -36,7 +36,7 @@ async def get_user_wallet(
 @wallet_router.post(path="/transfer", summary="Make a transfer of coins to the user")
 async def money_transfer_wallet(
     body: MoneyTransfer,
-    current_user: User = Depends(IsAuthenicatedPermission()),
+    current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():
@@ -52,9 +52,9 @@ async def money_transfer_wallet(
                 db_session=async_session,
             )
             await transfer_service.run_process()
-        except UserNotFoundInFamily:
+        except ObjectNotFoundError as e:
             raise HTTPException(
-                status_code=404, detail="No Such User Found In The family"
+                status_code=404, detail=str(e)
             )
         except NotEnoughCoins:
             raise HTTPException(status_code=400, detail="You don't have enough coins")
@@ -70,7 +70,7 @@ async def money_transfer_wallet(
 async def get_user_wallet_transaction(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=20),
-    current_user: User = Depends(IsAuthenicatedPermission()),
+    current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[NewWalletTransaction]:
     async with async_session.begin():

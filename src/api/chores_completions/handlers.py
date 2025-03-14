@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import (
     ChoreCompletionPermission,
+    ChorePermission,
     FamilyMemberPermission,
-    IsAuthenicatedPermission,
 )
 from core.exceptions.chores import ChoreNotFoundError
 from db.dals.chores import AsyncChoreDAL
@@ -31,7 +31,7 @@ chores_completions_router = APIRouter()
 async def create_chore_completion(
     chore_id: UUID,
     body: NewChoreCompletionCreate,
-    current_user: User = Depends(IsAuthenicatedPermission()),
+    current_user: User = Depends(ChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
 ) -> Response:
 

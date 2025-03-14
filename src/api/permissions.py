@@ -3,16 +3,12 @@ from typing import Any
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.constants import SAFE_METHODS
-from core.exceptions.http_exceptions import (
-    credentials_exception,
-    permission_denided,
-    user_not_found,
-)
+from core.exceptions.http_exceptions import permission_denided
 from core.permissions import BasePermission
 from db.dals.users import AsyncUserDAL
 from db.models import User
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
+from db.models.product import Product
 from db.models.user import UserFamilyPermissions
 
 
@@ -37,6 +33,10 @@ class IsAuthenicatedPermission(BasePermission):
 
 class FamilyMemberPermission(IsAuthenicatedPermission):
 
+    def __init__(self, only_admin: bool = False):
+        self.only_admin = only_admin
+        super().__init__()
+
     async def get_user_and_check_permission(
         self,
         token_payload: dict[str, Any],
@@ -44,6 +44,11 @@ class FamilyMemberPermission(IsAuthenicatedPermission):
         async_session: AsyncSession,
         **kwargs,
     ) -> User:
+        
+        if self.only_admin:
+            user_is_family_admin = token_payload.get("is_family_admin")
+            if not user_is_family_admin:
+                raise permission_denided
 
         user = await super().get_user_and_check_permission(
             token_payload=token_payload,
@@ -57,30 +62,16 @@ class FamilyMemberPermission(IsAuthenicatedPermission):
         return user
 
 
-class IsFamilyAdminPermission(BasePermission):
-
-    async def get_user_and_check_permission(
-        self,
-        token_payload: dict[str, Any],
-        http_method: str,
-        async_session: AsyncSession,
-        **kwargs,
-    ) -> User:
-        user_is_family_admin = token_payload.get("is_family_admin")
-        if not user_is_family_admin:
-            raise permission_denided
-        user_id = token_payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-        user_dal = AsyncUserDAL(async_session)
-        user = await user_dal.get_by_id(user_id)
-
-        if user is None:
-            raise user_not_found
-        return user
-
-
 class ChorePermission(BasePermission):
+    """
+    Checking that the user has access to this **Chore**
+
+    If http method not in SAFE_METHODS ("GET", "HEAD", "OPTIONS", "TRACE")
+    then the administrator is also checked
+    """
+    def __init__(self, only_admin: bool = False):
+        self.only_admin = only_admin
+        super().__init__()
 
     async def get_user_and_check_permission(
         self,
@@ -89,9 +80,11 @@ class ChorePermission(BasePermission):
         async_session: AsyncSession,
         **kwargs,
     ) -> User:
-        user_is_family_admin = token_payload.get("is_family_admin")
-        if http_method not in SAFE_METHODS and not user_is_family_admin:
-            raise permission_denided
+        if self.only_admin:
+            user_is_family_admin = token_payload.get("is_family_admin")
+            if not user_is_family_admin:
+                raise permission_denided
+
         chore_id = kwargs.get("chore_id")
         user_id = token_payload.get("sub")
         query = select(User).where(
@@ -155,6 +148,34 @@ class ChoreConfirmationPermission(BasePermission):
             exists().where(
                 (ChoreConfirmation.user_id == User.id)
                 & (ChoreConfirmation.id == chore_confirmation_id)
+            ),
+        )
+
+        result = await async_session.execute(query)
+        user = result.scalars().first()
+
+        if user is None:
+            raise permission_denided
+        return user
+
+
+class ProductPermission(BasePermission):
+
+    async def get_user_and_check_permission(
+        self,
+        token_payload: dict[str, Any],
+        http_method: str,
+        async_session: AsyncSession,
+        **kwargs,
+    ) -> User:
+
+        product_id = kwargs.get("product_id")
+        user_id = token_payload.get("sub")
+        query = select(User).where(
+            User.id == user_id,
+            exists().where(
+                (Product.family_id == User.family_id)
+                & (Product.id == product_id)
             ),
         )
 

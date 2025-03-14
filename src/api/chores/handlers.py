@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.permissions import (
     ChorePermission,
     FamilyMemberPermission,
-    IsFamilyAdminPermission,
 )
 from db.dals.chores import AsyncChoreDAL
 from db.dals.families import AsyncFamilyDAL
@@ -41,7 +40,7 @@ async def get_family_chore_detail(
     chore_id: UUID,
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=30),
-    current_user: User = Depends(ChorePermission()),
+    current_user: User = Depends(ChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
 ) -> NewChoreDetailMax:
     offset = (page - 1) * limit
@@ -54,11 +53,11 @@ async def get_family_chore_detail(
         return data
 
 
-# Create a new family  chore
+# Create a new family chore
 @chores_router.post("", response_model=NewChoreDetail)
 async def create_family_chore(
     body: NewChoreCreate,
-    current_user: User = Depends(IsFamilyAdminPermission()),
+    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
     async_session: AsyncSession = Depends(get_db),
 ) -> NewChoreDetail:
     async with async_session.begin():
@@ -84,7 +83,7 @@ async def create_family_chore(
 @chores_router.delete(path="/{chore_id}")
 async def delete_family_chore(
     chore_id: UUID,
-    current_user: User = Depends(ChorePermission()),
+    current_user: User = Depends(ChorePermission(only_admin=True)),
     async_session: AsyncSession = Depends(get_db),
 ) -> Response:
     async with async_session.begin():

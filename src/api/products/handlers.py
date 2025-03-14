@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.permissions import IsAuthenicatedPermission
+from api.permissions import IsAuthenicatedPermission, ProductPermission
 from core.exceptions.products import ProductNotFoundError
 from db.dals.products import AsyncProductDAL
 from db.models.user import User
@@ -80,7 +80,7 @@ async def get_family_active_products(
 @product_router.get(path="/buy/{product_id}")
 async def buy_active_products(
     product_id: UUID,
-    current_user: User = Depends(IsAuthenicatedPermission()),
+    current_user: User = Depends(ProductPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> Response:
     async with async_session.begin():

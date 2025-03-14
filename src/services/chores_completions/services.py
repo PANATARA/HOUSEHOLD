@@ -4,9 +4,8 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.constants import StatusConfirmENUM
-from core.exceptions.chores import ChoreNotFoundError
-from core.exceptions.chores_completion import ChoreCompletionCanNotBeChanged
 from core.services import BaseService
+from core.validators import validate_chore_completion_is_changable, validate_chore_is_active
 from db.dals.chores_completions import (
     AsyncChoreCompletionDAL,
     AsyncChoreConfirmationDAL,
@@ -69,10 +68,11 @@ class CreateChoreCompletion(BaseService):
         await chore_confirmation_dal.create_many_chore_confirmation(
             users_ids=users_ids, chore_completion_id=chore_completion_id
         )
-
-    def validate(self):
-        if not self.chore.is_active:
-            raise ChoreNotFoundError()
+    
+    def get_validators(self):
+        return [
+            lambda: validate_chore_is_active(self.chore)
+        ]
 
 
 @dataclass
@@ -99,9 +99,10 @@ class ApproveChoreCompletion(BaseService):
         )
         await service.run_process()
 
-    def validate(self):
-        if self.chore_completion.status != StatusConfirmENUM.awaits:
-            raise ChoreCompletionCanNotBeChanged()
+    def get_validators(self):
+        return [
+            lambda: validate_chore_completion_is_changable(self.chore_completion)
+        ]
 
 
 @dataclass
@@ -119,9 +120,10 @@ class CancellChoreCompletion(BaseService):
             fields={"status": StatusConfirmENUM.canceled.value},
         )
 
-    def validate(self):
-        if self.chore_completion.status != StatusConfirmENUM.awaits:
-            raise ChoreCompletionCanNotBeChanged()
+    def get_validators(self):
+        return [
+            lambda: validate_chore_completion_is_changable(self.chore_completion)
+        ]
 
 
 async def set_status_chore_confirmation(

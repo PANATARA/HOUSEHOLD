@@ -6,9 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.coins_settings import PURCHASE_RATE, TRANSFER_RATE
 from core.constants import PeerTransactionENUM
-from core.exceptions.families import UserNotFoundInFamily
 from core.exceptions.wallets import NotEnoughCoins
 from core.services import BaseService
+from core.validators import validate_user_in_family
 from db.dals.chores import AsyncChoreDAL
 from db.dals.coins_transactions import PeerTransactionDAL, RewardTransactionDAL
 from db.dals.wallets import AsyncWalletDAL
@@ -68,10 +68,11 @@ class CoinsTransferService(BaseService):
             db_session=self.db_session,
         )
         return await peer_transaction_service.run_process()
-
-    def validate(self):
-        if self.from_user.family_id != self.to_user.family_id:
-            raise UserNotFoundInFamily()
+    
+    def get_validators(self):
+        return [
+            lambda: validate_user_in_family(self.from_user, self.to_user.family_id)
+        ]
 
 
 @dataclass
@@ -141,7 +142,7 @@ class PeerTransactionService(BaseService):
 
     async def _take_coins(self) -> None:
         wallet_dal = AsyncWalletDAL(self.db_session)
-        result = await wallet_dal.deduct_balance(
+        result = await wallet_dal.check_and_deduct_balance(
             user_id=self.from_user.id, amount=self.data.coins
         )
         if result is None:
@@ -166,7 +167,3 @@ class PeerTransactionService(BaseService):
         }
         transaction_log_dal = PeerTransactionDAL(self.db_session)
         return await transaction_log_dal.create(fields=data)
-
-    def validate(self):
-        if self.to_user.family_id != self.from_user.family_id:
-            raise UserNotFoundInFamily()

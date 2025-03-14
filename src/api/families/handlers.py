@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from api.permissions import IsAuthenicatedPermission, IsFamilyAdminPermission
+from api.permissions import FamilyMemberPermission, IsAuthenicatedPermission
 from core.exceptions.families import (
     FamilyNotFoundError,
     UserCannotLeaveFamily,
@@ -52,7 +52,7 @@ async def create_family(
 # Get user's family
 @families_router.get("", response_model=FamilyFullShow)
 async def get_my_family(
-    current_user: User = Depends(IsAuthenicatedPermission()),
+    current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> FamilyFullShow | None:
 
@@ -98,7 +98,7 @@ async def logout_user_from_family(
 @families_router.patch(path="/change_admin/{user_id}")
 async def change_family_admin(
     user_id: UUID,
-    current_user: User = Depends(IsFamilyAdminPermission()),
+    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():
