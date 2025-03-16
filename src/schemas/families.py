@@ -1,27 +1,24 @@
 from datetime import timedelta
+from uuid import UUID
 
 from pydantic import BaseModel
 
 from schemas.users import UserSummarySchema
 
-
-class TunedModel(BaseModel):
-    class Config:
-        """tells pydantic to convert even non dict obj to json"""
-
-        from_attributes = True
-
-
-class FamilyCreate(BaseModel):
+class FamilyBaseSchema(BaseModel):
     name: str
+    icon: str
 
 
-class FamilyShow(BaseModel):
-    name: str
+class FamilyCreateSchema(FamilyBaseSchema):
+    """Schema for creating a new family"""
 
 
-class FamilyFullShow(BaseModel):
-    name: str
+class FamilySchema(FamilyBaseSchema):
+    id: UUID
+
+
+class FamilyWithMembersSchema(FamilySchema):
     members: list[UserSummarySchema]
 
     class Config:

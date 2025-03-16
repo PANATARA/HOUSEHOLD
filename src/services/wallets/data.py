@@ -9,7 +9,7 @@ from db.models.chore import Chore, ChoreCompletion
 from db.models.product import Product
 from db.models.user import User
 from db.models.wallet import PeerTransaction, RewardTransaction, Wallet
-from schemas.wallets import NewWalletTransaction, ShowWalletBalance
+from schemas.wallets import WalletTransactionSchema, WalletBalanceSchema
 
 
 @dataclass
@@ -18,7 +18,7 @@ class WalletDataService:
 
     db_session: AsyncSession
 
-    async def get_user_wallet(self, user_id: UUID) -> ShowWalletBalance | None:
+    async def get_user_wallet(self, user_id: UUID) -> WalletBalanceSchema | None:
         """Returns a pydantic model of the user wallet"""
         result = await self.db_session.execute(
             select(
@@ -32,7 +32,7 @@ class WalletDataService:
         if not rows:
             return None
 
-        wallet = ShowWalletBalance(
+        wallet = WalletBalanceSchema(
             id=rows["wallet_id"],
             balance=rows["wallet_balance"],
         )
@@ -47,7 +47,7 @@ class TransactionDataService:
 
     async def get_union_user_transactions(
         self, user_id: UUID, offset: int, limit: int
-    ) -> list[NewWalletTransaction]:
+    ) -> list[WalletTransactionSchema]:
         u = aliased(User)
         p = aliased(Product)
         cc = aliased(ChoreCompletion)
@@ -78,7 +78,13 @@ class TransactionDataService:
                     (
                         p.id.isnot(None),
                         func.json_build_object(
-                            "id", p.id, "icon", p.icon, "name", p.name
+                            "id", p.id, 
+                            "name", p.name, 
+                            "description", p.description,
+                            "icon", p.icon, 
+                            "price", p.price,
+                            "is_active", p.is_active,
+                            "created_at", p.created_at
                         ),
                     ),
                     else_=None,
@@ -121,6 +127,8 @@ class TransactionDataService:
                         c.id,
                         "name",
                         c.name,
+                        "description",
+                        c.description,
                         "icon",
                         c.icon,
                         "valuation",
@@ -140,6 +148,6 @@ class TransactionDataService:
 
         result = []
         for item in raw_data:
-            result.append(NewWalletTransaction.model_validate(item))
+            result.append(WalletTransactionSchema.model_validate(item))
 
         return result

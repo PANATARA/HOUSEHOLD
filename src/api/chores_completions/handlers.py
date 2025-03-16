@@ -14,8 +14,8 @@ from db.dals.chores import AsyncChoreDAL
 from db.models.user import User
 from db.session import get_db
 from schemas.chores.chores_completions import (
-    NewChoreCompletionCreate,
-    NewChoreCompletionSummary,
+    ChoreCompletionCreateSchema,
+    ChoreCompletionSchema,
 )
 from schemas.chores.compositions import NewChoreCompletionDetail
 from services.chores_completions.data import ChoreCompletionDataService
@@ -30,7 +30,7 @@ chores_completions_router = APIRouter()
 @chores_completions_router.post(path="/{chore-id}")
 async def create_chore_completion(
     chore_id: UUID,
-    body: NewChoreCompletionCreate,
+    body: ChoreCompletionCreateSchema,
     current_user: User = Depends(ChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
 ) -> Response:
@@ -61,7 +61,7 @@ async def get_family_chores_completions(
     limit: int = Query(10, le=50),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> list[NewChoreCompletionSummary]:
+) -> list[ChoreCompletionSchema]:
 
     async with async_session.begin():
         offset = (page - 1) * limit

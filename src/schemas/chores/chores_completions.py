@@ -3,29 +3,31 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from schemas.chores.chores import NewChoreSummary
+from schemas.chores.chores import ChoreSchema
 from schemas.users import UserSummarySchema
 
 
-class NewChoreCompletionCreate(BaseModel):
+class ChoreCompletionCreateSchema(BaseModel):
     message: str
 
 
-class NewChoreCompletionSummaryLite(BaseModel):
+class ChoreCompletionSchema(BaseModel):
     id: UUID
-    chore: NewChoreSummary
-    completed_at: datetime
-
-
-class NewChoreCompletionSummary(BaseModel):
-    id: UUID
-    chore: NewChoreSummary
+    chore: ChoreSchema
     completed_by: UserSummarySchema
     completed_at: datetime
     status: str
+    message: str
 
 
-class NewChoreCompletion(BaseModel):
+class ChoreCompletionSummaryLiteSchema(BaseModel):
+    """Schema for user's wallet transactions"""
+    id: UUID
+    chore: ChoreSchema
+    completed_at: datetime
+
+
+class ChoreCompletionLiteSchema(BaseModel):
     id: UUID
     completed_by: UserSummarySchema
     completed_at: datetime

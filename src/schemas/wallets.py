@@ -4,17 +4,17 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
-from schemas.chores.chores_completions import NewChoreCompletionSummaryLite
-from schemas.products import ProductLiteSchema
+from schemas.chores.chores_completions import ChoreCompletionSummaryLiteSchema
+from schemas.products import ProductFullSchema
 from schemas.users import UserSummarySchema
 
 
-class ShowWalletBalance(BaseModel):
+class WalletBalanceSchema(BaseModel):
     id: UUID
     balance: Decimal
 
 
-class MoneyTransfer(BaseModel):
+class MoneyTransferSchema(BaseModel):
     to_user_id: UUID
     count: Decimal
 
@@ -25,7 +25,7 @@ class MoneyTransfer(BaseModel):
         return value
 
 
-class NewWalletTransaction(BaseModel):
+class WalletTransactionSchema(BaseModel):
     id: UUID
     detail: str
     coins: Decimal
@@ -33,5 +33,5 @@ class NewWalletTransaction(BaseModel):
     transaction_direction: str
     created_at: datetime
     other_user: UserSummarySchema | None
-    product: ProductLiteSchema | None
-    chore_completion: NewChoreCompletionSummaryLite | None
+    product: ProductFullSchema | None
+    chore_completion: ChoreCompletionSummaryLiteSchema | None

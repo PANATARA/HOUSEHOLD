@@ -15,7 +15,7 @@ from core.exceptions.families import (
 from db.dals.families import AsyncFamilyDAL
 from db.models.user import User
 from db.session import get_db
-from schemas.families import FamilyCreate, FamilyFullShow, FamilyShow
+from schemas.families import FamilyCreateSchema, FamilyWithMembersSchema, FamilySchema
 from services.families.data import FamilyDataService
 from services.families.services import FamilyCreatorService, LogoutUserFromFamilyService
 
@@ -25,12 +25,12 @@ families_router = APIRouter()
 
 
 # Create a new family
-@families_router.post("", response_model=FamilyShow)
+@families_router.post("", response_model=FamilySchema)
 async def create_family(
-    body: FamilyCreate,
+    body: FamilyCreateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyShow:
+) -> FamilySchema:
 
     async with async_session.begin():
         try:
@@ -46,15 +46,15 @@ async def create_family(
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
         else:
-            return FamilyShow(name=family.name)
+            return FamilySchema(id=family.id, name=family.name, icon=family.icon)
 
 
 # Get user's family
-@families_router.get("", response_model=FamilyFullShow)
+@families_router.get("", response_model=FamilyWithMembersSchema)
 async def get_my_family(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyFullShow | None:
+) -> FamilyWithMembersSchema | None:
 
     async with async_session.begin():
         family_id = current_user.family_id
@@ -62,7 +62,7 @@ async def get_my_family(
             raise HTTPException(status_code=404, detail="Family not found")
 
         family_data_service = FamilyDataService(async_session)
-        family = await family_data_service.get_family_with_users(family_id)
+        family = await family_data_service.get_family_with_members(family_id)
 
         return family
 

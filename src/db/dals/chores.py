@@ -5,7 +5,7 @@ from sqlalchemy import select
 from core.base_dals import BaseDals, DeleteDALMixin, GetOrRaiseMixin
 from core.exceptions.chores import ChoreNotFoundError
 from db.models.chore import Chore
-from schemas.chores.chores import NewChoreCreate
+from schemas.chores.chores import ChoreCreateSchema
 
 
 class AsyncChoreDAL(BaseDals[Chore], GetOrRaiseMixin[Chore], DeleteDALMixin[Chore]):
@@ -14,7 +14,7 @@ class AsyncChoreDAL(BaseDals[Chore], GetOrRaiseMixin[Chore], DeleteDALMixin[Chor
     not_found_exception = ChoreNotFoundError
 
     async def create_chores_many(
-        self, family_id: UUID, chores_data: list[NewChoreCreate]
+        self, family_id: UUID, chores_data: list[ChoreCreateSchema]
     ) -> list[Chore]:
 
         chores = [

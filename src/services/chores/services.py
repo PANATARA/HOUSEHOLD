@@ -7,7 +7,7 @@ from core.services import BaseService
 from db.dals.chores import AsyncChoreDAL
 from db.models.chore import Chore
 from db.models.family import Family
-from schemas.chores.chores import NewChoreCreate
+from schemas.chores.chores import ChoreCreateSchema
 
 
 @dataclass
@@ -16,7 +16,7 @@ class ChoreCreatorService(BaseService):
 
     family: Family
     db_session: AsyncSession
-    data: NewChoreCreate | list[NewChoreCreate]
+    data: ChoreCreateSchema | list[ChoreCreateSchema]
 
     async def process(self) -> Chore | list[Chore]:
         return await self._create_chores()
@@ -37,12 +37,12 @@ class ChoreCreatorService(BaseService):
             )
 
 
-async def get_default_chore_data() -> list[NewChoreCreate]:
+async def get_default_chore_data() -> list[ChoreCreateSchema]:
     chores = await load_seed_data("seed_data.json")
     data = []
     for chore in chores:
         data.append(
-            NewChoreCreate(
+            ChoreCreateSchema(
                 name=chore["name"],
                 description=chore["description"],
                 icon=chore["icon"],

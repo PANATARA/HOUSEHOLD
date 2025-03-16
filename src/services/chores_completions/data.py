@@ -9,7 +9,7 @@ from sqlalchemy.sql import func
 
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
-from schemas.chores.chores_completions import NewChoreCompletionSummary
+from schemas.chores.chores_completions import ChoreCompletionSchema
 from schemas.chores.compositions import NewChoreCompletionDetail
 
 
@@ -21,7 +21,7 @@ class ChoreCompletionDataService:
 
     async def get_family_chore_completion(
         self, family_id: UUID, offset: int, limit: int
-    ) -> list[NewChoreCompletionSummary]:
+    ) -> list[ChoreCompletionSchema]:
         """
         Retrieves a list of chore completion records for a specific family,
         including details of the completed chores and the users who completed them.
@@ -45,6 +45,8 @@ class ChoreCompletionDataService:
                     Chore.id,
                     "name",
                     Chore.name,
+                    "description",
+                    Chore.description,
                     "icon",
                     Chore.icon,
                     "valuation",
@@ -73,7 +75,7 @@ class ChoreCompletionDataService:
         query_result = await self.db_session.execute(query)
         raw_data = query_result.mappings().all()
         chores_completions = [
-            NewChoreCompletionSummary.model_validate(item) for item in raw_data
+            ChoreCompletionSchema.model_validate(item) for item in raw_data
         ]
         return chores_completions
 
@@ -103,6 +105,8 @@ class ChoreCompletionDataService:
                     Chore.id,
                     "name",
                     Chore.name,
+                    "description",
+                    Chore.description,
                     "icon",
                     Chore.icon,
                     "valuation",

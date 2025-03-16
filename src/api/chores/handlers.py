@@ -12,7 +12,7 @@ from db.dals.chores import AsyncChoreDAL
 from db.dals.families import AsyncFamilyDAL
 from db.models.user import User
 from db.session import get_db
-from schemas.chores.chores import NewChoreCreate, NewChoreDetail, NewChoreSummary
+from schemas.chores.chores import ChoreCreateSchema, ChoreSchema
 from schemas.chores.compositions import NewChoreDetailMax
 from services.chores.data import ChoreDataService
 from services.chores.services import ChoreCreatorService
@@ -27,7 +27,7 @@ chores_router = APIRouter()
 async def get_family_chores(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> list[NewChoreSummary] | None:
+) -> list[ChoreSchema] | None:
     async with async_session.begin():
         return await ChoreDataService(async_session).get_family_chores(
             current_user.family_id
@@ -54,12 +54,12 @@ async def get_family_chore_detail(
 
 
 # Create a new family chore
-@chores_router.post("", response_model=NewChoreDetail)
+@chores_router.post("", response_model=ChoreSchema)
 async def create_family_chore(
-    body: NewChoreCreate,
+    body: ChoreCreateSchema,
     current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
     async_session: AsyncSession = Depends(get_db),
-) -> NewChoreDetail:
+) -> ChoreSchema:
     async with async_session.begin():
         family = await AsyncFamilyDAL(async_session).get_or_raise(
             current_user.family_id
@@ -70,13 +70,12 @@ async def create_family_chore(
             data=body,
         )
         new_chore = await creator_service.run_process()
-        return NewChoreDetail(
+        return ChoreSchema(
             id=new_chore.id,
             name=new_chore.name,
             description=new_chore.description,
             icon=new_chore.icon,
             valuation=new_chore.valuation,
-            created_at=new_chore.created_at,
         )
 
 

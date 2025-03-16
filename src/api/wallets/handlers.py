@@ -10,7 +10,7 @@ from core.exceptions.wallets import NotEnoughCoins
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
 from db.session import get_db
-from schemas.wallets import MoneyTransfer, NewWalletTransaction, ShowWalletBalance
+from schemas.wallets import MoneyTransferSchema, WalletTransactionSchema, WalletBalanceSchema
 from services.wallets.data import TransactionDataService, WalletDataService
 from services.wallets.services import CoinsTransferService
 
@@ -24,7 +24,7 @@ wallet_router = APIRouter()
 async def get_user_wallet(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> ShowWalletBalance:
+) -> WalletBalanceSchema:
     async with async_session.begin():
         wallet_data = await WalletDataService(async_session).get_user_wallet(
             user_id=current_user.id
@@ -35,7 +35,7 @@ async def get_user_wallet(
 # Money transfer
 @wallet_router.post(path="/transfer", summary="Make a transfer of coins to the user")
 async def money_transfer_wallet(
-    body: MoneyTransfer,
+    body: MoneyTransferSchema,
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
@@ -72,7 +72,7 @@ async def get_user_wallet_transaction(
     limit: int = Query(10, le=20),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> list[NewWalletTransaction]:
+) -> list[WalletTransactionSchema]:
     async with async_session.begin():
         transactions_data = TransactionDataService(async_session)
         offset = (page - 1) * limit

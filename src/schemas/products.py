@@ -6,26 +6,19 @@ from pydantic import BaseModel
 
 from schemas.users import UserSummarySchema
 
-
-class ProductLiteSchema(BaseModel):
-    id: UUID
-    name: str
-    icon: str
-
-
-class CreateNewProductSchema(BaseModel):
+class ProductBaseSchema(BaseModel):
     name: str
     description: str
     icon: str
     price: Decimal
 
 
-class ProductFullSchema(BaseModel):
+class CreateNewProductSchema(ProductBaseSchema):
+    """Schema for creating a new product"""
+
+
+class ProductFullSchema(ProductBaseSchema):
     id: UUID
-    name: str
-    description: str
-    icon: str
-    price: Decimal
     is_active: bool
     created_at: datetime
 

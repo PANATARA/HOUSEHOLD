@@ -8,8 +8,7 @@ from db.models.wallet import Wallet
 
 
 class AsyncWalletDAL(BaseUserPkDals[Wallet]):
-    class Meta:
-        model = Wallet
+    model = Wallet
 
     async def exist_wallet_user(self, user: UUID) -> bool:
         query = select(exists().where(Wallet.user_id == user))

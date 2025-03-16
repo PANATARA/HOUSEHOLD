@@ -1,14 +1,12 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from pydantic import TypeAdapter
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models.family import Family
 from db.models.user import User
-from schemas.families import FamilyFullShow
-from schemas.users import UserSummarySchema
+from schemas.families import FamilyWithMembersSchema
 
 
 @dataclass
@@ -17,37 +15,32 @@ class FamilyDataService:
 
     db_session: AsyncSession
 
-    async def get_family_with_users(self, family_id: UUID) -> FamilyFullShow | None:
+    async def get_family_with_members(self, family_id: UUID) -> FamilyWithMembersSchema | None:
         """Returns a pydantic model of the family and its members"""
         result = await self.db_session.execute(
             select(
-                Family.id.label("family_id"),
-                Family.name.label("family_name"),
-                User.id.label("user_id"),
-                User.username.label("user_username"),
-                User.name.label("user_name"),
-                User.surname.label("user_surname"),
+                Family.id,
+                Family.name,
+                Family.icon,
+                func.json_agg(
+                    func.json_build_object(
+                        "id",User.id,
+                        "username",User.username,
+                        "name",User.name,
+                        "surname",User.surname,
+                    )
+                ).label("members")
+                
             )
             .join(User, Family.id == User.family_id)
             .where(Family.id == family_id)
+            .group_by(Family.id)
         )
 
         rows = result.mappings().all()
-
+        
         if rows is None:
             return None
+        family = FamilyWithMembersSchema.model_validate(rows[0])
 
-        family_data = rows[0]
-        users = [
-            {
-                "id": row["user_id"],
-                "username": row["user_username"],
-                "name": row["user_name"],
-                "surname": row["user_surname"],
-            }
-            for row in rows
-        ]
-        user_adapter = TypeAdapter(list[UserSummarySchema])
-        members = user_adapter.validate_python(users)
-
-        return FamilyFullShow(name=family_data["family_name"], members=members)
+        return family

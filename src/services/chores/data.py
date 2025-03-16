@@ -4,11 +4,10 @@ from uuid import UUID
 from sqlalchemy import case, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import aliased
 
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
-from schemas.chores.chores import NewChoreSummary
+from schemas.chores.chores import ChoreSchema
 from schemas.chores.compositions import NewChoreConfirmationDetail, NewChoreDetailMax
 
 
@@ -16,7 +15,7 @@ from schemas.chores.compositions import NewChoreConfirmationDetail, NewChoreDeta
 class ChoreDataService:
     db_session: AsyncSession
 
-    async def get_family_chores(self, family_id: UUID) -> list[NewChoreSummary] | None:
+    async def get_family_chores(self, family_id: UUID) -> list[ChoreSchema] | None:
         """
         Retrieves a list of chores associated with a specific family.
 
@@ -24,11 +23,12 @@ class ChoreDataService:
             family_id (UUID): The ID of the family whose chores are being fetched.
 
         Returns:
-            list[NewChoreSummary] | None: A list of chores if found, otherwise None.
+            list[ChioreSchema] | None: A list of chores if found, otherwise None.
         """
         query = select(
             Chore.id,
             Chore.name,
+            Chore.description,
             Chore.icon,
             Chore.valuation,
         ).where(Chore.family_id == family_id)
@@ -39,7 +39,7 @@ class ChoreDataService:
         if not raw_data:
             return None
 
-        return [NewChoreSummary.model_validate(item) for item in raw_data]
+        return [ChoreSchema.model_validate(item) for item in raw_data]
 
     async def get_family_chore_with_chore_completions(
         self, chore_id: UUID, limit: int, offset: int
@@ -57,20 +57,12 @@ class ChoreDataService:
         """
         query = (
             select(
-                func.json_build_object(
-                    "id",
-                    Chore.id,
-                    "name",
-                    Chore.name,
-                    "description",
-                    Chore.description,
-                    "icon",
-                    Chore.icon,
-                    "valuation",
-                    Chore.valuation,
-                    "created_at",
-                    Chore.created_at,
-                ).label("chore"),
+                Chore.id,
+                Chore.name,
+                Chore.description,
+                Chore.icon,
+                Chore.valuation,
+                Chore.created_at,
                 func.json_agg(
                     case(
                         (
@@ -140,51 +132,51 @@ class ChoreConfirmationDataService:
             list[NewChoreConfirmationDetail]: A list of chore confirmation details for the specified user.
             Returns None if no confirmations are found.
         """
-        clc = aliased(ChoreConfirmation)
-        cl = aliased(ChoreCompletion)
-        c = aliased(Chore)
-        u = aliased(User)
 
         query = (
             select(
-                clc.id.label("id"),
+                ChoreConfirmation.id.label("id"),
                 func.json_build_object(
                     "id",
-                    cl.id,
+                    ChoreCompletion.id,
                     "chore",
                     func.json_build_object(
                         "id",
-                        c.id,
+                        Chore.id,
                         "name",
-                        c.name,
+                        Chore.name,
+                        "description",
+                        Chore.description,
                         "icon",
-                        c.icon,
+                        Chore.icon,
                         "valuation",
-                        c.valuation,
+                        Chore.valuation,
                     ),
                     "completed_by",
                     func.json_build_object(
                         "id",
-                        u.id,
+                        User.id,
                         "username",
-                        u.username,
+                        User.username,
                         "name",
-                        u.name,
+                        User.name,
                         "surname",
-                        u.surname,
+                        User.surname,
                     ),
                     "completed_at",
-                    cl.created_at,
+                    ChoreCompletion.created_at,
                     "status",
-                    cl.status,
+                    ChoreCompletion.status,
+                    "message",
+                    ChoreCompletion.message,
                 ).label("chore_completion"),
-                clc.created_at.label("created_at"),
-                clc.status.label("status"),
+                ChoreConfirmation.created_at.label("created_at"),
+                ChoreConfirmation.status.label("status"),
             )
-            .join(cl, clc.chore_completion_id == cl.id)
-            .join(c, cl.chore_id == c.id)
-            .join(u, cl.completed_by_id == u.id)
-            .where(clc.user_id == user_id)
+            .join(ChoreCompletion, ChoreConfirmation.chore_completion_id == ChoreCompletion.id)
+            .join(Chore, ChoreCompletion.chore_id == Chore.id)
+            .join(User, ChoreCompletion.completed_by_id == User.id)
+            .where(ChoreConfirmation.user_id == user_id)
         )
 
         query_result = await self.db_session.execute(query)
