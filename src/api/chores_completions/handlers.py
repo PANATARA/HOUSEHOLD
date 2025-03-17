@@ -27,7 +27,7 @@ chores_completions_router = APIRouter()
 
 
 # Create a new chore completion
-@chores_completions_router.post(path="/{chore-id}")
+@chores_completions_router.post(path="/{chore_id}")
 async def create_chore_completion(
     chore_id: UUID,
     body: ChoreCompletionCreateSchema,
