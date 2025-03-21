@@ -32,7 +32,7 @@ class ChoreCreatorService(BaseService):
                     "description": self.data.description,
                     "icon": self.data.icon,
                     "valuation": self.data.valuation,
-                    "family_id": self.family,
+                    "family_id": self.family.id,
                 }
             )
 
