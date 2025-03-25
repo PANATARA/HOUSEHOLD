@@ -5,6 +5,7 @@ from sqlalchemy import case, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from core.constants import StatusConfirmENUM
 from db.models.chore import Chore, ChoreCompletion, ChoreConfirmation
 from db.models.user import User
 from schemas.chores.chores import ChoreSchema
@@ -116,7 +117,7 @@ class ChoreConfirmationDataService:
     db_session: AsyncSession
 
     async def get_user_chore_confirmations(
-        self, user_id: UUID
+        self, user_id: UUID, status: StatusConfirmENUM | None
     ) -> list[NewChoreConfirmationDetail]:
         """
         Fetches the list of chore confirmations for a specific user.
@@ -132,6 +133,10 @@ class ChoreConfirmationDataService:
             list[NewChoreConfirmationDetail]: A list of chore confirmation details for the specified user.
             Returns None if no confirmations are found.
         """
+
+        conditions = [ChoreConfirmation.user_id == user_id]
+        if status is not None:
+            conditions.append(ChoreConfirmation.status==status)
 
         query = (
             select(
@@ -176,7 +181,7 @@ class ChoreConfirmationDataService:
             .join(ChoreCompletion, ChoreConfirmation.chore_completion_id == ChoreCompletion.id)
             .join(Chore, ChoreCompletion.chore_id == Chore.id)
             .join(User, ChoreCompletion.completed_by_id == User.id)
-            .where(ChoreConfirmation.user_id == user_id)
+            .where(*conditions)
         )
 
         query_result = await self.db_session.execute(query)

@@ -64,6 +64,7 @@ class ChoreCompletionDataService:
                 ).label("completed_by"),
                 ChoreCompletion.created_at.label("completed_at"),
                 ChoreCompletion.status.label("status"),
+                ChoreCompletion.message.label("message"),
             )
             .join(User, ChoreCompletion.completed_by_id == User.id)
             .join(Chore, ChoreCompletion.chore_id == Chore.id)

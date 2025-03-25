@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission
+from core.constants import StatusConfirmENUM
 from db.models.user import User
 from db.session import get_db
 from schemas.chores.chores_confirmations import NewChoreConfirmationSetStatus
@@ -21,13 +22,15 @@ chores_confirmations_router = APIRouter()
 # Get my chores confirmations
 @chores_confirmations_router.get("")
 async def get_my_chores_confirmations(
+    status: StatusConfirmENUM | None = None, # by default we return unprocessed confirmations
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[NewChoreConfirmationDetail]:
 
     async with async_session.begin():
         data_service = ChoreConfirmationDataService(db_session=async_session)
-        result = await data_service.get_user_chore_confirmations(current_user.id)
+        print(f"ВОТ ЗНАЧЕНИЕ СТАТУСА {status}")
+        result = await data_service.get_user_chore_confirmations(current_user.id, status)
         return result
 
 
