@@ -1,6 +1,8 @@
 import enum
 from abc import abstractmethod
 
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
 default_user_settings = {"app_theme": "light"}
 
 default_admin_permissions = {
@@ -10,6 +12,10 @@ default_admin_permissions = {
 default_user_permissions = {
     "should_confirm_chore_completion": False,
 }
+
+class StorageFolderEnum(enum.Enum):
+    users_avatars = "user_avatars"
+    family_avatars = "family_avatars"
 
 
 class PostgreSQLEnum(enum.Enum):
