@@ -7,11 +7,11 @@ from core.constants import (
     PeerTransactionENUM,
     RewardTransactionENUM,
 )
-from db.models.base_model import BaseModel, BaseUserModel
+from db.models.base_model import BaseModel, OneToOneUserModel
 from db.models.declarative_base import Base
 
 
-class Wallet(Base, BaseUserModel):
+class Wallet(Base, OneToOneUserModel):
     __tablename__ = "wallets"
     """
     User wallet model

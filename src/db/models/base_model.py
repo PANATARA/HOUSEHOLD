@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import ForeignKey, text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, declared_attr
 
 
 class BaseModel:
@@ -27,12 +27,7 @@ class BaseModel:
 
 
 class BaseUserModel(BaseModel):
-    """FIELDS:
-    - primary_key : UUID
-    - created_at : datetime
-    - updated_at : datetime
-
-    """
+    __abstract__ = True
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(
@@ -40,3 +35,14 @@ class BaseUserModel(BaseModel):
             ondelete="CASCADE",
         )
     )
+
+
+class OneToOneUserModel(BaseUserModel):
+    __abstract__ = True
+
+    @declared_attr
+    def user_id(cls) -> Mapped[uuid.UUID]:
+        return mapped_column(
+            ForeignKey("users.id", ondelete="CASCADE"),
+            unique=True
+        )

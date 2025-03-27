@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.models.base_model import BaseModel, BaseUserModel
+from db.models.base_model import BaseModel, OneToOneUserModel
 from db.models.declarative_base import Base
 
 
@@ -35,7 +35,7 @@ class User(Base, BaseModel):
         return super().__repr__()
 
 
-class UserSettings(Base, BaseUserModel):
+class UserSettings(Base, OneToOneUserModel):
     __tablename__ = "users_settings"
 
     user: Mapped["User"] = relationship("User", back_populates="settings")
@@ -45,7 +45,7 @@ class UserSettings(Base, BaseUserModel):
         return super().__repr__()
 
 
-class UserFamilyPermissions(Base, BaseUserModel):
+class UserFamilyPermissions(Base, OneToOneUserModel):
     __tablename__ = "users_family_permissions"
 
     should_confirm_chore_completion: Mapped[bool]
