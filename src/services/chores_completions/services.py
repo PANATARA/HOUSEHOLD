@@ -137,12 +137,12 @@ async def set_status_chore_confirmation(
     chore_completion = await chore_completion_dal.get_or_raise(
         chore_confirmation.chore_completion_id
     )
-    if status == StatusConfirmENUM.canceled.value:
+    if status == StatusConfirmENUM.canceled:
         service = CancellChoreCompletion(
             chore_completion=chore_completion, db_session=db_session
         )
         await service.run_process()
-    else:
+    elif status == StatusConfirmENUM.approved:
         count_chores_confirmations = (
             await chore_confirmation_dal.count_status_chore_confirmation(
                 chore_completion_id=chore_confirmation.chore_completion_id,

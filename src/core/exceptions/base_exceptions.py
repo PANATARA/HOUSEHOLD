@@ -4,3 +4,7 @@ class ObjectNotFoundError(Exception):
 
 class ConflictError(Exception):
     pass
+
+
+class CanNotBeChangedError(Exception):
+    pass

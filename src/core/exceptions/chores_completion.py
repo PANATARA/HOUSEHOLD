@@ -1,4 +1,4 @@
-from core.exceptions.base_exceptions import ObjectNotFoundError
+from core.exceptions.base_exceptions import CanNotBeChangedError, ObjectNotFoundError
 
 
 class ChoreCompletionError(Exception):
@@ -12,6 +12,6 @@ class ChoreCompletionNotFoundError(ChoreCompletionError, ObjectNotFoundError):
         super().__init__(message)
 
 
-class ChoreCompletionCanNotBeChanged(ChoreCompletionError):
+class ChoreCompletionCanNotBeChanged(ChoreCompletionError, CanNotBeChangedError):
     def __init__(self, message="The specified chore completion can't be cahnged"):
         super().__init__(message)

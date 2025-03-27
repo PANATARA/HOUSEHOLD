@@ -1,12 +1,13 @@
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission
 from core.constants import StatusConfirmENUM
+from core.exceptions.base_exceptions import CanNotBeChangedError
 from db.models.user import User
 from db.session import get_db
 from schemas.chores.chores_confirmations import NewChoreConfirmationSetStatus
@@ -42,8 +43,14 @@ async def change_status_chore_confirmation(
 ) -> JSONResponse:
 
     async with async_session.begin():
-        await set_status_chore_confirmation(
-            chore_confirmation_id, body.status, async_session
-        )
+        try:
+            await set_status_chore_confirmation(
+                chore_confirmation_id, body.status, async_session
+            )
+        except CanNotBeChangedError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"{e}",
+            )
 
-        return JSONResponse(content={"detail": "OK"}, status_code=201)
+    return JSONResponse(content={"detail": "OK"}, status_code=201)
