@@ -9,14 +9,29 @@ services:
             - ./migrations:/usr/src/app/migrations:cached
             - ./requirements.txt:/usr/src/app/requirements.txt:cached
             - ./alembic.ini:/usr/src/app/alembic.ini:cached
-        ports:
-            - "8000:8000"
         env_file:
             - .env
         depends_on:
             - postgres_db
         stdin_open: true
         tty: true
+        networks:
+            - backend
+        restart: always
+
+    nginx:
+        image: nginx:alpine
+        container_name: nginx
+        volumes:
+            - ./nginx.conf:/etc/nginx/nginx.conf:ro
+            - ./static:/usr/src/app/static:ro
+        ports:
+            - "80:80"
+        depends_on:
+            - fastapi
+        networks:
+            - backend
+        restart: always
 
     postgres_db:
         image: postgres:14
@@ -29,5 +44,12 @@ services:
             - pgdata:/var/lib/postgresql/data/
         ports:
             - "5433:5432"
+        networks:
+            - backend
+        restart: always
+
 volumes:
     pgdata:
+
+networks:
+    backend:

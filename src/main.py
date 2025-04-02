@@ -53,7 +53,9 @@ async def lifespan(app: FastAPI):
 
 # create instance of the app
 app = FastAPI(
-    title="HOUSEHOLD", swagger_ui_parameters=swagger_ui_settings, lifespan=lifespan
+    title="HOUSEHOLD", 
+    swagger_ui_parameters=swagger_ui_settings, 
+    lifespan=lifespan,
 )
 
 # create the instance for the routes
