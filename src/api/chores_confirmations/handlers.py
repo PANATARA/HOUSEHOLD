@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission
 from core.constants import StatusConfirmENUM
 from core.exceptions.base_exceptions import CanNotBeChangedError
+from core.get_avatars import update_user_avatars
 from db.models.user import User
 from db.session import get_db
 from schemas.chores.chores_confirmations import NewChoreConfirmationSetStatus
@@ -31,6 +32,7 @@ async def get_my_chores_confirmations(
     async with async_session.begin():
         data_service = ChoreConfirmationDataService(db_session=async_session)
         result = await data_service.get_user_chore_confirmations(current_user.id, status)
+        await update_user_avatars(result)
         return result
 
 

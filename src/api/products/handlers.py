@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import IsAuthenicatedPermission, ProductPermission
 from core.exceptions.products import ProductNotFoundError
+from core.get_avatars import update_user_avatars
 from db.dals.products import AsyncProductDAL
 from db.models.user import User
 from db.session import get_db
@@ -73,7 +74,9 @@ async def get_family_active_products(
         family_id = current_user.family_id
         if family_id is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        return await product_data.get_family_active_products(family_id, limit, offset)
+        result = await product_data.get_family_active_products(family_id, limit, offset)
+        await update_user_avatars(result)
+        return result
 
 
 # Buy a product

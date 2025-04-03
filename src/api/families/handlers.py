@@ -12,6 +12,7 @@ from core.exceptions.families import (
     UserCannotLeaveFamily,
     UserIsAlreadyFamilyMember,
 )
+from core.get_avatars import update_user_avatars
 from db.dals.families import AsyncFamilyDAL
 from db.models.user import User
 from db.session import get_db
@@ -63,7 +64,7 @@ async def get_my_family(
 
         family_data_service = FamilyDataService(async_session)
         family = await family_data_service.get_family_with_members(family_id)
-
+        await update_user_avatars(family)
         return family
 
 

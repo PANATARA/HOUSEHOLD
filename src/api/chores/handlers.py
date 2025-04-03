@@ -8,6 +8,7 @@ from api.permissions import (
     ChorePermission,
     FamilyMemberPermission,
 )
+from core.get_avatars import update_user_avatars
 from db.dals.chores import AsyncChoreDAL
 from db.dals.families import AsyncFamilyDAL
 from db.models.user import User
@@ -50,6 +51,7 @@ async def get_family_chore_detail(
         data = await chore_data_service.get_family_chore_with_chore_completions(
             chore_id=chore_id, limit=limit, offset=offset
         )
+        await update_user_avatars(data)
         return data
 
 

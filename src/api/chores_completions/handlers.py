@@ -10,6 +10,7 @@ from api.permissions import (
     FamilyMemberPermission,
 )
 from core.exceptions.chores import ChoreNotFoundError
+from core.get_avatars import update_user_avatars
 from db.dals.chores import AsyncChoreDAL
 from db.models.user import User
 from db.session import get_db
@@ -69,6 +70,7 @@ async def get_family_chores_completions(
         result = await data_service.get_family_chore_completion(
             current_user.family_id, offset, limit
         )
+        await update_user_avatars(result)
         return result
 
 
@@ -85,4 +87,5 @@ async def get_family_chore_completion_detail(
         result = await data_service.get_family_chore_completion_detail(
             chore_completion_id
         )
+        await update_user_avatars(result)
         return result

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.permissions import IsAuthenicatedPermission
 from core.constants import ALLOWED_CONTENT_TYPES, StorageFolderEnum
+from core.get_avatars import update_user_avatars
 from core.storage import S3Client, get_s3_client
 from db.dals.users import AsyncUserDAL
 from db.models.user import User
@@ -59,12 +60,14 @@ async def create_user(
 async def me_user_get(
     current_user: User = Depends(IsAuthenicatedPermission()),
 ) -> UserSummarySchema:
-    return UserSummarySchema(
+    result = UserSummarySchema(
         id=current_user.id,
         username=current_user.username,
         name=current_user.name,
         surname=current_user.surname,
     )
+    await update_user_avatars(result)
+    return result
 
 
 # Update user
@@ -79,12 +82,14 @@ async def me__user_partial_update(
         user = await user_dal.update(
             object_id=current_user.id, fields=body.model_dump()
         )
-    return UserSummarySchema(
+    result = UserSummarySchema(
         id=user.id,
         username=user.username,
         name=user.name,
         surname=user.surname,
     )
+    await update_user_avatars(result)
+    return result
 
 
 # Get user's settings
@@ -105,7 +110,7 @@ async def upload_user_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(IsAuthenicatedPermission()),
     s3: S3Client = Depends(get_s3_client)
-):
+) -> str:
     
     key = str(current_user.id)
     folder = StorageFolderEnum.users_avatars
