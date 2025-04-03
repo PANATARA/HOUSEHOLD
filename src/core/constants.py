@@ -13,6 +13,8 @@ default_user_permissions = {
     "should_confirm_chore_completion": False,
 }
 
+USER_URL_AVATAR_EXPIRE = 60 * 60 * 24
+
 class StorageFolderEnum(enum.Enum):
     users_avatars = "user_avatars"
     family_avatars = "family_avatars"

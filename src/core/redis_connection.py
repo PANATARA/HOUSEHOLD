@@ -22,7 +22,7 @@ class RedisClient(metaclass=Singleton):
 
     async def connect(self):
         try:
-            pool = aioredis.ConnectionPool.from_url(self.redis_url)
+            pool = aioredis.ConnectionPool.from_url(self.redis_url, decode_responses=True)
             self.client = aioredis.Redis.from_pool(pool)
             print(f"Ping redis successful: {await self.client.ping()}")
         except Exception as e:

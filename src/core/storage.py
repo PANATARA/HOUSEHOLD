@@ -1,7 +1,7 @@
 from envparse import Env
 # from aiobotocore.session import get_session
 from contextlib import asynccontextmanager
-from core.constants import StorageFolderEnum
+from core.constants import USER_URL_AVATAR_EXPIRE, StorageFolderEnum
 from botocore.exceptions import ClientError
 import aioboto3
 
@@ -50,7 +50,7 @@ class S3Client:
         self,
         object_key: str,
         folder: StorageFolderEnum,
-        expires_in: int = 60,
+        expires_in: int = USER_URL_AVATAR_EXPIRE,
     ) -> str | None:
         key = f"{folder.value}/{object_key}"
         async with self.get_client() as client:
