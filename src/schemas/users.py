@@ -4,6 +4,8 @@ from fastapi import HTTPException
 from pydantic import BaseModel, field_validator
 
 from config.validation import LETTER_MATCH_PATTERN, PASSWORD_PATTERN
+from core.get_avatars import AvatarService
+
 
 
 class TunedModel(BaseModel):
@@ -18,11 +20,14 @@ class UserSummarySchema(TunedModel):
     username: str
     name: str
     surname: str | None
+    avatar_url: str | None = None
 
     class Config:
         orm_mode = True
         from_attributes = True
-
+    
+    async def set_avatar_url(self) -> None:
+        self.avatar_url = await AvatarService(self.id).run_process()
 
 class UserCreate(BaseModel):
     username: str

@@ -20,6 +20,7 @@ from api import (
 )
 from config.swagger import swagger_ui_settings
 from core.constants import PostgreSQLEnum
+from core.redis_connection import redis_client
 from db.session import engine
 
 
@@ -47,8 +48,10 @@ async def create_enum_if_not_exists(engine: AsyncEngine):
 async def lifespan(app: FastAPI):
     print("🚀 Startup: Checking ENUMs in DB...")
     await create_enum_if_not_exists(engine)
+    await redis_client.connect()
     yield
     print("🛑 Shutdown: Closing resources...")
+    await redis_client.close()
 
 
 # create instance of the app

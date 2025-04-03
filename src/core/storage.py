@@ -55,6 +55,7 @@ class S3Client:
         key = f"{folder.value}/{object_key}"
         async with self.get_client() as client:
             try:
+                await client.head_object(Bucket=self.bucket_name, Key=key)
                 url = await client.generate_presigned_url(
                     ClientMethod="get_object",
                     Params={"Bucket": self.bucket_name, "Key": key},
@@ -62,7 +63,9 @@ class S3Client:
                 )
                 return url
             except ClientError as e:
-                print(f"Ошибка при генерации presigned URL: {e}")
+                if e.response['Error']['Code'] == '404':
+                    return None
+                print(f"Error during generation presigned URL: {e}")
                 return None
 
 
