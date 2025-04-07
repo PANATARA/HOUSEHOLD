@@ -9,7 +9,7 @@ from starlette import status
 from api.permissions import FamilyInvitePermission, IsAuthenicatedPermission
 from core.qr_code import get_qr_code
 from core.security import (
-    create_access_token,
+    create_jwt_token,
     get_payload_from_jwt_token,
 )
 from db.dals.families import AsyncFamilyDAL
@@ -32,7 +32,7 @@ async def generate_invite_token(
 ) -> InviteToken:
     payload = body.model_dump()
     payload["family_id"] = str(current_user.family_id)
-    invite_token = create_access_token(
+    invite_token = create_jwt_token(
         data=payload, expires_delta=timedelta(seconds=900)
     )
     qrcode = await get_qr_code(invite_token, 300)

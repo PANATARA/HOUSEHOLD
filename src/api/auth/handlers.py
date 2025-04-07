@@ -6,15 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.actions import authenticate_user
 from config import auth_token
-from core.security import create_access_token
+from core.exceptions.users import UserNotFoundError
+from core.security import create_jwt_token, get_payload_from_jwt_token
 from db.dals.families import AsyncFamilyDAL
+from db.dals.users import AsyncUserDAL
 from db.session import get_db
-from schemas.auth import Token
+from schemas.auth import AccessToken, RefreshToken, AccessRefreshTokens
 
 login_router = APIRouter()
 
 
-@login_router.post("/token", response_model=Token)
+@login_router.post("/token", response_model=AccessRefreshTokens)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
 ):
@@ -36,8 +38,47 @@ async def login_for_access_token(
             )
     else:
         user_is_family_admin = False
-    access_token = create_access_token(
+    access_token = create_jwt_token(
         data={"sub": str(user.id), "is_family_admin": user_is_family_admin},
         expires_delta=access_token_expires,
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+
+    refresh_token_expires = timedelta(minutes=auth_token.REFRESH_TOKEN_EXPIRE_MINUTES)
+    refresh_token = create_jwt_token(
+        data={"sub": str(user.id), "is_family_admin": user_is_family_admin},
+        expires_delta=refresh_token_expires,
+    )
+    return AccessRefreshTokens(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+
+
+@login_router.post("/refresh", response_model=AccessToken)
+async def refresh_access_token(
+    refresh_token: RefreshToken, db: AsyncSession = Depends(get_db)
+):
+    payload_refresh_token = get_payload_from_jwt_token(refresh_token.refresh_token)
+    user_id = payload_refresh_token.get("sub")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token, missing user_id",
+        )
+    
+    async with db.begin():
+        try:
+            user = await AsyncUserDAL(db).get_or_raise(object_id=user_id)
+            family_dal = AsyncFamilyDAL(db_session=db)
+            user_is_family_admin = await family_dal.user_is_family_admin(
+                user_id=user.id, family_id=user.family_id
+            )
+        except UserNotFoundError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+            )
+    access_token_expires = timedelta(minutes=auth_token.ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    access_token = create_jwt_token(
+        data={"sub": str(user_id), "is_family_admin": user_is_family_admin},
+        expires_delta=access_token_expires,
+    )
+    return AccessToken(access_token=access_token, token_type="bearer")
