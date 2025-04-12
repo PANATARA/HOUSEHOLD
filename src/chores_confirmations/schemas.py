@@ -6,13 +6,13 @@ from core.constants import StatusConfirmENUM
 from users.schemas import UserSummarySchema
 
 
-class NewChoreConfirmationSummary(BaseModel):
+class ChoreConfirmationSummarySchema(BaseModel):
     id: UUID
     user: UserSummarySchema
     status: StatusConfirmENUM
 
 
-class NewChoreConfirmationSetStatus(BaseModel):
+class ChoreConfirmationSetStatusSchema(BaseModel):
     status: StatusConfirmENUM
 
     @field_validator("status")
@@ -25,7 +25,7 @@ class NewChoreConfirmationSetStatus(BaseModel):
 from chores_completions.schemas import ChoreCompletionSchema  # noqa: E402
 
 
-class NewChoreConfirmationDetail(BaseModel):
+class ChoreConfirmationDetailSchema(BaseModel):
     """Only for a specific user"""
 
     id: UUID

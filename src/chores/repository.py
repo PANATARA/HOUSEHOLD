@@ -8,7 +8,7 @@ from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from core.base_dals import BaseDals, DeleteDALMixin, GetOrRaiseMixin
 from core.exceptions.chores import ChoreNotFoundError
-from chores.schemas import ChoreCreateSchema, ChoreSchema, NewChoreDetailMax
+from chores.schemas import ChoreCreateSchema, ChoreSchema, ChoreDetailSchema
 from users.models import User
 
 
@@ -78,7 +78,7 @@ class ChoreDataService:
 
     async def get_family_chore_with_chore_completions(
         self, chore_id: UUID, limit: int, offset: int
-    ) -> NewChoreDetailMax:
+    ) -> ChoreDetailSchema:
         """
         Fetches a family chore along with its completion details.
 
@@ -88,7 +88,7 @@ class ChoreDataService:
             offset (int): The pagination offset.
 
         Returns:
-            NewChoreDetailMax: The chore details with associated completions.
+            ChoreDetailSchema: The chore details with associated completions.
         """
         query = (
             select(
@@ -139,6 +139,6 @@ class ChoreDataService:
 
         query_result = await self.db_session.execute(query)
         raw_data = query_result.mappings().all()
-        chores_details = NewChoreDetailMax.model_validate(raw_data[0])
+        chores_details = ChoreDetailSchema.model_validate(raw_data[0])
 
         return chores_details

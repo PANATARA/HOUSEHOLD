@@ -16,7 +16,7 @@ from core.constants import RewardTransactionENUM
 from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
-from wallets.schemas import CreateRewardTransaction, WalletTransactionSchema, WalletBalanceSchema
+from wallets.schemas import CreateRewardTransactionSchema, WalletTransactionSchema, WalletBalanceSchema
 
 
 class AsyncWalletDAL(BaseUserPkDals[Wallet]):
@@ -227,7 +227,7 @@ class RewardTransactionDAL(BaseDals[RewardTransaction]):
 
     model = RewardTransaction
 
-    def create_reward_for_chore_transaction(self, data: CreateRewardTransaction):
+    def create_reward_for_chore_transaction(self, data: CreateRewardTransactionSchema):
         transaction_type = RewardTransactionENUM.reward_for_chore.value
         raw_data = data.model_dump()
         raw_data.update({"transaction_type": transaction_type})

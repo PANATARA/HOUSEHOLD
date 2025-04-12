@@ -18,7 +18,7 @@ from core.session import get_db
 from chores_completions.schemas import (
     ChoreCompletionCreateSchema,
     ChoreCompletionSchema,
-    NewChoreCompletionDetail,
+    ChoreCompletionDetailSchema,
 )
 from users.models import User
 
@@ -81,7 +81,7 @@ async def get_family_chore_completion_detail(
     chore_completion_id: UUID,
     current_user: User = Depends(ChoreCompletionPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> NewChoreCompletionDetail | None:
+) -> ChoreCompletionDetailSchema | None:
 
     async with async_session.begin():
         data_service = ChoreCompletionDataService(async_session)

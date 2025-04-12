@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.base_dals import BaseDals, GetOrRaiseMixin
 from core.exceptions.users import UserNotFoundError
 from users.models import User, UserFamilyPermissions, UserSettings
-from users.schemas import UserSettingsShow
+from users.schemas import UserSettingsShowSchema
 
 
 class AsyncUserDAL(BaseDals[User], GetOrRaiseMixin[User]):
@@ -44,7 +44,7 @@ class UserDataService:
 
     db_session: AsyncSession
 
-    async def get_user_settings(self, user_id: UUID) -> UserSettingsShow | None:
+    async def get_user_settings(self, user_id: UUID) -> UserSettingsShowSchema | None:
         """Returns a pydantic model of the user settings"""
         result = await self.db_session.execute(
             select(
@@ -58,7 +58,7 @@ class UserDataService:
         if not rows:
             return None
 
-        settings = UserSettingsShow(
+        settings = UserSettingsShowSchema(
             user_id=rows["user_id"], app_theme=rows["app_theme"]
         )
         return settings

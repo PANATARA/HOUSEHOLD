@@ -24,7 +24,7 @@ class ChoreSchema(BaseModel):
 from chores_completions.schemas import ChoreCompletionLiteSchema  # noqa: E402
 
 
-class NewChoreDetailMax(BaseModel):
+class ChoreDetailSchema(BaseModel):
     id: UUID
     name: str
     description: str

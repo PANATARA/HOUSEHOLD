@@ -37,12 +37,12 @@ class WalletTransactionSchema(BaseModel):
     chore_completion: ChoreCompletionSummaryLiteSchema | None
 
 
-class CreatePeerTransaction(BaseModel):
+class CreatePeerTransactionSchema(BaseModel):
     detail: str
     coins: Decimal
 
 
-class CreateRewardTransaction(BaseModel):
+class CreateRewardTransactionSchema(BaseModel):
     detail: str
     coins: Decimal
     to_user_id: UUID

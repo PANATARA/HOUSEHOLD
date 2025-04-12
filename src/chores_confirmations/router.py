@@ -12,7 +12,7 @@ from core.constants import StatusConfirmENUM
 from core.exceptions.base_exceptions import CanNotBeChangedError
 from core.get_avatars import update_user_avatars
 from core.session import get_db
-from chores_confirmations.schemas import NewChoreConfirmationDetail, NewChoreConfirmationSetStatus
+from chores_confirmations.schemas import ChoreConfirmationDetailSchema, ChoreConfirmationSetStatusSchema
 from users.models import User
 
 
@@ -27,7 +27,7 @@ async def get_my_chores_confirmations(
     status: StatusConfirmENUM | None = None, # by default we return all confirmations
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> list[NewChoreConfirmationDetail]:
+) -> list[ChoreConfirmationDetailSchema]:
 
     async with async_session.begin():
         data_service = ChoreConfirmationDataService(db_session=async_session)
@@ -39,7 +39,7 @@ async def get_my_chores_confirmations(
 @chores_confirmations_router.patch("/{chore_confirmation_id}")
 async def change_status_chore_confirmation(
     chore_confirmation_id: UUID,
-    body: NewChoreConfirmationSetStatus,
+    body: ChoreConfirmationSetStatusSchema,
     current_user: User = Depends(ChoreConfirmationPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:

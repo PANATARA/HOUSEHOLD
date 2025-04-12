@@ -12,10 +12,10 @@ from core.session import get_db
 from users.models import User
 from users.repository import AsyncUserDAL, UserDataService
 from users.schemas import (
-    UserCreate,
-    UserSettingsShow,
+    UserCreateSchema,
+    UserSettingsShowSchema,
     UserSummarySchema,
-    UserUpdate,
+    UserUpdateSchema,
 )
 from users.services import UserCreatorService
 
@@ -29,7 +29,7 @@ user_router = APIRouter()
 # Create new User
 @user_router.post("", response_model=UserSummarySchema)
 async def create_user(
-    body: UserCreate, async_session: AsyncSession = Depends(get_db)
+    body: UserCreateSchema, async_session: AsyncSession = Depends(get_db)
 ) -> UserSummarySchema:
     async with async_session.begin():
         try:
@@ -71,7 +71,7 @@ async def me_user_get(
 # Update user
 @user_router.patch("", response_model=UserSummarySchema)
 async def me__user_partial_update(
-    body: UserUpdate,
+    body: UserUpdateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> UserSummarySchema:
@@ -92,12 +92,12 @@ async def me__user_partial_update(
 
 # Get user's settings
 @user_router.get(
-    "/settings", response_model=UserSettingsShow, summary="Get me settings"
+    "/settings", response_model=UserSettingsShowSchema, summary="Get me settings"
 )
 async def me_user_get_settings(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> UserSettingsShow:
+) -> UserSettingsShowSchema:
     async with async_session.begin():
         data_service = UserDataService(async_session)
         return await data_service.get_user_settings(user_id=current_user.id)

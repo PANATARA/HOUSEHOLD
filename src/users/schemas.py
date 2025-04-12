@@ -29,7 +29,7 @@ class UserSummarySchema(TunedModel):
     async def set_avatar_url(self) -> None:
         self.avatar_url = await AvatarService(self.id).run_process()
 
-class UserCreate(BaseModel):
+class UserCreateSchema(BaseModel):
     username: str
     name: str
     surname: str
@@ -58,7 +58,7 @@ class UserCreate(BaseModel):
         return value
 
 
-class UserUpdate(BaseModel):
+class UserUpdateSchema(BaseModel):
     username: str | None = None
     name: str | None = None
     surname: str | None = None
@@ -80,10 +80,10 @@ class UserUpdate(BaseModel):
         return value
 
 
-class UserFamilyPermissionModel(BaseModel):
+class UserFamilyPermissionModelSchema(BaseModel):
     should_confirm_chore_completion: bool
 
 
-class UserSettingsShow(BaseModel):
+class UserSettingsShowSchema(BaseModel):
     user_id: UUID
     app_theme: str

@@ -12,7 +12,7 @@ from core.permissions import (
 )
 from core.get_avatars import update_user_avatars
 from core.session import get_db
-from chores.schemas import ChoreCreateSchema, ChoreSchema, NewChoreDetailMax
+from chores.schemas import ChoreCreateSchema, ChoreSchema, ChoreDetailSchema
 from families.repository import AsyncFamilyDAL
 from users.models import User
 
@@ -41,7 +41,7 @@ async def get_family_chore_detail(
     limit: int = Query(10, le=30),
     current_user: User = Depends(ChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
-) -> NewChoreDetailMax:
+) -> ChoreDetailSchema:
     offset = (page - 1) * limit
     async with async_session.begin():
 

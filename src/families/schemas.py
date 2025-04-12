@@ -26,14 +26,14 @@ class FamilyWithMembersSchema(FamilySchema):
         from_attributes = True
 
 
-class UserInviteParametr(BaseModel):
+class UserInviteParametrSchema(BaseModel):
     should_confirm_chore_completion: bool
 
 
-class InviteToken(BaseModel):
+class InviteTokenSchema(BaseModel):
     invite_token: str
     life_time: timedelta
 
 
-class JoinFamily(BaseModel):
+class JoinFamilySchema(BaseModel):
     invite_token: str

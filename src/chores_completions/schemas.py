@@ -36,14 +36,14 @@ class ChoreCompletionLiteSchema(BaseModel):
     message: str
 
 
-from chores_confirmations.schemas import NewChoreConfirmationSummary  # noqa: E402
+from chores_confirmations.schemas import ChoreConfirmationSummarySchema  # noqa: E402
 
 
-class NewChoreCompletionDetail(BaseModel):
+class ChoreCompletionDetailSchema(BaseModel):
     id: UUID
     chore: ChoreSchema
     completed_by: UserSummarySchema
     completed_at: datetime
     status: str
     message: str
-    confirmed_by: list[NewChoreConfirmationSummary | None]
+    confirmed_by: list[ChoreConfirmationSummarySchema | None]

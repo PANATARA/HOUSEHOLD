@@ -9,7 +9,7 @@ from products.models import Product
 from products.repository import AsyncProductDAL
 from users.models import User
 from users.repository import AsyncUserDAL
-from wallets.schemas import CreatePeerTransaction
+from wallets.schemas import CreatePeerTransactionSchema
 from wallets.services import PeerTransactionService
 
 
@@ -20,7 +20,7 @@ class PurchaseService(BaseService):
     db_session: AsyncSession
 
     async def process(self):
-        data = CreatePeerTransaction(
+        data = CreatePeerTransactionSchema(
             detail="message",
             coins=self.product.price,
         )

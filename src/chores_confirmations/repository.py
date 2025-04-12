@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from chores_confirmations.models import ChoreConfirmation
-from chores_confirmations.schemas import NewChoreConfirmationDetail
+from chores_confirmations.schemas import ChoreConfirmationDetailSchema
 from core.constants import StatusConfirmENUM
 from users.models import User
 
@@ -21,7 +21,7 @@ class ChoreConfirmationDataService:
 
     async def get_user_chore_confirmations(
         self, user_id: UUID, status: StatusConfirmENUM | None
-    ) -> list[NewChoreConfirmationDetail]:
+    ) -> list[ChoreConfirmationDetailSchema]:
         """
         Fetches the list of chore confirmations for a specific user.
 
@@ -33,7 +33,7 @@ class ChoreConfirmationDataService:
             user_id (UUID): The unique identifier of the user whose chore confirmations are being fetched.
 
         Returns:
-            list[NewChoreConfirmationDetail]: A list of chore confirmation details for the specified user.
+            list[ChoreConfirmationDetailSchema]: A list of chore confirmation details for the specified user.
             Returns None if no confirmations are found.
         """
 
@@ -91,7 +91,7 @@ class ChoreConfirmationDataService:
         raw_data = query_result.mappings().all()
 
         confirmations = [
-            NewChoreConfirmationDetail.model_validate(item) for item in raw_data
+            ChoreConfirmationDetailSchema.model_validate(item) for item in raw_data
         ]
 
         return confirmations

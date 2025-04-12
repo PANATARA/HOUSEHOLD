@@ -9,7 +9,7 @@ from sqlalchemy.sql import func
 
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
-from chores_completions.schemas import ChoreCompletionSchema, NewChoreCompletionDetail
+from chores_completions.schemas import ChoreCompletionSchema, ChoreCompletionDetailSchema
 from chores_confirmations.models import ChoreConfirmation
 from core.base_dals import BaseDals, GetOrRaiseMixin
 from core.constants import StatusConfirmENUM
@@ -80,7 +80,7 @@ class ChoreCompletionDataService:
             limit (int): The maximum number of records to retrieve.
 
         Returns:
-            list[NewChoreCompletionSummary]: A list of `NewChoreCompletionSummary` Pydantic models
+            list[ChoreCompletionSchema]: A list of `ChoreCompletionSchema` Pydantic models
             representing the details of the completed chores, including chore information,
             the user who completed it, and the completion status.
         """
@@ -130,7 +130,7 @@ class ChoreCompletionDataService:
 
     async def get_family_chore_completion_detail(
         self, chore_completion_id: UUID
-    ) -> NewChoreCompletionDetail | None:
+    ) -> ChoreCompletionDetailSchema | None:
         """
         Retrieves the detailed information for a specific chore completion,
         including the chore details, the user who completed it, and the users
@@ -140,7 +140,7 @@ class ChoreCompletionDataService:
             chore_completion_id (UUID): The ID of the chore completion whose details are to be fetched.
 
         Returns:
-            NewChoreCompletionDetail | None: A Pydantic model representing the details of the
+            ChoreCompletionDetailSchema | None: A Pydantic model representing the details of the
             specified chore completion, including the chore, the user who completed it,
             the status, and the users who confirmed it. Returns None if no matching completion is found.
         """
@@ -214,4 +214,4 @@ class ChoreCompletionDataService:
         query_result = await self.db_session.execute(query)
         item = query_result.mappings().first()
 
-        return NewChoreCompletionDetail.model_validate(item) if item else None
+        return ChoreCompletionDetailSchema.model_validate(item) if item else None

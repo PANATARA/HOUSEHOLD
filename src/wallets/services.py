@@ -15,7 +15,7 @@ from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
 from wallets.repository import AsyncWalletDAL, PeerTransactionDAL, RewardTransactionDAL
-from wallets.schemas import CreatePeerTransaction, CreateRewardTransaction
+from wallets.schemas import CreatePeerTransactionSchema, CreateRewardTransactionSchema
 
 
 @dataclass
@@ -55,7 +55,7 @@ class CoinsTransferService(BaseService):
     db_session: AsyncSession
 
     async def process(self) -> PeerTransaction | None:
-        data = CreatePeerTransaction(
+        data = CreatePeerTransactionSchema(
             detail=self.message,
             coins=self.count,
         )
@@ -98,7 +98,7 @@ class CoinsRewardService(BaseService[RewardTransaction]):
         await wallet_dal.add_balance(user_id=user_id, amount=amount)
 
     async def _create_transaction_log(self, user_id: UUID, amount: Decimal):
-        data = CreateRewardTransaction(
+        data = CreateRewardTransactionSchema(
             detail=self.message,
             coins=amount,
             to_user_id=user_id,
@@ -127,7 +127,7 @@ class PeerTransactionService(BaseService):
 
     to_user: User
     from_user: User
-    data: CreatePeerTransaction
+    data: CreatePeerTransactionSchema
     transaction_type: PeerTransactionENUM
     db_session: AsyncSession
     product: Product | None = None

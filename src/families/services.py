@@ -11,7 +11,7 @@ from families.models import Family
 from families.repository import AsyncFamilyDAL
 from users.models import User, UserFamilyPermissions
 from users.repository import AsyncUserDAL, AsyncUserFamilyPermissionsDAL
-from users.schemas import UserFamilyPermissionModel
+from users.schemas import UserFamilyPermissionModelSchema
 from wallets.models import Wallet
 from wallets.services import WalletCreatorService
 
@@ -41,7 +41,7 @@ class FamilyCreatorService(BaseService[Family]):
         new_member = AddUserToFamilyService(
             family=family,
             user=self.user,
-            permissions=UserFamilyPermissionModel(
+            permissions=UserFamilyPermissionModelSchema(
                 **constants.default_admin_permissions
             ),
             db_session=self.db_session,
@@ -65,7 +65,7 @@ class AddUserToFamilyService(BaseService):
 
     family: Family
     user: User
-    permissions: UserFamilyPermissionModel
+    permissions: UserFamilyPermissionModelSchema
     db_session: AsyncSession
 
     async def process(self) -> Family:

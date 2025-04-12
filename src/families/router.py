@@ -18,10 +18,10 @@ from core.qr_code import get_qr_code
 from core.security import create_jwt_token, get_payload_from_jwt_token
 from core.session import get_db
 from families.repository import AsyncFamilyDAL, FamilyDataService
-from families.schemas import FamilyCreateSchema, FamilyWithMembersSchema, FamilySchema, InviteToken, UserInviteParametr
+from families.schemas import FamilyCreateSchema, FamilyWithMembersSchema, FamilySchema, InviteTokenSchema, UserInviteParametrSchema
 from families.services import AddUserToFamilyService, FamilyCreatorService, LogoutUserFromFamilyService
 from users.models import User
-from users.schemas import UserFamilyPermissionModel
+from users.schemas import UserFamilyPermissionModelSchema
 
 
 logger = getLogger(__name__)
@@ -122,9 +122,9 @@ async def change_family_admin(
 
 @families_router.post(path="/invite", summary="Generate invite token")
 async def generate_invite_token(
-    body: UserInviteParametr,
+    body: UserInviteParametrSchema,
     current_user: User = Depends(FamilyInvitePermission()),
-) -> InviteToken:
+) -> InviteTokenSchema:
     payload = body.model_dump()
     payload["family_id"] = str(current_user.family_id)
     invite_token = create_jwt_token(
@@ -136,7 +136,7 @@ async def generate_invite_token(
             qrcode, media_type="image/png", status_code=status.HTTP_201_CREATED
         )
     else:
-        return InviteToken(
+        return InviteTokenSchema(
             invite_token=invite_token,
             life_time=timedelta(seconds=900),
         )
@@ -156,8 +156,8 @@ async def join_to_family(
 
         payload = get_payload_from_jwt_token(invite_token)
         family_id = payload.get("family_id")
-        allowed_fields = UserFamilyPermissionModel.model_fields.keys()
-        user_permissions = UserFamilyPermissionModel(
+        allowed_fields = UserFamilyPermissionModelSchema.model_fields.keys()
+        user_permissions = UserFamilyPermissionModelSchema(
             **{key: payload[key] for key in allowed_fields if key in payload}
         )
         try:
