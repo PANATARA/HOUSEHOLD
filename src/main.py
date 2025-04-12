@@ -7,21 +7,19 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 # import routers
-from api import (
-    chores_completions_router,
-    chores_confirmations_router,
-    chores_router,
-    families_invitations_router,
-    families_router,
-    login_router,
-    product_router,
-    user_router,
-    wallet_router,
-)
-from config.swagger import swagger_ui_settings
+from users.router import user_router
+from families.router import families_router
+from chores.router import chores_router
+from chores_completions.router import chores_completions_router
+from chores_confirmations.router import chores_confirmations_router
+from wallets.router import wallet_router
+from products.router import product_router
+from auth.router import login_router
+
+from config import swagger_ui_settings
 from core.constants import PostgreSQLEnum
 from core.redis_connection import redis_client
-from db.session import engine
+from core.session import engine
 
 
 async def create_enum_if_not_exists(engine: AsyncEngine):
@@ -56,8 +54,8 @@ async def lifespan(app: FastAPI):
 
 # create instance of the app
 app = FastAPI(
-    title="HOUSEHOLD", 
-    swagger_ui_parameters=swagger_ui_settings, 
+    title="HOUSEHOLD",
+    swagger_ui_parameters=swagger_ui_settings,
     lifespan=lifespan,
 )
 
@@ -67,31 +65,14 @@ main_api_router = APIRouter(prefix="/api")
 # # set routes to the app instance
 main_api_router.include_router(user_router, prefix="/users", tags=["Users"])
 main_api_router.include_router(login_router, prefix="/login", tags=["Auth"])
-
 main_api_router.include_router(families_router, prefix="/families", tags=["Family"])
-main_api_router.include_router(
-    families_invitations_router,
-    prefix="/families/invitations",
-    tags=["Family invitations"],
-)
+main_api_router.include_router(chores_completions_router, prefix="/chores-completions", tags=["Chores completions"])
+main_api_router.include_router(chores_confirmations_router, prefix="/chores-confirmations", tags=["Chores confiramtions"],)
+main_api_router.include_router(chores_router, prefix="/chores", tags=["Chore"])
+main_api_router.include_router(wallet_router, prefix="/wallets", tags=["Wallet"])
 
-main_api_router.include_router(
-    chores_completions_router,
-    prefix="/families/chores/completions",
-    tags=["Chores completions"],
-)
-main_api_router.include_router(
-    chores_confirmations_router,
-    prefix="/families/chores/confirmations",
-    tags=["Chores confiramtions"],
-)
-main_api_router.include_router(chores_router, prefix="/families/chores", tags=["Chore"])
 
-main_api_router.include_router(wallet_router, prefix="/users/wallets", tags=["Wallet"])
-
-main_api_router.include_router(
-    product_router, prefix="/families/products", tags=["Products"]
-)
+main_api_router.include_router(product_router, prefix="/products", tags=["Products"])
 
 app.include_router(main_api_router)
 

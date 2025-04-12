@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from jose import ExpiredSignatureError, JWTError, jwt
 from starlette import status
 
-from config import auth_token
+import config
 from core.exceptions.http_exceptions import credentials_exception
 
 
@@ -16,18 +16,18 @@ def create_jwt_token(data: dict, expires_delta: timedelta | None = None) -> str:
 
     else:
         expire = datetime.now(timezone.utc) + timedelta(
-            minutes=auth_token.ACCESS_TOKEN_EXPIRE_MINUTES
+            minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
     to_encode.update({"exp": expire})
 
-    return jwt.encode(to_encode, auth_token.SECRET_KEY, algorithm=auth_token.ALGORITHM)
+    return jwt.encode(to_encode, config.SECRET_KEY, algorithm=config.ALGORITHM)
 
 
 def get_payload_from_jwt_token(token: str):
     try:
         payload = jwt.decode(
-            token, auth_token.SECRET_KEY, algorithms=[auth_token.ALGORITHM]
+            token, config.SECRET_KEY, algorithms=[config.ALGORITHM]
         )
     except ExpiredSignatureError:
         raise HTTPException(

@@ -9,7 +9,7 @@ from core.storage import get_s3_client
 from core.redis_connection import redis_client
 
 async def update_user_avatars(data):
-    from schemas.users import UserSummarySchema
+    from users.schemas import UserSummarySchema
     
     if isinstance(data, UserSummarySchema):
             await data.set_avatar_url()

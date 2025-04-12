@@ -1,13 +1,15 @@
 from uuid import UUID
 
+from chores.models import Chore
+from chores_completions.models import ChoreCompletion
 from core.constants import StatusConfirmENUM
 from core.exceptions.chores import ChoreNotFoundError
 from core.exceptions.chores_completion import ChoreCompletionCanNotBeChanged
 from core.exceptions.families import UserIsAlreadyFamilyMember, UserNotFoundInFamily
 from core.exceptions.products import ProductError, ProductNotFoundError
-from db.models.chore import Chore, ChoreCompletion
-from db.models.product import Product
-from db.models.user import User
+from products.models import Product
+from users.models import User
+
 
 
 def validate_user_in_family(user: User, family_id: UUID) -> None:

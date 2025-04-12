@@ -1,0 +1,180 @@
+from datetime import timedelta
+from logging import getLogger
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
+
+from core.permissions import FamilyInvitePermission, FamilyMemberPermission, IsAuthenicatedPermission
+from core.exceptions.families import (
+    FamilyNotFoundError,
+    UserCannotLeaveFamily,
+    UserIsAlreadyFamilyMember,
+)
+from core.get_avatars import update_user_avatars
+from core.qr_code import get_qr_code
+from core.security import create_jwt_token, get_payload_from_jwt_token
+from core.session import get_db
+from families.repository import AsyncFamilyDAL, FamilyDataService
+from families.schemas import FamilyCreateSchema, FamilyWithMembersSchema, FamilySchema, InviteToken, UserInviteParametr
+from families.services import AddUserToFamilyService, FamilyCreatorService, LogoutUserFromFamilyService
+from users.models import User
+from users.schemas import UserFamilyPermissionModel
+
+
+logger = getLogger(__name__)
+
+families_router = APIRouter()
+
+
+# Create a new family
+@families_router.post("", response_model=FamilySchema)
+async def create_family(
+    body: FamilyCreateSchema,
+    current_user: User = Depends(IsAuthenicatedPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> FamilySchema:
+
+    async with async_session.begin():
+        try:
+            family_creator_service = FamilyCreatorService(
+                name=body.name, user=current_user, db_session=async_session
+            )
+            family = await family_creator_service.run_process()
+        except UserIsAlreadyFamilyMember:
+            raise HTTPException(
+                status_code=400,
+                detail="The user is already a family member",
+            )
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        else:
+            return FamilySchema(id=family.id, name=family.name, icon=family.icon)
+
+
+# Get user's family
+@families_router.get("", response_model=FamilyWithMembersSchema)
+async def get_my_family(
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> FamilyWithMembersSchema | None:
+
+    async with async_session.begin():
+        family_id = current_user.family_id
+        if family_id is None:
+            raise HTTPException(status_code=404, detail="Family not found")
+
+        family_data_service = FamilyDataService(async_session)
+        family = await family_data_service.get_family_with_members(family_id)
+        await update_user_avatars(family)
+        return family
+
+
+# Logout user from family
+@families_router.patch(path="/logout", summary="Logout me from family")
+async def logout_user_from_family(
+    current_user: User = Depends(IsAuthenicatedPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+
+    async with async_session.begin():
+        try:
+            await LogoutUserFromFamilyService(
+                user=current_user, db_session=async_session
+            ).run_process()
+
+        except UserCannotLeaveFamily:
+            return JSONResponse(
+                content={
+                    "message": "You cannot leave a family while you are its administrator."
+                },
+                status_code=400,
+            )
+
+    return JSONResponse(
+        content={"message": "OK"},
+        status_code=200,
+    )
+
+
+# Change Family Administrator
+@families_router.patch(path="/change_admin/{user_id}")
+async def change_family_admin(
+    user_id: UUID,
+    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
+    async_session: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+    async with async_session.begin():
+        family_dal = AsyncFamilyDAL(async_session)
+        family_id = current_user.family_id
+        if family_id is None:
+            raise FamilyNotFoundError
+        await family_dal.update(
+            object_id=family_id, fields={"family_admin_id": user_id}
+        )
+    return JSONResponse(
+        content={"detail": "New family administrator appointed"},
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@families_router.post(path="/invite", summary="Generate invite token")
+async def generate_invite_token(
+    body: UserInviteParametr,
+    current_user: User = Depends(FamilyInvitePermission()),
+) -> InviteToken:
+    payload = body.model_dump()
+    payload["family_id"] = str(current_user.family_id)
+    invite_token = create_jwt_token(
+        data=payload, expires_delta=timedelta(seconds=900)
+    )
+    qrcode = await get_qr_code(invite_token, 300)
+    if qrcode:
+        return StreamingResponse(
+            qrcode, media_type="image/png", status_code=status.HTTP_201_CREATED
+        )
+    else:
+        return InviteToken(
+            invite_token=invite_token,
+            life_time=timedelta(seconds=900),
+        )
+
+
+# Join to family by invite-token
+@families_router.post(
+    path="/join/{invite_token}", summary="Join to family by invite-token"
+)
+async def join_to_family(
+    invite_token: str,
+    current_user: User = Depends(IsAuthenicatedPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+
+    async with async_session.begin():
+
+        payload = get_payload_from_jwt_token(invite_token)
+        family_id = payload.get("family_id")
+        allowed_fields = UserFamilyPermissionModel.model_fields.keys()
+        user_permissions = UserFamilyPermissionModel(
+            **{key: payload[key] for key in allowed_fields if key in payload}
+        )
+        try:
+            family = await AsyncFamilyDAL(async_session).get_or_raise(family_id)
+            service = AddUserToFamilyService(
+                family=family,
+                user=current_user,
+                permissions=user_permissions,
+                db_session=async_session,
+            )
+            await service.run_process()
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The user is already a member of a family",
+            )
+        return JSONResponse(
+            content={"message": "You have been successfully added to the family"},
+            status_code=status.HTTP_200_OK,
+        )

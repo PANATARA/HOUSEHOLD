@@ -16,8 +16,17 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from db.models.declarative_base import Base
-from db.models import Chore, ChoreCompletion, Family, Product, User, Wallet, PeerTransaction, RewardTransaction
+from core.models import Base
+
+from users.models import User, UserFamilyPermissions, UserSettings
+from families.models import Family
+from chores.models import Chore
+from chores_completions.models import ChoreCompletion
+from chores_confirmations.models import ChoreConfirmation
+from wallets.models import Wallet, PeerTransaction, RewardTransaction
+from products.models import Product, ProductBuyer
+
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
