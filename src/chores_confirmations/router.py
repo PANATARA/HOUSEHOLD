@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from chores_completions.services import set_status_chore_confirmation
 from chores_confirmations.repository import ChoreConfirmationDataService
+from chores_confirmations.services import set_status_chore_confirmation
 from core.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission
 from core.constants import StatusConfirmENUM
 from core.exceptions.base_exceptions import CanNotBeChangedError
