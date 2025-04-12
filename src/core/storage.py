@@ -1,6 +1,5 @@
-from envparse import Env
-# from aiobotocore.session import get_session
 from contextlib import asynccontextmanager
+from config import S3_ACCESS_KEY, S3_BUCKET_NAME, S3_ENDPOINT_URL, S3_SECRET_KEY
 from core.constants import USER_URL_AVATAR_EXPIRE, StorageFolderEnum
 from botocore.exceptions import ClientError
 import aioboto3
@@ -68,19 +67,10 @@ class S3Client:
                 print(f"Error during generation presigned URL: {e}")
                 return None
 
-
-
-
-env = Env()
-
-SECRET_KEY: str = env.str("SECRET_KEY", default="secret_key")
-ALGORITHM: str = env.str("ALGORITHM", default="HS256")
-
-
 def get_s3_client() -> S3Client:
     return S3Client(
-        access_key=env.str("S3_ACCESS_KEY", default="///"),
-        secret_key=env.str("S3_SECRET_KEY", default="///"),
-        endpoint_url=env.str("S3_ENDPOINT_URL", default="///"),
-        bucket_name=env.str("S3_BUCKET_NAME", default="///"),
+        access_key=S3_ACCESS_KEY,
+        secret_key=S3_SECRET_KEY,
+        endpoint_url=S3_ENDPOINT_URL,
+        bucket_name=S3_BUCKET_NAME
     )

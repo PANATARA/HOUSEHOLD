@@ -1,7 +1,6 @@
-import os
-
-from envparse import Env
 import redis.asyncio as aioredis
+
+from config import REDIS_URL
 
 
 class Singleton(type):
@@ -35,11 +34,4 @@ class RedisClient(metaclass=Singleton):
     def get_client(self):
         return self.client
 
-env = Env()
-env.read_envfile(os.path.join(os.path.dirname(__file__), "...", ".env"))
-redis_url = env.str(
-    "redis_url",
-    default="redis://redis:6379",
-)
-
-redis_client = RedisClient(redis_url=redis_url)
+redis_client = RedisClient(redis_url=REDIS_URL)
