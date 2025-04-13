@@ -1,0 +1,16 @@
+FROM python:3.11.7
+
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /usr/src/app
+
+COPY requirements-dev.txt /usr/src/app/
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
+COPY src /usr/src/app/src/
+COPY tests /usr/src/app/tests/
+COPY pytest.ini /usr/src/app/
+
+EXPOSE 8000
+
+ENV PYTHONPATH=/usr/src/app/src

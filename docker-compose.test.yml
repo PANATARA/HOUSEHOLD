@@ -1,0 +1,41 @@
+services:
+    test_app:
+        build:
+            context: .
+            dockerfile: Dockerfile.test
+        container_name: test_app
+        command: [ "pytest", "tests/" ]
+        volumes:
+            - ./src:/usr/src/app/src:cached
+            - ./tests:/usr/src/app/tests:cached
+            - ./pytest.ini:/usr/src/app/pytest.ini:cached
+        depends_on:
+            - test_db
+        env_file:
+            - .env
+        networks:
+            - backend
+
+    test_db:
+        image: postgres:14
+        container_name: test_db
+        environment:
+            - POSTGRES_DB=test
+            - POSTGRES_USER=test
+            - POSTGRES_PASSWORD=test
+        volumes:
+            - testdata:/var/lib/postgresql/data/
+        ports:
+            - "5444:5432"
+        networks:
+            - backend
+        healthcheck:
+            test: [ "CMD", "pg_isready", "-U", "test" ]
+            interval: 1s
+            retries: 5
+
+networks:
+    backend:
+
+volumes:
+    testdata:
