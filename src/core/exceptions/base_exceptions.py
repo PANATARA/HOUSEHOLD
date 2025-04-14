@@ -8,3 +8,7 @@ class ConflictError(Exception):
 
 class CanNotBeChangedError(Exception):
     pass
+
+
+class ImageError(Exception):
+    pass

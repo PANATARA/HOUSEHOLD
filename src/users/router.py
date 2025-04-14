@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.exceptions.base_exceptions import ImageError
 from core.permissions import IsAuthenicatedPermission
-from core.constants import ALLOWED_CONTENT_TYPES, StorageFolderEnum
 from core.get_avatars import update_user_avatars
-from core.storage import S3Client, get_s3_client
+from core.storage import PresignedUrl
 from core.session import get_db
 from users.models import User
 from users.repository import AsyncUserDAL, UserDataService
@@ -17,7 +17,7 @@ from users.schemas import (
     UserSummarySchema,
     UserUpdateSchema,
 )
-from users.services import UserCreatorService
+from users.services import UserCreatorService, update_user_avatar
 
 
 logger = getLogger(__name__)
@@ -107,23 +107,14 @@ async def me_user_get_settings(
 async def upload_user_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(IsAuthenicatedPermission()),
-    s3: S3Client = Depends(get_s3_client)
-) -> str:
+) -> PresignedUrl:
     
-    key = str(current_user.id)
-    folder = StorageFolderEnum.users_avatars
-    content_type = file.content_type
-    if content_type not in ALLOWED_CONTENT_TYPES:
+    try:
+        avatar_url = await update_user_avatar(current_user, file)
+    except ImageError as e:
         raise HTTPException(
             status_code=400,
-            detail=f"Format Error: {file.content_type}. Allowed content types: JPEG, PNG, WebP."
+            detail=str(e)
         )
-
-    user_avatar = await file.read()
-    if len(user_avatar) > 1_048_576:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Image too large: {len(user_avatar)} bytes"
-        )
-    await s3.upload_file(user_avatar, content_type, key, folder)
-    return await s3.generate_presigned_url(key, folder, expires_in=600)
+    return avatar_url
+    

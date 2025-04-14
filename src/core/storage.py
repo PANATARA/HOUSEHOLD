@@ -4,6 +4,10 @@ from core.constants import USER_URL_AVATAR_EXPIRE, StorageFolderEnum
 from botocore.exceptions import ClientError
 import aioboto3
 
+from typing import NewType
+
+PresignedUrl = NewType("PresignedUrl", str)
+
 
 class S3Client:
     def __init__(
@@ -50,7 +54,7 @@ class S3Client:
         object_key: str,
         folder: StorageFolderEnum,
         expires_in: int = USER_URL_AVATAR_EXPIRE,
-    ) -> str | None:
+    ) -> PresignedUrl | None:
         key = f"{folder.value}/{object_key}"
         async with self.get_client() as client:
             try:
