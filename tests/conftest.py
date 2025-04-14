@@ -1,9 +1,7 @@
-import asyncio
 import os
 
-import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.asyncio import create_async_engine
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 
@@ -12,17 +10,22 @@ CLEAN_TABLES = [
 ]
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
-    default="postgresql+asyncpg://test:test@test_db:5432/test",
+    default="postgresql+asyncpg://test:test@test_db:5432/postgres",
 )
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture
 async def async_session_test():
-    engine = create_async_engine(TEST_DATABASE_URL, future=True, echo=True)
-    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    yield async_session
+    """Фикстура для создания сессии и её закрытия после теста."""
+    engine = create_async_engine(
+        url=TEST_DATABASE_URL,
+        future=True,
+        echo=True,
+        execution_options={"isolation_level": "REPEATABLE READ"},
+    )
+
+    async_session_factory = sessionmaker(
+        engine, expire_on_commit=False, class_=AsyncSession, autocommit=False
+    )
+
+    async with async_session_factory() as session:
+        yield session

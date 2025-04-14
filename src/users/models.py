@@ -18,6 +18,7 @@ class User(Base, BaseModel):
         ForeignKey(
             column="family.id",
             ondelete="SET NULL",
+            use_alter=True
         )
     )
 

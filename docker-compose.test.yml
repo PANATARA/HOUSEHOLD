@@ -4,7 +4,8 @@ services:
             context: .
             dockerfile: Dockerfile.test
         container_name: test_app
-        command: [ "pytest", "tests/" ]
+        # command: [ "pytest", "tests/" ]
+        command: tail -f /dev/null
         volumes:
             - ./src:/usr/src/app/src:cached
             - ./tests:/usr/src/app/tests:cached
@@ -12,30 +13,26 @@ services:
         depends_on:
             - test_db
         env_file:
-            - .env
+            - .env.test
         networks:
-            - backend
+            - test_network
 
     test_db:
         image: postgres:14
         container_name: test_db
         environment:
-            - POSTGRES_DB=test
+            - POSTGRES_DB=postgres
             - POSTGRES_USER=test
             - POSTGRES_PASSWORD=test
         volumes:
             - testdata:/var/lib/postgresql/data/
         ports:
-            - "5444:5432"
+            - "2345:5432"
         networks:
-            - backend
-        healthcheck:
-            test: [ "CMD", "pg_isready", "-U", "test" ]
-            interval: 1s
-            retries: 5
+            - test_network
 
 networks:
-    backend:
+    test_network:
 
 volumes:
     testdata:

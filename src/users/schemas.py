@@ -7,27 +7,16 @@ from config import LETTER_MATCH_PATTERN, PASSWORD_PATTERN
 from core.get_avatars import AvatarService
 
 
-
-class TunedModel(BaseModel):
-    class Config:
-        """tells pydantic to convert even non dict obj to json"""
-
-        from_attributes = True
-
-
-class UserSummarySchema(TunedModel):
+class UserSummarySchema(BaseModel):
     id: UUID
     username: str
     name: str
     surname: str | None
     avatar_url: str | None = None
 
-    class Config:
-        orm_mode = True
-        from_attributes = True
-    
     async def set_avatar_url(self) -> None:
         self.avatar_url = await AvatarService(self.id).run_process()
+
 
 class UserCreateSchema(BaseModel):
     username: str

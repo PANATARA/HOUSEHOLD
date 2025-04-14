@@ -30,7 +30,7 @@ class UserCreatorService(BaseService[User]):
                 "username": self.username,
                 "name": self.name,
                 "surname": self.surname,
-                "hashed_password": await self._get_hash_password(),
+                "hashed_password": self._get_hash_password(),
             }
         )
         settings_fields = constants.default_user_settings
@@ -38,7 +38,7 @@ class UserCreatorService(BaseService[User]):
         await self._create_settings(settings_fields)
         return user
 
-    async def _get_hash_password(self) -> str:
+    def _get_hash_password(self) -> str:
         return Hasher.get_password_hash(self.password)
 
     async def _create_user(self, fields: dict) -> User:
