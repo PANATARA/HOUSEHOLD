@@ -8,8 +8,9 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
 
 from chores.models import Chore
+from chores_completions.aggregates import ChoreCompletionDetailSchema
 from chores_completions.models import ChoreCompletion
-from chores_completions.schemas import ChoreCompletionSchema, ChoreCompletionDetailSchema
+from chores_completions.schemas import ChoreCompletionSchema
 from chores_confirmations.models import ChoreConfirmation
 from core.base_dals import BaseDals, GetOrRaiseMixin
 from core.exceptions.chores_completion import ChoreCompletionNotFoundError

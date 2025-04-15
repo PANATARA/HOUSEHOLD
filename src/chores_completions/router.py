@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.repository import AsyncChoreDAL
+from chores_completions.aggregates import ChoreCompletionDetailSchema
 from chores_completions.repository import ChoreCompletionDataService
 from chores_completions.services import CreateChoreCompletion
 from core.permissions import (
@@ -18,7 +19,6 @@ from core.session import get_db
 from chores_completions.schemas import (
     ChoreCompletionCreateSchema,
     ChoreCompletionSchema,
-    ChoreCompletionDetailSchema,
 )
 from users.models import User
 

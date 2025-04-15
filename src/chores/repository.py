@@ -4,11 +4,12 @@ from uuid import UUID
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from chores.aggregates import ChoreDetailSchema
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from core.base_dals import BaseDals, DeleteDALMixin, GetOrRaiseMixin
 from core.exceptions.chores import ChoreNotFoundError
-from chores.schemas import ChoreCreateSchema, ChoreSchema, ChoreDetailSchema
+from chores.schemas import ChoreCreateSchema, ChoreSchema
 from users.models import User
 
 

@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from chores.aggregates import ChoreDetailSchema
 from chores.repository import AsyncChoreDAL, ChoreDataService
 from chores.services import ChoreCreatorService
 from core.permissions import (
@@ -12,7 +13,7 @@ from core.permissions import (
 )
 from core.get_avatars import update_user_avatars
 from core.session import get_db
-from chores.schemas import ChoreCreateSchema, ChoreSchema, ChoreDetailSchema
+from chores.schemas import ChoreCreateSchema, ChoreSchema
 from families.repository import AsyncFamilyDAL
 from users.models import User
 

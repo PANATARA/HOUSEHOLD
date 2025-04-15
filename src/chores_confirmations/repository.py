@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
+from chores_confirmations.aggregates import ChoreConfirmationDetailSchema
 from chores_confirmations.models import ChoreConfirmation
-from chores_confirmations.schemas import ChoreConfirmationDetailSchema
 from core.base_dals import BaseDals
 from core.constants import StatusConfirmENUM
 from users.models import User

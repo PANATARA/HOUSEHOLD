@@ -9,6 +9,7 @@ from core.permissions import IsAuthenicatedPermission
 from core.get_avatars import update_user_avatars
 from core.storage import PresignedUrl
 from core.session import get_db
+from users.aggregates import UserProfileSchema
 from users.models import User
 from users.repository import AsyncUserDAL, UserDataService
 from users.schemas import (
@@ -18,6 +19,8 @@ from users.schemas import (
     UserUpdateSchema,
 )
 from users.services import UserCreatorService, update_user_avatar
+from wallets.repository import AsyncWalletDAL
+from wallets.schemas import WalletBalanceSchema
 
 
 logger = getLogger(__name__)
@@ -57,12 +60,22 @@ async def create_user(
 @user_router.get("",)
 async def me_user_get(
     current_user: User = Depends(IsAuthenicatedPermission()),
-) -> UserSummarySchema:
-    result = UserSummarySchema(
-        id=current_user.id,
-        username=current_user.username,
-        name=current_user.name,
-        surname=current_user.surname,
+    async_session: AsyncSession = Depends(get_db),
+) -> UserProfileSchema:
+    async with async_session.begin():
+        wallet = await AsyncWalletDAL(async_session).get_by_user_id(current_user.id)
+    
+    result = UserProfileSchema(
+        user=UserSummarySchema(
+            id=current_user.id,
+            username=current_user.username,
+            name=current_user.name,
+            surname=current_user.surname,
+        ),
+        wallet=WalletBalanceSchema(
+            id=wallet.id,
+            balance=wallet.balance,
+        ) if wallet else None
     )
     await update_user_avatars(result)
     return result

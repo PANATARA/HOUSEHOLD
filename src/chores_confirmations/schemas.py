@@ -20,14 +20,3 @@ class ChoreConfirmationSetStatusSchema(BaseModel):
         if v == StatusConfirmENUM.awaits:
             raise ValueError("Setting status to 'awaits' is not allowed")
         return v
-
-
-from chores_completions.schemas import ChoreCompletionSchema  # noqa: E402
-
-
-class ChoreConfirmationDetailSchema(BaseModel):
-    """Only for a specific user"""
-
-    id: UUID
-    chore_completion: ChoreCompletionSchema
-    status: StatusConfirmENUM
