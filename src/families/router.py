@@ -120,11 +120,11 @@ async def change_family_admin(
     )
 
 
-@families_router.post(path="/invite", summary="Generate invite token")
+@families_router.post(path="/invite", summary="Generate invite token", response_class=StreamingResponse)
 async def generate_invite_token(
     body: UserInviteParametrSchema,
     current_user: User = Depends(FamilyInvitePermission()),
-) -> InviteTokenSchema:
+) -> StreamingResponse:
     payload = body.model_dump()
     payload["family_id"] = str(current_user.family_id)
     invite_token = create_jwt_token(

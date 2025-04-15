@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.base_dals import BaseDals, GetOrRaiseMixin
+from core.base_dals import BaseDals, BaseUserPkDals, GetOrRaiseMixin
 from core.exceptions.users import UserNotFoundError
 from users.models import User, UserFamilyPermissions, UserSettings
 from users.schemas import UserSettingsShowSchema
@@ -25,12 +25,9 @@ class AsyncUserDAL(BaseDals[User], GetOrRaiseMixin[User]):
         pass
 
 
-class AsyncUserSettingsDAL(BaseDals[UserSettings]):
+class AsyncUserSettingsDAL(BaseUserPkDals[UserSettings]):
 
     model = UserSettings
-
-    async def get_settings_by_user_id(self, user_id):
-        pass
 
 
 class AsyncUserFamilyPermissionsDAL(BaseDals[UserFamilyPermissions]):
