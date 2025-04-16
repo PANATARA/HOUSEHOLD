@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, field_validator
 
 from config import LETTER_MATCH_PATTERN, PASSWORD_PATTERN
+from core.constants import StorageFolderEnum
 from core.get_avatars import AvatarService
 
 
@@ -15,7 +16,7 @@ class UserSummarySchema(BaseModel):
     avatar_url: str | None = None
 
     async def set_avatar_url(self) -> None:
-        self.avatar_url = await AvatarService(self.id).run_process()
+        self.avatar_url = await AvatarService(self.id, StorageFolderEnum.users_avatars).run_process()
 
 
 class UserCreateSchema(BaseModel):

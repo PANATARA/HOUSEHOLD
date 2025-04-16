@@ -3,12 +3,17 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from core.constants import StorageFolderEnum
+from core.get_avatars import AvatarService
 from users.schemas import UserSummarySchema
 
 class FamilyBaseSchema(BaseModel):
     name: str
     icon: str
+    avatar_url: str | None = None
 
+    async def set_avatar_url(self) -> None:
+        self.avatar_url = await AvatarService(self.id, StorageFolderEnum.family_avatars).run_process()
 
 class FamilyCreateSchema(FamilyBaseSchema):
     """Schema for creating a new family"""

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions.base_exceptions import ImageError
 from core.permissions import IsAuthenicatedPermission
-from core.get_avatars import update_user_avatars
+from core.get_avatars import upload_object_image, update_user_avatars
 from core.storage import PresignedUrl
 from core.session import get_db
 from users.aggregates import UserProfileSchema
@@ -18,7 +18,7 @@ from users.schemas import (
     UserSummarySchema,
     UserUpdateSchema,
 )
-from users.services import UserCreatorService, update_user_avatar
+from users.services import UserCreatorService
 from wallets.repository import AsyncWalletDAL
 from wallets.schemas import WalletBalanceSchema
 
@@ -123,7 +123,7 @@ async def upload_user_avatar(
 ) -> PresignedUrl:
     
     try:
-        avatar_url = await update_user_avatar(current_user, file)
+        avatar_url = await upload_object_image(current_user, file)
     except ImageError as e:
         raise HTTPException(
             status_code=400,

@@ -2,21 +2,23 @@ from datetime import timedelta
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from core.exceptions.base_exceptions import ImageError
 from core.permissions import FamilyInvitePermission, FamilyMemberPermission, IsAuthenicatedPermission
 from core.exceptions.families import (
     FamilyNotFoundError,
     UserCannotLeaveFamily,
     UserIsAlreadyFamilyMember,
 )
-from core.get_avatars import update_user_avatars
+from core.get_avatars import update_family_avatars, upload_object_image
 from core.qr_code import get_qr_code
 from core.security import create_jwt_token, get_payload_from_jwt_token
 from core.session import get_db
+from core.storage import PresignedUrl
 from families.repository import AsyncFamilyDAL, FamilyDataService
 from families.schemas import FamilyCreateSchema, FamilyWithMembersSchema, FamilySchema, InviteTokenSchema, UserInviteParametrSchema
 from families.services import AddUserToFamilyService, FamilyCreatorService, LogoutUserFromFamilyService
@@ -68,7 +70,7 @@ async def get_my_family(
 
         family_data_service = FamilyDataService(async_session)
         family = await family_data_service.get_family_with_members(family_id)
-        await update_user_avatars(family)
+        await update_family_avatars(family)
         return family
 
 
@@ -178,3 +180,22 @@ async def join_to_family(
             content={"message": "You have been successfully added to the family"},
             status_code=status.HTTP_200_OK,
         )
+
+@families_router.post("/avatar/file/", summary="Upload new family's avatar")
+async def upload_user_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> PresignedUrl:
+    
+    async with async_session.begin():
+        family = await AsyncFamilyDAL(async_session).get_by_id(current_user.family_id)
+    
+    try:
+        family_avatar_url = await upload_object_image(family, file)
+    except ImageError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    return family_avatar_url

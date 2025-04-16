@@ -1,8 +1,11 @@
 import os
 
+import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+
+from users.schemas import UserCreateSchema
 
 
 CLEAN_TABLES = [
@@ -15,7 +18,6 @@ TEST_DATABASE_URL = os.getenv(
 
 @pytest_asyncio.fixture
 async def async_session_test():
-    """Фикстура для создания сессии и её закрытия после теста."""
     engine = create_async_engine(
         url=TEST_DATABASE_URL,
         future=True,
@@ -29,3 +31,12 @@ async def async_session_test():
 
     async with async_session_factory() as session:
         yield session
+
+@pytest.fixture
+def user_create_data() -> UserCreateSchema:
+    return UserCreateSchema(
+        username="test_username",
+        name="testname",
+        surname="testsurname",
+        password="HouseHold-Password-2025",
+    )

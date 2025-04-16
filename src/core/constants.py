@@ -14,6 +14,7 @@ default_user_permissions = {
 }
 
 USER_URL_AVATAR_EXPIRE = 60 * 60 * 24
+FAMILY_URL_AVATAR_EXPIRE = 60 * 60 * 24
 
 class StorageFolderEnum(enum.Enum):
     users_avatars = "user_avatars"
