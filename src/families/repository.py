@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.base_dals import BaseDals, GetOrRaiseMixin
 from core.exceptions.families import FamilyNotFoundError
 from families.models import Family
-from families.schemas import FamilyWithMembersSchema
+from families.schemas import FamilyDetailSchema
 from users.models import User, UserFamilyPermissions
 
 
@@ -58,7 +58,7 @@ class FamilyDataService:
 
     db_session: AsyncSession
 
-    async def get_family_with_members(self, family_id: UUID) -> FamilyWithMembersSchema | None:
+    async def get_family_with_members(self, family_id: UUID) -> FamilyDetailSchema | None:
         """Returns a pydantic model of the family and its members"""
         result = await self.db_session.execute(
             select(
@@ -84,6 +84,6 @@ class FamilyDataService:
         
         if rows is None:
             return None
-        family = FamilyWithMembersSchema.model_validate(rows[0])
+        family = FamilyDetailSchema.model_validate(rows[0])
 
         return family

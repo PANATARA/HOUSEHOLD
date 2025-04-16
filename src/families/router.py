@@ -20,7 +20,7 @@ from core.security import create_jwt_token, get_payload_from_jwt_token
 from core.session import get_db
 from core.storage import PresignedUrl
 from families.repository import AsyncFamilyDAL, FamilyDataService
-from families.schemas import FamilyCreateSchema, FamilyWithMembersSchema, FamilySchema, InviteTokenSchema, UserInviteParametrSchema
+from families.schemas import FamilyCreateSchema, FamilyDetailSchema, InviteTokenSchema, FamilyInviteSchema
 from families.services import AddUserToFamilyService, FamilyCreatorService, LogoutUserFromFamilyService
 from users.models import User
 from users.schemas import UserFamilyPermissionModelSchema
@@ -32,12 +32,12 @@ families_router = APIRouter()
 
 
 # Create a new family
-@families_router.post("", response_model=FamilySchema)
+@families_router.post("", response_model=FamilyDetailSchema)
 async def create_family(
     body: FamilyCreateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilySchema:
+) -> FamilyDetailSchema | None:
 
     async with async_session.begin():
         try:
@@ -53,15 +53,18 @@ async def create_family(
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
         else:
-            return FamilySchema(id=family.id, name=family.name, icon=family.icon)
+            family_data_service = FamilyDataService(async_session)
+            family_detail = await family_data_service.get_family_with_members(family.id)
+            await update_family_avatars(family_detail)
+            return family_detail
 
 
 # Get user's family
-@families_router.get("", response_model=FamilyWithMembersSchema)
+@families_router.get("", response_model=FamilyDetailSchema)
 async def get_my_family(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyWithMembersSchema | None:
+) -> FamilyDetailSchema | None:
 
     async with async_session.begin():
         family_id = current_user.family_id
@@ -124,7 +127,7 @@ async def change_family_admin(
 
 @families_router.post(path="/invite", summary="Generate invite token", response_class=StreamingResponse)
 async def generate_invite_token(
-    body: UserInviteParametrSchema,
+    body: FamilyInviteSchema,
     current_user: User = Depends(FamilyInvitePermission()),
 ) -> StreamingResponse:
     payload = body.model_dump()
