@@ -49,14 +49,9 @@ class FamilyCreatorService(BaseService[Family]):
         await new_member.run_process()
 
     async def _create_default_family_chore(self, family: Family) -> None:
-        data = await get_default_chore_data()
+        data = get_default_chore_data()
         default_chores = ChoreCreatorService(family, self.db_session, data)
         return await default_chores.run_process()
-
-    def get_validators(self):
-        return [
-            lambda: validate_user_not_in_family(self.user)
-        ]
 
 
 @dataclass

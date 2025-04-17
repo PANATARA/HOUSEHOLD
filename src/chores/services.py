@@ -37,8 +37,8 @@ class ChoreCreatorService(BaseService):
             )
 
 
-async def get_default_chore_data() -> list[ChoreCreateSchema]:
-    chores = await load_seed_data("seed_data.json")
+def get_default_chore_data() -> list[ChoreCreateSchema]:
+    chores = load_seed_data()
     data = []
     for chore in chores:
         data.append(
