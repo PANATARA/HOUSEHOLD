@@ -8,8 +8,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 # import routers
-from statistics.click_house_connection import get_click_house_client
-from statistics.repository import ClickHouseRepository
+from analytics.click_house_connection import get_click_house_client
+from analytics.repository import ClickHouseRepository
 from users.router import user_router
 from families.router import families_router
 from chores.router import chores_router
