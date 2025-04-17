@@ -1,10 +1,10 @@
 from logging import getLogger
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions.base_exceptions import ImageError
+from core.exceptions.users import UserError
 from core.permissions import IsAuthenicatedPermission
 from core.get_avatars import upload_object_image, update_user_avatars
 from core.storage import PresignedUrl
@@ -37,16 +37,12 @@ async def create_user(
     async with async_session.begin():
         try:
             service = UserCreatorService(
-                username=body.username,
-                name=body.name,
-                surname=body.surname,
-                password=body.password,
+                user_data=body,
                 db_session=async_session,
             )
             user = await service.run_process()
-        except IntegrityError as err:
-            logger.error(err)
-            raise HTTPException(status_code=503, detail=f"Database error: {err}")
+        except UserError as err:
+            raise HTTPException(status_code=400, detail=f"Error: {err}")
 
     return UserSummarySchema(
         id=user.id,

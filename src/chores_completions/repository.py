@@ -13,6 +13,7 @@ from chores_completions.models import ChoreCompletion
 from chores_completions.schemas import ChoreCompletionSchema
 from chores_confirmations.models import ChoreConfirmation
 from core.base_dals import BaseDals, GetOrRaiseMixin
+from core.constants import StatusConfirmENUM
 from core.exceptions.chores_completion import ChoreCompletionNotFoundError
 from users.models import User
 
@@ -30,7 +31,7 @@ class ChoreCompletionDataService:
     db_session: AsyncSession
 
     async def get_family_chore_completion(
-        self, family_id: UUID, offset: int, limit: int
+        self, family_id: UUID, offset: int, limit: int, status: StatusConfirmENUM | None
     ) -> list[ChoreCompletionSchema]:
         """
         Retrieves a list of chore completion records for a specific family,
@@ -46,6 +47,10 @@ class ChoreCompletionDataService:
             representing the details of the completed chores, including chore information,
             the user who completed it, and the completion status.
         """
+
+        conditions = [Chore.family_id == family_id]
+        if status is not None:
+            conditions.append(ChoreCompletion.status == status.value)
 
         query = (
             select(
@@ -78,7 +83,7 @@ class ChoreCompletionDataService:
             )
             .join(User, ChoreCompletion.completed_by_id == User.id)
             .join(Chore, ChoreCompletion.chore_id == Chore.id)
-            .where(Chore.family_id == family_id)
+            .where(*conditions)
             .order_by(ChoreCompletion.created_at.desc())
             .limit(limit)
             .offset(offset)

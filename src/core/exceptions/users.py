@@ -19,3 +19,9 @@ class UserAvatarSizeTooLargre(UserError, ImageError):
     def __init__(self, message="Image size is too large"):
         self.message = message
         super().__init__(self.message)
+
+
+class UserAlreadyExistsError(UserError):
+    def __init__(self, message="User with this username already exists"):
+        self.message = message
+        super().__init__(self.message)

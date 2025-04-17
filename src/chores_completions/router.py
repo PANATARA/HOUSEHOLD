@@ -8,6 +8,7 @@ from chores.repository import AsyncChoreDAL
 from chores_completions.aggregates import ChoreCompletionDetailSchema
 from chores_completions.repository import ChoreCompletionDataService
 from chores_completions.services import CreateChoreCompletion
+from core.constants import StatusConfirmENUM
 from core.permissions import (
     ChoreCompletionPermission,
     ChorePermission,
@@ -61,6 +62,7 @@ async def create_chore_completion(
 async def get_family_chores_completions(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=50),
+    status: StatusConfirmENUM | None = None,
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[ChoreCompletionSchema]:
@@ -69,7 +71,7 @@ async def get_family_chores_completions(
         offset = (page - 1) * limit
         data_service = ChoreCompletionDataService(async_session)
         result = await data_service.get_family_chore_completion(
-            current_user.family_id, offset, limit
+            current_user.family_id, offset, limit, status
         )
         await update_user_avatars(result)
         return result
