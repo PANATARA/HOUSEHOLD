@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 
 import uvicorn
 from fastapi import FastAPI
@@ -7,6 +8,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 # import routers
+from statistics.click_house_connection import get_click_house_client
+from statistics.repository import ClickHouseRepository
 from users.router import user_router
 from families.router import families_router
 from chores.router import chores_router
@@ -21,6 +24,7 @@ from core.constants import PostgreSQLEnum
 from core.redis_connection import redis_client
 from core.session import engine
 
+logger = logging.getLogger(__name__)
 
 async def create_enum_if_not_exists(engine: AsyncEngine):
     async with engine.begin() as conn:
@@ -44,12 +48,27 @@ async def create_enum_if_not_exists(engine: AsyncEngine):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Startup: Checking ENUMs in DB...")
-    await create_enum_if_not_exists(engine)
-    await redis_client.connect()
-    yield
-    print("🛑 Shutdown: Closing resources...")
-    await redis_client.close()
+    try:
+        # Checking ENUMs in DB
+        logger.info("🚀 Startup: Checking ENUMs in DB...")
+        await create_enum_if_not_exists(engine)
+        
+        # Redis connections
+        logger.info("🚀 Startup: Redis connections...")
+        await redis_client.connect()
+        
+        # ClickHouse connections and creating the table
+        logger.info("🚀 Startup: ClickHouse connections...")
+        click_house_repo = ClickHouseRepository(await get_click_house_client())
+        await click_house_repo.create_chore_stats_table()
+        
+        yield
+    except Exception as e:
+        logger.error(f"Error during startup: {e}")
+        raise
+    finally:
+        logger.info("🛑 Shutdown: Closing resources...")
+        await redis_client.close()
 
 
 # create instance of the app

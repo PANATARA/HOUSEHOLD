@@ -13,6 +13,8 @@ services:
             - .env
         depends_on:
             - postgres_db
+            - redis
+            - clickhouse
         stdin_open: true
         tty: true
         networks:
@@ -56,9 +58,21 @@ services:
             - "6379:6379"
         networks:
             - backend
-
+    clickhouse:
+        image: clickhouse/clickhouse-server:latest
+        container_name: clickhouse
+        ports:
+            - "8123:8123"
+        environment:
+            - CLICKHOUSE_USER=${CLICK_HOUSE_USERNAME}
+            - CLICKHOUSE_PASSWORD=${CLICK_HOUSE_PASSWORD}
+        volumes:
+            - clickhouse-data:/var/lib/clickhouse
+        networks:
+            - backend
 volumes:
     pgdata:
+    clickhouse-data:
 
 networks:
     backend:
