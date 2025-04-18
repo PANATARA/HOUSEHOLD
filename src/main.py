@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 # import routers
 from analytics.click_house_connection import get_click_house_client
-from analytics.repository import ClickHouseRepository
+from analytics.repository import ChoreAnalyticRepository
 from users.router import user_router
 from families.router import families_router
 from chores.router import chores_router
@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
         
         # ClickHouse connections and creating the table
         logger.info("🚀 Startup: ClickHouse connections...")
-        click_house_repo = ClickHouseRepository(await get_click_house_client())
+        click_house_repo = ChoreAnalyticRepository(await get_click_house_client())
         await click_house_repo.create_chore_stats_table()
         
         yield

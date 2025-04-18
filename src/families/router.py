@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from logging import getLogger
 from uuid import UUID
 
@@ -72,7 +72,11 @@ async def get_my_family(
             raise HTTPException(status_code=404, detail="Family not found")
 
         family_data_service = FamilyDataService(async_session)
-        family = await family_data_service.get_family_with_members(family_id)
+        date_end = date.today()
+        date_start = date_end - timedelta(days=7)
+        family = await family_data_service.get_family_with_members_sorted_by_completions(
+            family_id, date_start, date_end
+        )
         await update_family_avatars(family)
         return family
 

@@ -1,9 +1,12 @@
 from dataclasses import dataclass
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import and_, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from analytics.click_house_connection import get_click_house_client
+from analytics.repository import ChoreAnalyticRepository
 from core.base_dals import BaseDals, GetOrRaiseMixin
 from core.exceptions.families import FamilyNotFoundError
 from families.models import Family
@@ -85,5 +88,27 @@ class FamilyDataService:
         if rows is None:
             return None
         family = FamilyDetailSchema.model_validate(rows[0])
+
+        return family
+
+    async def get_family_with_members_sorted_by_completions(
+        self, family_id: UUID, interval_start: date, interval_end: date
+    ) -> FamilyDetailSchema | None:
+
+        family = await self.get_family_with_members(family_id)
+        if not family:
+            return None
+
+        async_click_house_client = await get_click_house_client()
+        analytic_repo = ChoreAnalyticRepository(async_click_house_client)
+        users_stats = await analytic_repo.get_family_members_by_chores_completions(
+            family_id, interval_start, interval_end
+        )
+        stats_map = {row[0]: row[1] for row in users_stats}
+
+        family.members.sort(
+            key=lambda member: stats_map.get(member.id, 0),
+            reverse=True,
+        )
 
         return family
