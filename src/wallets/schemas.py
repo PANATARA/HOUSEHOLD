@@ -1,10 +1,12 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
 from chores_completions.schemas import ChoreCompletionSummaryLiteSchema
+from core.constants import PeerTransactionENUM, RewardTransactionENUM
 from products.schemas import ProductFullSchema
 from users.schemas import UserSummarySchema
 
@@ -25,18 +27,6 @@ class MoneyTransferSchema(BaseModel):
         return value
 
 
-class WalletTransactionSchema(BaseModel):
-    id: UUID
-    detail: str
-    coins: Decimal
-    transaction_type: str
-    transaction_direction: str
-    created_at: datetime
-    other_user: UserSummarySchema | None
-    product: ProductFullSchema | None
-    chore_completion: ChoreCompletionSummaryLiteSchema | None
-
-
 class CreatePeerTransactionSchema(BaseModel):
     detail: str
     coins: Decimal
@@ -47,3 +37,33 @@ class CreateRewardTransactionSchema(BaseModel):
     coins: Decimal
     to_user_id: UUID
     chore_completion_id: UUID
+
+
+class BaseWalletTransaction(BaseModel):
+    id: UUID
+    detail: str
+    coins: Decimal
+    created_at: datetime
+    transaction_direction: Literal["incoming", "outgoing"]
+
+
+class PurchaseTransactionSchema(BaseWalletTransaction):
+    transaction_type: str = PeerTransactionENUM.purchase.value
+    other_user: UserSummarySchema
+    product: ProductFullSchema
+
+
+class TransferTransactionSchema(BaseWalletTransaction):
+    transaction_type: str = PeerTransactionENUM.transfer.value
+    other_user: UserSummarySchema
+
+
+class RewardTransactionSchema(BaseWalletTransaction):
+    transaction_type: str = RewardTransactionENUM.reward_for_chore.value
+    chore_completion: ChoreCompletionSummaryLiteSchema
+
+
+class UnionTransactionsSchema(BaseModel):
+    transactions: list[
+        PurchaseTransactionSchema | TransferTransactionSchema | RewardTransactionSchema
+    ]
