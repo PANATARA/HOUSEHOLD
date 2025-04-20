@@ -12,7 +12,11 @@ from core.session import get_db
 from users.models import User
 from users.repository import AsyncUserDAL
 from wallets.repository import TransactionDataService, WalletDataService
-from wallets.schemas import MoneyTransferSchema, WalletTransactionSchema, WalletBalanceSchema
+from wallets.schemas import (
+    MoneyTransferSchema,
+    WalletBalanceSchema,
+    UnionTransactionsSchema,
+)
 from wallets.services import CoinsTransferService
 
 
@@ -55,9 +59,7 @@ async def money_transfer_wallet(
             )
             await transfer_service.run_process()
         except ObjectNotFoundError as e:
-            raise HTTPException(
-                status_code=404, detail=str(e)
-            )
+            raise HTTPException(status_code=404, detail=str(e))
         except NotEnoughCoins:
             raise HTTPException(status_code=400, detail="You don't have enough coins")
 
@@ -74,7 +76,8 @@ async def get_user_wallet_transaction(
     limit: int = Query(10, le=20),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> list[WalletTransactionSchema]:
+) -> UnionTransactionsSchema:
+    
     async with async_session.begin():
         transactions_data = TransactionDataService(async_session)
         offset = (page - 1) * limit

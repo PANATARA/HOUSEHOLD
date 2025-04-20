@@ -2,21 +2,19 @@ from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import exists, select, update
+from sqlalchemy import String, case, cast, func, literal
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from core.base_dals import BaseDals, BaseUserPkDals
 from dataclasses import dataclass
-
-from sqlalchemy import String, case, cast, func, literal
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
-
-from core.constants import RewardTransactionENUM
+from core.constants import PeerTransactionENUM, RewardTransactionENUM
 from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
-from wallets.schemas import CreateRewardTransactionSchema, WalletTransactionSchema, WalletBalanceSchema
+from wallets.schemas import CreateRewardTransactionSchema, PurchaseTransactionSchema, RewardTransactionSchema, TransferTransactionSchema, UnionTransactionsSchema, WalletBalanceSchema
 
 
 class AsyncWalletDAL(BaseUserPkDals[Wallet]):
@@ -112,7 +110,7 @@ class TransactionDataService:
 
     async def get_union_user_transactions(
         self, user_id: UUID, offset: int, limit: int
-    ) -> list[WalletTransactionSchema]:
+    ) -> list[UnionTransactionsSchema]:
         u = aliased(User)
         p = aliased(Product)
         cc = aliased(ChoreCompletion)
@@ -123,7 +121,7 @@ class TransactionDataService:
                 PeerTransaction.id,
                 PeerTransaction.detail,
                 PeerTransaction.coins,
-                cast(PeerTransaction.transaction_type, String),
+                cast(PeerTransaction.transaction_type, String),  # converting enum to string to correctly combine two queries
                 case(
                     (PeerTransaction.to_user_id == user_id, "incoming"),
                     (PeerTransaction.from_user_id == user_id, "outgoing"),
@@ -176,7 +174,7 @@ class TransactionDataService:
                 RewardTransaction.id,
                 RewardTransaction.detail,
                 RewardTransaction.coins,
-                cast(RewardTransaction.transaction_type, String),
+                cast(RewardTransaction.transaction_type, String), # converting enum to string to correctly combine two queries
                 func.text("incoming").label("transaction_direction"),
                 RewardTransaction.created_at,
                 literal(None).label("product"),
@@ -210,12 +208,20 @@ class TransactionDataService:
         final_query = union_query.limit(limit).offset(offset)
         query_result = await self.db_session.execute(final_query)
         raw_data = query_result.mappings().all()
-
+        
         result = []
         for item in raw_data:
-            result.append(WalletTransactionSchema.model_validate(item))
-
-        return result
+            transaction_type = item["transaction_type"]
+            if transaction_type == PeerTransactionENUM.purchase.value:
+                result.append(PurchaseTransactionSchema.model_validate(item))
+            elif transaction_type == PeerTransactionENUM.transfer.value:
+                result.append(TransferTransactionSchema.model_validate(item))
+            elif transaction_type == RewardTransactionENUM.reward_for_chore.value:
+                result.append(RewardTransactionSchema.model_validate(item))
+            else:
+                raise ValueError(f"Unknown transaction type: {transaction_type}")
+        
+        return UnionTransactionsSchema(transactions=result)
 
 
 class PeerTransactionDAL(BaseDals[PeerTransaction]):
