@@ -1,9 +1,13 @@
+from datetime import date, timedelta
 from logging import getLogger
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from analytics.click_house_connection import get_click_house_client
+from analytics.repository import ChoreAnalyticRepository
+from analytics.schemas import DateRange
 from chores.aggregates import ChoreDetailSchema
 from chores.repository import AsyncChoreDAL, ChoreDataService
 from chores.services import ChoreCreatorService
@@ -29,9 +33,22 @@ async def get_family_chores(
     async_session: AsyncSession = Depends(get_db),
 ) -> list[ChoreSchema] | None:
     async with async_session.begin():
-        return await ChoreDataService(async_session).get_family_chores(
+        family_chores = await ChoreDataService(async_session).get_family_chores(
             current_user.family_id
         )
+        async_click_house_client = await get_click_house_client()
+        analytic_repo = ChoreAnalyticRepository(async_click_house_client)
+        date_end = date.today()
+        date_start = date_end - timedelta(days=31)
+        sorted_chore_id = await analytic_repo.get_family_chores_by_completions_counts(
+            current_user.family_id,  DateRange(date_start=date_start, date_end=date_end)
+        )
+        sorted_chore_ids = [chore_id for chore_id, _ in sorted_chore_id]
+
+        models_dict = {chore.id: chore for chore in family_chores}
+        sorted_chores = [models_dict.pop(chore_id) for chore_id in sorted_chore_ids if chore_id in models_dict]
+        sorted_chores += list(models_dict.values())
+        return sorted_chores
 
 
 # Get chore and related objects

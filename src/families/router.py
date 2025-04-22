@@ -7,6 +7,9 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from analytics.click_house_connection import get_click_house_client
+from analytics.repository import ChoreAnalyticRepository
+from analytics.schemas import DateRange
 from core.exceptions.base_exceptions import ImageError
 from core.permissions import FamilyInvitePermission, FamilyMemberPermission, IsAuthenicatedPermission
 from core.exceptions.families import (
@@ -68,15 +71,24 @@ async def get_my_family(
 
     async with async_session.begin():
         family_id = current_user.family_id
-        if family_id is None:
-            raise HTTPException(status_code=404, detail="Family not found")
 
         family_data_service = FamilyDataService(async_session)
         date_end = date.today()
         date_start = date_end - timedelta(days=7)
-        family = await family_data_service.get_family_with_members_sorted_by_completions(
-            family_id, date_start, date_end
+        family = await family_data_service.get_family_with_members(
+            family_id
         )
+        async_click_house_client = await get_click_house_client()
+        analytic_repo = ChoreAnalyticRepository(async_click_house_client)
+
+        top_user = await analytic_repo.get_member_by_completions_counts(
+            family_id, DateRange(date_start=date_start, date_end=date_end)
+        )
+        total_chore_completions = await analytic_repo.get_family_chore_completion_count(
+            family_id, DateRange(date_start=date_start, date_end=date_end)
+        )
+        family.top_member_weekly = top_user
+        family.total_completed_chores = total_chore_completions
         await update_family_avatars(family)
         return family
 
