@@ -4,7 +4,7 @@ from sqlalchemy import Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import BaseUserModel
-from core.constants import StatusConfirmENUM
+from core.enums import StatusConfirmENUM
 from core.models import Base
 
 

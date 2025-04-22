@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
-from core.constants import StatusConfirmENUM
+from core.enums import StatusConfirmENUM
 from users.schemas import UserSummarySchema
 
 

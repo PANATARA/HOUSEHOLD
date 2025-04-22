@@ -8,7 +8,7 @@ from chores.repository import AsyncChoreDAL
 from chores_completions.aggregates import ChoreCompletionDetailSchema
 from chores_completions.repository import ChoreCompletionDataService
 from chores_completions.services import CreateChoreCompletion
-from core.constants import StatusConfirmENUM
+from core.enums import StatusConfirmENUM
 from core.permissions import (
     ChoreCompletionPermission,
     ChorePermission,
@@ -16,7 +16,7 @@ from core.permissions import (
 )
 from core.exceptions.chores import ChoreNotFoundError
 from core.get_avatars import update_user_avatars
-from core.session import get_db
+from database_connection import get_db
 from chores_completions.schemas import (
     ChoreCompletionCreateSchema,
     ChoreCompletionSchema,
@@ -58,7 +58,7 @@ async def create_chore_completion(
 
 
 # Get family's chores completions
-@chores_completions_router.get("")
+@chores_completions_router.get("", summary="Get a list of completed family chores sorted by date")
 async def get_family_chores_completions(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=50),
@@ -78,7 +78,7 @@ async def get_family_chores_completions(
 
 
 # Get family's chore completion detail
-@chores_completions_router.get("/{chore_completion_id}")
+@chores_completions_router.get("/{chore_completion_id}", summary="Get chore execution details")
 async def get_family_chore_completion_detail(
     chore_completion_id: UUID,
     current_user: User = Depends(ChoreCompletionPermission()),

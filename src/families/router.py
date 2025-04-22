@@ -18,12 +18,10 @@ from core.exceptions.families import (
     UserIsAlreadyFamilyMember,
 )
 from core.get_avatars import update_family_avatars, upload_object_image
-from core.qr_code import get_qr_code
 from core.security import create_jwt_token, get_payload_from_jwt_token
-from core.session import get_db
-from core.storage import PresignedUrl
+from database_connection import get_db
 from families.repository import AsyncFamilyDAL, FamilyDataService
-from families.schemas import FamilyCreateSchema, FamilyDetailSchema, InviteTokenSchema, FamilyInviteSchema
+from families.schemas import FamilyBaseSchema, FamilyCreateSchema, FamilyDetailSchema, InviteTokenSchema, FamilyInviteSchema
 from families.services import AddUserToFamilyService, FamilyCreatorService, LogoutUserFromFamilyService
 from users.models import User
 from users.schemas import UserFamilyPermissionModelSchema
@@ -35,7 +33,7 @@ families_router = APIRouter()
 
 
 # Create a new family
-@families_router.post("", response_model=FamilyDetailSchema)
+@families_router.post("")
 async def create_family(
     body: FamilyCreateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -63,7 +61,7 @@ async def create_family(
 
 
 # Get user's family
-@families_router.get("", response_model=FamilyDetailSchema)
+@families_router.get("", summary="Getting basic information about the user's family")
 async def get_my_family(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -151,16 +149,10 @@ async def generate_invite_token(
     invite_token = create_jwt_token(
         data=payload, expires_delta=timedelta(seconds=900)
     )
-    qrcode = await get_qr_code(invite_token, 300)
-    if qrcode:
-        return StreamingResponse(
-            qrcode, media_type="image/png", status_code=status.HTTP_201_CREATED
-        )
-    else:
-        return InviteTokenSchema(
-            invite_token=invite_token,
-            life_time=timedelta(seconds=900),
-        )
+    return InviteTokenSchema(
+        invite_token=invite_token,
+        life_time=timedelta(seconds=900),
+    )
 
 
 # Join to family by invite-token
@@ -205,7 +197,7 @@ async def upload_user_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> PresignedUrl:
+) -> FamilyBaseSchema:
     
     async with async_session.begin():
         family = await AsyncFamilyDAL(async_session).get_by_id(current_user.family_id)
@@ -217,4 +209,8 @@ async def upload_user_avatar(
             status_code=400,
             detail=str(e)
         )
-    return family_avatar_url
+    return FamilyBaseSchema(
+        name=family.name,
+        icon=family.icon,
+        avatar_url=family_avatar_url
+    )

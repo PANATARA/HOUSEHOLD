@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.actions import oauth2_scheme
 from core.security import get_payload_from_jwt_token
-from core.session import get_db
+from database_connection import get_db
 from users.models import User
 
 

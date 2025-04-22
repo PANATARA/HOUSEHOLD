@@ -7,8 +7,7 @@ from core.exceptions.base_exceptions import ImageError
 from core.exceptions.users import UserError
 from core.permissions import IsAuthenicatedPermission
 from core.get_avatars import upload_object_image, update_user_avatars
-from core.storage import PresignedUrl
-from core.session import get_db
+from database_connection import get_db
 from users.aggregates import UserProfileSchema
 from users.models import User
 from users.repository import AsyncUserDAL, UserDataService
@@ -30,7 +29,7 @@ user_router = APIRouter()
 
 
 # Create new User
-@user_router.post("", response_model=UserSummarySchema)
+@user_router.post("")
 async def create_user(
     body: UserCreateSchema, async_session: AsyncSession = Depends(get_db)
 ) -> UserSummarySchema:
@@ -52,8 +51,8 @@ async def create_user(
     )
 
 
-# # Get user's profile (all info)
-@user_router.get("",)
+# Get user's profile (all info)
+@user_router.get("", summary="Getting basic information about a user")
 async def me_user_get(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -68,6 +67,7 @@ async def me_user_get(
             name=current_user.name,
             surname=current_user.surname,
         ),
+        is_family_member=bool(current_user.family_id),
         wallet=WalletBalanceSchema(
             id=wallet.id,
             balance=wallet.balance,
@@ -78,8 +78,8 @@ async def me_user_get(
 
 
 # Update user
-@user_router.patch("", response_model=UserSummarySchema)
-async def me__user_partial_update(
+@user_router.patch("")
+async def me_user_partial_update(
     body: UserUpdateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -100,9 +100,7 @@ async def me__user_partial_update(
 
 
 # Get user's settings
-@user_router.get(
-    "/settings", response_model=UserSettingsShowSchema, summary="Get me settings"
-)
+@user_router.get("/settings", summary="Getting user settings")
 async def me_user_get_settings(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -112,11 +110,11 @@ async def me_user_get_settings(
         return await data_service.get_user_settings(user_id=current_user.id)
 
 
-@user_router.post("/avatar/file/")
+@user_router.post("/avatar/file", summary="Upload a new user avatar")
 async def upload_user_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(IsAuthenicatedPermission()),
-) -> PresignedUrl:
+) -> UserSummarySchema:
     
     try:
         avatar_url = await upload_object_image(current_user, file)
@@ -125,5 +123,11 @@ async def upload_user_avatar(
             status_code=400,
             detail=str(e)
         )
-    return avatar_url
+    return UserSummarySchema(
+        id=current_user.id,
+        username=current_user.username,
+        name=current_user.name,
+        surname=current_user.surname,
+        avatar_url=avatar_url,
+    )
     

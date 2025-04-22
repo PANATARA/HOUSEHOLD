@@ -20,9 +20,9 @@ from products.router import product_router
 from auth.router import login_router
 
 from config import swagger_ui_settings
-from core.constants import PostgreSQLEnum
+from core.enums import PostgreSQLEnum
 from core.redis_connection import redis_client
-from core.session import engine
+from database_connection import engine
 
 logger = logging.getLogger(__name__)
 

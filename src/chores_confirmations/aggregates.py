@@ -3,7 +3,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from chores_completions.schemas import ChoreCompletionSchema
-from core.constants import StatusConfirmENUM
+from core.enums import StatusConfirmENUM
 
 
 class ChoreConfirmationDetailSchema(BaseModel):

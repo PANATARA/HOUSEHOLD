@@ -13,7 +13,7 @@ from chores_completions.models import ChoreCompletion
 from chores_completions.schemas import ChoreCompletionSchema
 from chores_confirmations.models import ChoreConfirmation
 from core.base_dals import BaseDals, GetOrRaiseMixin
-from core.constants import StatusConfirmENUM
+from core.enums import StatusConfirmENUM
 from core.exceptions.chores_completion import ChoreCompletionNotFoundError
 from users.models import User
 

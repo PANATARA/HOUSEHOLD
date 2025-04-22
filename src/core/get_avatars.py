@@ -4,8 +4,9 @@ from uuid import UUID
 from fastapi import UploadFile
 from pydantic import BaseModel
 
+from config import ALLOWED_CONTENT_TYPES, USER_URL_AVATAR_EXPIRE, FAMILY_URL_AVATAR_EXPIRE
 from core import constants
-from core.constants import USER_URL_AVATAR_EXPIRE, StorageFolderEnum
+from core.enums import StorageFolderEnum
 from core.exceptions.image_exceptions import ImageSizeTooLargeError, NotAllowdedContentTypes
 from core.services import BaseService
 from core.storage import PresignedUrl, get_s3_client
@@ -74,16 +75,16 @@ async def upload_object_image(object: User | Family, file: UploadFile) -> Presig
     
     if isinstance(object, User):
         folder = constants.StorageFolderEnum.users_avatars
-        expire = constants.USER_URL_AVATAR_EXPIRE
+        expire = USER_URL_AVATAR_EXPIRE
     elif isinstance(object, Family):
         folder = constants.StorageFolderEnum.family_avatars
-        expire = constants.FAMILY_URL_AVATAR_EXPIRE
+        expire = FAMILY_URL_AVATAR_EXPIRE
     else:
         raise ValueError() # TODO make a suitable exception
 
     content_type = file.content_type
 
-    if content_type not in constants.ALLOWED_CONTENT_TYPES:
+    if content_type not in ALLOWED_CONTENT_TYPES:
         raise NotAllowdedContentTypes(
             message=f"Format Error: {file.content_type}. Allowed content types: JPEG, PNG, WebP."
         )

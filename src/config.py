@@ -53,3 +53,9 @@ swagger_ui_settings = {
 """ APP SETTINGS """
 TRANSFER_RATE = Decimal(0.7)
 PURCHASE_RATE = Decimal(0.8)
+
+
+""" MEDIA SETTINGS """
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+USER_URL_AVATAR_EXPIRE = 60 * 60 * 24
+FAMILY_URL_AVATAR_EXPIRE = 60 * 60 * 24

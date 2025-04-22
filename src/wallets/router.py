@@ -8,7 +8,7 @@ from core.permissions import FamilyMemberPermission
 from core.exceptions.base_exceptions import ObjectNotFoundError
 from core.exceptions.wallets import NotEnoughCoins
 from core.get_avatars import update_user_avatars
-from core.session import get_db
+from database_connection import get_db
 from users.models import User
 from users.repository import AsyncUserDAL
 from wallets.repository import TransactionDataService, WalletDataService

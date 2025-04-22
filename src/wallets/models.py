@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import DECIMAL, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.constants import (
+from core.enums import (
     PeerTransactionENUM,
     RewardTransactionENUM,
 )

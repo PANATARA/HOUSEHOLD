@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.constants import PeerTransactionENUM
+from core.enums import PeerTransactionENUM
 from core.services import BaseService
 from core.validators import validate_product_is_active, validate_user_can_buy_product
 from products.models import Product

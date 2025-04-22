@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from chores_completions.repository import AsyncChoreCompletionDAL
 from chores_completions.services import ApproveChoreCompletion, CancellChoreCompletion
 from chores_confirmations.repository import AsyncChoreConfirmationDAL
-from core.constants import StatusConfirmENUM
+from core.enums import StatusConfirmENUM
 
 
 async def set_status_chore_confirmation(

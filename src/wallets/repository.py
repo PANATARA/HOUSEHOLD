@@ -10,7 +10,7 @@ from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from core.base_dals import BaseDals, BaseUserPkDals
 from dataclasses import dataclass
-from core.constants import PeerTransactionENUM, RewardTransactionENUM
+from core.enums import PeerTransactionENUM, RewardTransactionENUM
 from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet

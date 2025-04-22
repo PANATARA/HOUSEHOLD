@@ -10,7 +10,7 @@ from chores_completions.models import ChoreCompletion
 from chores_confirmations.aggregates import ChoreConfirmationDetailSchema
 from chores_confirmations.models import ChoreConfirmation
 from core.base_dals import BaseDals
-from core.constants import StatusConfirmENUM
+from core.enums import StatusConfirmENUM
 from users.models import User
 
 

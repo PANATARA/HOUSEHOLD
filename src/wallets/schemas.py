@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, field_validator
 
 from chores_completions.schemas import ChoreCompletionSummaryLiteSchema
-from core.constants import PeerTransactionENUM, RewardTransactionENUM
+from core.enums import PeerTransactionENUM, RewardTransactionENUM
 from products.schemas import ProductFullSchema
 from users.schemas import UserSummarySchema
 

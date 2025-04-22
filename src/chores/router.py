@@ -16,7 +16,7 @@ from core.permissions import (
     FamilyMemberPermission,
 )
 from core.get_avatars import update_user_avatars
-from core.session import get_db
+from database_connection import get_db
 from chores.schemas import ChoreCreateSchema, ChoreSchema
 from families.repository import AsyncFamilyDAL
 from users.models import User
@@ -27,7 +27,7 @@ chores_router = APIRouter()
 
 
 # List of all family  chores
-@chores_router.get("")
+@chores_router.get("", summary="List of all families chore , sorted by number of completed")
 async def get_family_chores(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -72,7 +72,7 @@ async def get_family_chore_detail(
 
 
 # Create a new family chore
-@chores_router.post("", response_model=ChoreSchema)
+@chores_router.post("")
 async def create_family_chore(
     body: ChoreCreateSchema,
     current_user: User = Depends(FamilyMemberPermission(only_admin=True)),

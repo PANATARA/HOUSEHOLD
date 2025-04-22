@@ -2,7 +2,7 @@ from uuid import UUID
 
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
-from core.constants import StatusConfirmENUM
+from core.enums import StatusConfirmENUM
 from core.exceptions.chores import ChoreNotFoundError
 from core.exceptions.chores_completion import ChoreCompletionCanNotBeChanged
 from core.exceptions.families import UserIsAlreadyFamilyMember, UserNotFoundInFamily

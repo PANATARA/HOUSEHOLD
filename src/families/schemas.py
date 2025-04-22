@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from analytics.schemas import TopMemberByChoreCompletion
-from core.constants import StorageFolderEnum
+from core.enums import StorageFolderEnum
 from core.get_avatars import AvatarService
 from users.schemas import UserSummarySchema
 

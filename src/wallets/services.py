@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from chores.repository import AsyncChoreDAL
 from chores_completions.models import ChoreCompletion
 from config import PURCHASE_RATE, TRANSFER_RATE
-from core.constants import PeerTransactionENUM
+from core.enums import PeerTransactionENUM
 from core.exceptions.wallets import NotEnoughCoins
 from core.services import BaseService
 from core.validators import validate_user_in_family

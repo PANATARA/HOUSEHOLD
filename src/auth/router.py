@@ -8,7 +8,7 @@ from auth.actions import authenticate_user
 from config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_MINUTES
 from core.exceptions.users import UserNotFoundError
 from core.security import create_jwt_token, get_payload_from_jwt_token
-from core.session import get_db
+from database_connection import get_db
 from auth.schemas import AccessToken, RefreshToken, AccessRefreshTokens
 from families.repository import AsyncFamilyDAL
 from users.repository import AsyncUserDAL

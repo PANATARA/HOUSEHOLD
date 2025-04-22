@@ -11,7 +11,7 @@ from chores.repository import AsyncChoreDAL
 from chores_completions.models import ChoreCompletion
 from chores_completions.repository import AsyncChoreCompletionDAL
 from chores_confirmations.repository import AsyncChoreConfirmationDAL
-from core.constants import StatusConfirmENUM
+from core.enums import StatusConfirmENUM
 from core.services import BaseService
 from core.validators import (
     validate_chore_completion_is_changable,

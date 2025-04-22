@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, field_validator
 
 from config import LETTER_MATCH_PATTERN, PASSWORD_PATTERN
-from core.constants import StorageFolderEnum
+from core.enums import StorageFolderEnum
 from core.get_avatars import AvatarService
 
 
