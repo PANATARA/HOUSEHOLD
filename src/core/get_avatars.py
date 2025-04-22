@@ -5,7 +5,6 @@ from fastapi import UploadFile
 from pydantic import BaseModel
 
 from config import ALLOWED_CONTENT_TYPES, USER_URL_AVATAR_EXPIRE, FAMILY_URL_AVATAR_EXPIRE
-from core import constants
 from core.enums import StorageFolderEnum
 from core.exceptions.image_exceptions import ImageSizeTooLargeError, NotAllowdedContentTypes
 from core.services import BaseService
@@ -74,10 +73,10 @@ async def upload_object_image(object: User | Family, file: UploadFile) -> Presig
     key = str(object.id)
     
     if isinstance(object, User):
-        folder = constants.StorageFolderEnum.users_avatars
+        folder = StorageFolderEnum.users_avatars
         expire = USER_URL_AVATAR_EXPIRE
     elif isinstance(object, Family):
-        folder = constants.StorageFolderEnum.family_avatars
+        folder = StorageFolderEnum.family_avatars
         expire = FAMILY_URL_AVATAR_EXPIRE
     else:
         raise ValueError() # TODO make a suitable exception
@@ -90,7 +89,7 @@ async def upload_object_image(object: User | Family, file: UploadFile) -> Presig
         )
 
     object_image = await file.read()
-    if len(object_image) > 1_048_576:
+    if len(object_image) > 1_048_576: # TODO: increase file size
         raise ImageSizeTooLargeError(
             message=f"Image size too large: {len(object_image)} bytes"
         )
