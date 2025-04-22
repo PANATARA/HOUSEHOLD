@@ -3,7 +3,7 @@ from logging import getLogger
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -139,11 +139,11 @@ async def change_family_admin(
     )
 
 
-@families_router.post(path="/invite", summary="Generate invite token", response_class=StreamingResponse)
+@families_router.post(path="/invite", summary="Generate invite token")
 async def generate_invite_token(
     body: FamilyInviteSchema,
     current_user: User = Depends(FamilyInvitePermission()),
-) -> StreamingResponse:
+) -> InviteTokenSchema:
     payload = body.model_dump()
     payload["family_id"] = str(current_user.family_id)
     invite_token = create_jwt_token(

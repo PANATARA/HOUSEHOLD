@@ -6,10 +6,12 @@ from fastapi import FastAPI
 from fastapi.routing import APIRouter
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # import routers
 from analytics.click_house_connection import get_click_house_client
 from analytics.repository import ChoreAnalyticRepository
+from analytics.sync_tasks import sync_statistics
 from users.router import user_router
 from families.router import families_router
 from chores.router import chores_router
@@ -25,6 +27,7 @@ from core.redis_connection import redis_client
 from database_connection import engine
 
 logger = logging.getLogger(__name__)
+scheduler = AsyncIOScheduler()
 
 async def create_enum_if_not_exists(engine: AsyncEngine):
     async with engine.begin() as conn:
@@ -61,6 +64,9 @@ async def lifespan(app: FastAPI):
         logger.info("🚀 Startup: ClickHouse connections...")
         click_house_repo = ChoreAnalyticRepository(await get_click_house_client())
         await click_house_repo.create_chore_stats_table()
+
+        scheduler.add_job(sync_statistics, 'interval', seconds=600)
+        scheduler.start()
         
         yield
     except Exception as e:

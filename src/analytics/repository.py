@@ -33,6 +33,14 @@ class ChoreAnalyticRepository:
             column_names=["family_id", "chore_id", "user_id", "completion_date"],
         )
         return query_summary
+    
+    async def bulk_add_new_entry(self, data):
+        query_summary = await self.async_client.insert(
+            table="chores_completions_stats",
+            data=data,
+            column_names=["family_id", "chore_id", "user_id", "completion_date"],
+        )
+        return query_summary
 
     async def get_family_members_by_chores_completions(
         self, family_id: UUID, interval_start: date, interval_end: date

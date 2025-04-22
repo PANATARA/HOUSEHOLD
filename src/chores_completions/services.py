@@ -86,6 +86,7 @@ class ApproveChoreCompletion(BaseService):
     async def process(self) -> None:
         await self.change_chore_completion_status()
         await self.send_reward()
+        await self.add_to_statistics() # TODO
 
     async def change_chore_completion_status(self):
         chore_completion_dal = AsyncChoreCompletionDAL(db_session=self.db_session)
