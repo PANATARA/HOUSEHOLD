@@ -31,7 +31,7 @@ class ChoreCompletionDataService:
     db_session: AsyncSession
 
     async def get_family_chore_completion(
-        self, family_id: UUID, offset: int, limit: int, status: StatusConfirmENUM | None
+        self, family_id: UUID, offset: int, limit: int, status: StatusConfirmENUM | None, chore_id: UUID | None
     ) -> list[ChoreCompletionSchema]:
         """
         Retrieves a list of chore completion records for a specific family,
@@ -51,31 +51,24 @@ class ChoreCompletionDataService:
         conditions = [Chore.family_id == family_id]
         if status is not None:
             conditions.append(ChoreCompletion.status == status.value)
+        if chore_id is not None:
+            conditions.append(ChoreCompletion.chore_id == chore_id)
 
         query = (
             select(
                 ChoreCompletion.id.label("id"),
                 func.json_build_object(
-                    "id",
-                    Chore.id,
-                    "name",
-                    Chore.name,
-                    "description",
-                    Chore.description,
-                    "icon",
-                    Chore.icon,
-                    "valuation",
-                    Chore.valuation,
+                    "id", Chore.id,
+                    "name", Chore.name,
+                    "description", Chore.description,
+                    "icon", Chore.icon,
+                    "valuation", Chore.valuation,
                 ).label("chore"),
                 func.json_build_object(
-                    "id",
-                    User.id,
-                    "username",
-                    User.username,
-                    "name",
-                    User.name,
-                    "surname",
-                    User.surname,
+                    "id", User.id,
+                    "username", User.username,
+                    "name", User.name,
+                    "surname", User.surname,
                 ).label("completed_by"),
                 ChoreCompletion.created_at.label("completed_at"),
                 ChoreCompletion.status.label("status"),
@@ -115,52 +108,39 @@ class ChoreCompletionDataService:
 
         query = (
             select(
-                ChoreCompletion.id.label("id"),
                 func.json_build_object(
-                    "id",
-                    Chore.id,
-                    "name",
-                    Chore.name,
-                    "description",
-                    Chore.description,
-                    "icon",
-                    Chore.icon,
-                    "valuation",
-                    Chore.valuation,
-                ).label("chore"),
-                func.json_build_object(
-                    "id",
-                    User.id,
-                    "username",
-                    User.username,
-                    "name",
-                    User.name,
-                    "surname",
-                    User.surname,
-                ).label("completed_by"),
-                ChoreCompletion.created_at.label("completed_at"),
-                ChoreCompletion.message.label("message"),
-                ChoreCompletion.status.label("status"),
+                    "id", ChoreCompletion.id,
+                    "chore", func.json_build_object(
+                        "id", Chore.id,
+                        "name", Chore.name,
+                        "description", Chore.description,
+                        "icon", Chore.icon,
+                        "valuation", Chore.valuation,
+                    ),
+                    "completed_by", func.json_build_object(
+                        "id", User.id,
+                        "username", User.username,
+                        "name", User.name,
+                        "surname", User.surname,
+                    ),
+                    "completed_at", ChoreCompletion.created_at,
+                    "message", ChoreCompletion.message,
+                    "status", ChoreCompletion.status,
+                ).label("chore_completion"),
                 func.json_agg(
                     case(
                         (
                             ChoreConfirmation.id.isnot(None),
                             func.json_build_object(
-                                "id",
-                                ChoreConfirmation.id,
+                                "id", ChoreConfirmation.id,
                                 "user",
                                 func.json_build_object(
-                                    "id",
-                                    confirm_user.id,
-                                    "username",
-                                    confirm_user.username,
-                                    "name",
-                                    confirm_user.name,
-                                    "surname",
-                                    confirm_user.surname,
+                                    "id", confirm_user.id,
+                                    "username", confirm_user.username,
+                                    "name", confirm_user.name,
+                                    "surname", confirm_user.surname,
                                 ),
-                                "status",
-                                ChoreConfirmation.status,
+                                "status", ChoreConfirmation.status,
                             ),
                         ),
                         else_=None,

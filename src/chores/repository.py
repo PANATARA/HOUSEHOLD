@@ -1,27 +1,22 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import case, func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from chores.aggregates import ChoreDetailSchema
 from chores.models import Chore
-from chores_completions.models import ChoreCompletion
 from core.base_dals import BaseDals, DeleteDALMixin, GetOrRaiseMixin
 from core.exceptions.chores import ChoreNotFoundError
 from chores.schemas import ChoreCreateSchema, ChoreSchema
-from users.models import User
 
 
 class AsyncChoreDAL(BaseDals[Chore], GetOrRaiseMixin[Chore], DeleteDALMixin[Chore]):
-
     model = Chore
     not_found_exception = ChoreNotFoundError
 
     async def create_chores_many(
         self, family_id: UUID, chores_data: list[ChoreCreateSchema]
     ) -> list[Chore]:
-
         chores = [
             Chore(
                 name=data.name,
@@ -76,70 +71,3 @@ class ChoreDataService:
             return None
 
         return [ChoreSchema.model_validate(item) for item in raw_data]
-
-    async def get_family_chore_with_chore_completions(
-        self, chore_id: UUID, limit: int, offset: int
-    ) -> ChoreDetailSchema:
-        """
-        Fetches a family chore along with its completion details.
-
-        Args:
-            chore_id (UUID): The ID of the chore to retrieve.
-            limit (int): The maximum number of chore completions to return.
-            offset (int): The pagination offset.
-
-        Returns:
-            ChoreDetailSchema: The chore details with associated completions.
-        """
-        query = (
-            select(
-                Chore.id,
-                Chore.name,
-                Chore.description,
-                Chore.icon,
-                Chore.valuation,
-                Chore.created_at,
-                func.json_agg(
-                    case(
-                        (
-                            ChoreCompletion.id.isnot(None),
-                            func.json_build_object(
-                                "id",
-                                ChoreCompletion.id,
-                                "completed_by",
-                                func.json_build_object(
-                                    "id",
-                                    User.id,
-                                    "username",
-                                    User.username,
-                                    "name",
-                                    User.name,
-                                    "surname",
-                                    User.surname,
-                                ),
-                                "completed_at",
-                                ChoreCompletion.created_at,
-                                "status",
-                                ChoreCompletion.status,
-                                "message",
-                                ChoreCompletion.message,
-                            ),
-                        ),
-                        else_=None,
-                    )
-                ).label("chores_completion"),
-            )
-            .select_from(Chore)
-            .join(ChoreCompletion, ChoreCompletion.chore_id == Chore.id, isouter=True)
-            .join(User, User.id == ChoreCompletion.completed_by_id, isouter=True)
-            .where(Chore.id == chore_id)
-            .group_by(Chore.id)
-            .limit(limit)
-            .offset(offset)
-        )
-
-        query_result = await self.db_session.execute(query)
-        raw_data = query_result.mappings().all()
-        chores_details = ChoreDetailSchema.model_validate(raw_data[0])
-
-        return chores_details

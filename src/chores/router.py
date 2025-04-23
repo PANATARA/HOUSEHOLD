@@ -2,20 +2,18 @@ from datetime import date, timedelta
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from analytics.click_house_connection import get_click_house_client
 from analytics.repository import ChoreAnalyticRepository
 from analytics.schemas import DateRange
-from chores.aggregates import ChoreDetailSchema
 from chores.repository import AsyncChoreDAL, ChoreDataService
 from chores.services import ChoreCreatorService
 from core.permissions import (
     ChorePermission,
     FamilyMemberPermission,
 )
-from core.get_avatars import update_user_avatars
 from database_connection import get_db
 from chores.schemas import ChoreCreateSchema, ChoreSchema
 from families.repository import AsyncFamilyDAL
@@ -49,26 +47,6 @@ async def get_family_chores(
         sorted_chores = [models_dict.pop(chore_id) for chore_id in sorted_chore_ids if chore_id in models_dict]
         sorted_chores += list(models_dict.values())
         return sorted_chores
-
-
-# Get chore and related objects
-@chores_router.get(path="/{chore_id}")
-async def get_family_chore_detail(
-    chore_id: UUID,
-    page: int = Query(1, ge=1),
-    limit: int = Query(10, le=30),
-    current_user: User = Depends(ChorePermission(only_admin=False)),
-    async_session: AsyncSession = Depends(get_db),
-) -> ChoreDetailSchema:
-    offset = (page - 1) * limit
-    async with async_session.begin():
-
-        chore_data_service = ChoreDataService(async_session)
-        data = await chore_data_service.get_family_chore_with_chore_completions(
-            chore_id=chore_id, limit=limit, offset=offset
-        )
-        await update_user_avatars(data)
-        return data
 
 
 # Create a new family chore

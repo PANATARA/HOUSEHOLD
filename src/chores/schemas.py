@@ -4,7 +4,6 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 
-
 class ChoreCreateSchema(BaseModel):
     name: str = Field(max_length=32)
     description: str = Field(max_length=128)

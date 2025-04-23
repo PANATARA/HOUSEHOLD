@@ -56,6 +56,6 @@ class UserDataService:
             return None
 
         settings = UserSettingsShowSchema(
-            user_id=rows["user_id"], app_theme=rows["app_theme"]
+            app_theme=rows["app_theme"]
         )
         return settings

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from chores_confirmations.aggregates import ChoreConfirmationDetailSchema
+from chores_confirmations.schemas import ChoreConfirmationDetailSchema
 from chores_confirmations.repository import ChoreConfirmationDataService
 from chores_confirmations.services import set_status_chore_confirmation
 from core.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission

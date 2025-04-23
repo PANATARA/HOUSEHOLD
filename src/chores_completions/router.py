@@ -63,6 +63,7 @@ async def get_family_chores_completions(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=50),
     status: StatusConfirmENUM | None = None,
+    chore_id: UUID | None = Query(None),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[ChoreCompletionSchema]:
@@ -71,7 +72,7 @@ async def get_family_chores_completions(
         offset = (page - 1) * limit
         data_service = ChoreCompletionDataService(async_session)
         result = await data_service.get_family_chore_completion(
-            current_user.family_id, offset, limit, status
+            current_user.family_id, offset, limit, status, chore_id
         )
         await update_user_avatars(result)
         return result
