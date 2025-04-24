@@ -87,7 +87,7 @@ async def me_user_partial_update(
     async with async_session.begin():
         user_dal = AsyncUserDAL(async_session)
         user = await user_dal.update(
-            object_id=current_user.id, fields=body.model_dump()
+            object_id=current_user.id, fields=body.model_dump(exclude_unset=True)
         )
     result = UserSummarySchema(
         id=user.id,

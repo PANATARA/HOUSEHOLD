@@ -13,6 +13,7 @@ from users.models import User, UserFamilyPermissions
 from users.repository import AsyncUserDAL, AsyncUserFamilyPermissionsDAL
 from users.schemas import UserFamilyPermissionModelSchema
 from wallets.models import Wallet
+from wallets.repository import AsyncWalletDAL
 from wallets.services import WalletCreatorService
 
 
@@ -106,9 +107,15 @@ class LogoutUserFromFamilyService(BaseService):
         await user_dal.update(self.user.id, {"family_id": None})
 
     async def _delete_user_permissions(self) -> None:
-        pass
+        permissions_repo = AsyncUserFamilyPermissionsDAL(self.db_session)
+        await permissions_repo.hard_delete(self.user.permissions.id)
 
     async def _delete_user_wallet(self) -> None:
+        wallet_repo = AsyncWalletDAL(self.db_session)
+        wallet = await wallet_repo.get_by_user_id(self.user.id)
+        await wallet_repo.hard_delete(wallet.id)
+    
+    async def _delete_user_products(self) -> None:
         pass
 
     async def validate(self):

@@ -8,7 +8,7 @@ from sqlalchemy.orm import aliased
 
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
-from core.base_dals import BaseDals, BaseUserPkDals
+from core.base_dals import BaseDals, BaseUserPkDals, DeleteDALMixin
 from dataclasses import dataclass
 from core.enums import PeerTransactionENUM, RewardTransactionENUM
 from products.models import Product
@@ -17,7 +17,7 @@ from wallets.models import PeerTransaction, RewardTransaction, Wallet
 from wallets.schemas import CreateRewardTransactionSchema, PurchaseTransactionSchema, RewardTransactionSchema, TransferTransactionSchema, UnionTransactionsSchema, WalletBalanceSchema
 
 
-class AsyncWalletDAL(BaseUserPkDals[Wallet]):
+class AsyncWalletDAL(BaseUserPkDals[Wallet], DeleteDALMixin):
     model = Wallet
 
     async def exist_wallet_user(self, user: UUID) -> bool:

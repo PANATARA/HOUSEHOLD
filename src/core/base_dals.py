@@ -1,16 +1,15 @@
-from abc import ABC
 from typing import Generic, Type, TypeVar
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.base_model import BaseModel, BaseUserModel
 
 T = TypeVar("T", bound=BaseModel)
+T_U = TypeVar("T_U", bound=BaseUserModel)
 
-
-class BaseDal(Generic[T], ABC):
+class BaseDal(Generic[T]):
     model: Type[T]
 
     def __init__(self, db_session: AsyncSession):
@@ -19,8 +18,8 @@ class BaseDal(Generic[T], ABC):
         self.db_session = db_session
 
 
-class BaseDals(BaseDal[T], ABC):
-    """Implementation of basic CRUD operations"""
+class BaseDals(BaseDal[T]):
+    """Implementation of basic CRU operations"""
 
     async def get_by_id(self, object_id: UUID) -> T | None:
         query = select(self.model).where(self.model.id == object_id)
@@ -41,15 +40,14 @@ class BaseDals(BaseDal[T], ABC):
             return None
 
         for field, value in fields.items():
-            if value is not None:
-                setattr(obj, field, value)
+            setattr(obj, field, value)
 
         self.db_session.add(obj)
         await self.db_session.flush()
         return obj
 
 
-class DeleteDALMixin(BaseDal[T], ABC):
+class DeleteDALMixin():
     """Soft delete an object by setting `is_active` to `False`.
 
     Args:
@@ -65,7 +63,6 @@ class DeleteDALMixin(BaseDal[T], ABC):
     """
 
     async def soft_delete(self, object_id: UUID) -> bool:
-
         if not hasattr(self.model, "is_active"):
             raise AttributeError("Model must define 'is_active' field.")
 
@@ -79,8 +76,12 @@ class DeleteDALMixin(BaseDal[T], ABC):
 
         return result.rowcount > 0
 
+    async def hard_delete(self, object_id: UUID) -> None:
+        query = delete(self.model).where(self.model.id == object_id)
+        await self.db_session.execute(query)
 
-class GetOrRaiseMixin(BaseDal[T], ABC):
+
+class GetOrRaiseMixin(BaseDal[T]):
     """
     Mixin for retrieving a database object or raising an exception if the object is not found.
 
@@ -115,7 +116,6 @@ class GetOrRaiseMixin(BaseDal[T], ABC):
     not_found_exception: Type[Exception]
 
     async def get_or_raise(self, object_id: UUID) -> T:
-
         if not hasattr(self, "not_found_exception"):
             raise AttributeError("Class must define 'not_found_exception' attribute.")
 
@@ -129,10 +129,7 @@ class GetOrRaiseMixin(BaseDal[T], ABC):
         return object
 
 
-T_U = TypeVar("T_U", bound=BaseUserModel)
-
-
-class BaseUserPkDals(Generic[T_U], ABC):
+class BaseUserPkDals(Generic[T_U]):
     """Implementation of basic CRUD operation"""
 
     model: Type[T_U]

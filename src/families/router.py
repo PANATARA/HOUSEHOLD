@@ -11,6 +11,7 @@ from analytics.click_house_connection import get_click_house_client
 from analytics.repository import ChoreAnalyticRepository
 from analytics.schemas import DateRange
 from core.exceptions.base_exceptions import ImageError
+from core.exceptions.users import UserNotFoundError
 from core.permissions import FamilyInvitePermission, FamilyMemberPermission, IsAuthenicatedPermission
 from core.exceptions.families import (
     FamilyNotFoundError,
@@ -24,6 +25,7 @@ from families.repository import AsyncFamilyDAL, FamilyDataService
 from families.schemas import FamilyBaseSchema, FamilyCreateSchema, FamilyDetailSchema, InviteTokenSchema, FamilyInviteSchema
 from families.services import AddUserToFamilyService, FamilyCreatorService, LogoutUserFromFamilyService
 from users.models import User
+from users.repository import AsyncUserDAL
 from users.schemas import UserFamilyPermissionModelSchema
 
 
@@ -108,6 +110,38 @@ async def logout_user_from_family(
             return JSONResponse(
                 content={
                     "message": "You cannot leave a family while you are its administrator."
+                },
+                status_code=400,
+            )
+
+    return JSONResponse(
+        content={"message": "OK"},
+        status_code=200,
+    )
+
+@families_router.delete(path="/kick/{user_id}", summary="Kick user from family")
+async def kick_user_from_family(
+    user_id: UUID,
+    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
+    async_session: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+
+    async with async_session.begin():
+        try:
+            user_repo = AsyncUserDAL(async_session)
+            user = await user_repo.get_or_raise(user_id)
+            if user.family_id != current_user.family_id:
+                raise UserNotFoundError
+            
+            await LogoutUserFromFamilyService(
+                user=user, db_session=async_session
+            ).run_process()
+            
+
+        except UserNotFoundError as e:
+            return JSONResponse(
+                content={
+                    "message": str(e)
                 },
                 status_code=400,
             )
