@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from chores.schemas import ChoreSchema
+from core.enums import StatusConfirmENUM
 from users.schemas import UserSummarySchema
 
 
@@ -28,9 +29,11 @@ class ChoreCompletionSummaryLiteSchema(BaseModel):
     completed_at: datetime
 
 
-class ChoreCompletionLiteSchema(BaseModel):
-    id: UUID
-    completed_by: UserSummarySchema
-    completed_at: datetime
-    status: str
-    message: str
+class ChoreConfirmationSummarySchema(BaseModel):
+    user: UserSummarySchema
+    status: StatusConfirmENUM
+
+
+class ChoreCompletionDetailSchema(BaseModel):
+    chore_completion: ChoreCompletionSchema
+    confirmed_by: list[ChoreConfirmationSummarySchema | None]

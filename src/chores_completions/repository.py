@@ -8,7 +8,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
 
 from chores.models import Chore
-from chores_completions.aggregates import ChoreCompletionDetailSchema
+from chores_completions.schemas import ChoreCompletionDetailSchema
 from chores_completions.models import ChoreCompletion
 from chores_completions.schemas import ChoreCompletionSchema
 from chores_confirmations.models import ChoreConfirmation
@@ -132,7 +132,6 @@ class ChoreCompletionDataService:
                         (
                             ChoreConfirmation.id.isnot(None),
                             func.json_build_object(
-                                "id", ChoreConfirmation.id,
                                 "user",
                                 func.json_build_object(
                                     "id", confirm_user.id,
