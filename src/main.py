@@ -9,9 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # import routers
-from analytics.click_house_connection import get_click_house_client
-from analytics.repository import ChoreAnalyticRepository
-from analytics.sync_tasks import sync_statistics
 from users.router import user_router
 from families.router import families_router
 from chores.router import chores_router
@@ -59,15 +56,7 @@ async def lifespan(app: FastAPI):
         # Redis connections
         logger.info("🚀 Startup: Redis connections...")
         await redis_client.connect()
-        
-        # ClickHouse connections and creating the table
-        logger.info("🚀 Startup: ClickHouse connections...")
-        click_house_repo = ChoreAnalyticRepository(await get_click_house_client())
-        await click_house_repo.create_chore_stats_table()
 
-        scheduler.add_job(sync_statistics, 'interval', seconds=600)
-        scheduler.start()
-        
         yield
     except Exception as e:
         logger.error(f"Error during startup: {e}")

@@ -28,7 +28,6 @@ class ChoreCompletion(Base, BaseModel):
         default=StatusConfirmENUM.awaits.value,
     )
     message: Mapped[str] = mapped_column(String(50))
-    synced_to_ch: Mapped[bool] = mapped_column(default=False)
 
     def __repr__(self):
         return super().__repr__()

@@ -3,7 +3,6 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from analytics.schemas import TopMemberByChoreCompletion
 from core.enums import StorageFolderEnum
 from core.get_avatars import AvatarService
 from users.schemas import UserSummarySchema
@@ -33,8 +32,8 @@ class FamilySummarySchema(FamilyBaseSchema):
 
 class FamilyDetailSchema(FamilySummarySchema):
     # TODO total_score: int
-    total_completed_chores: int = 0
-    top_member_weekly: TopMemberByChoreCompletion | None = None
+    # total_completed_chores: int = 0
+    # top_member_weekly: TopMemberByChoreCompletion | None = None
     members: list[UserSummarySchema]
 
 

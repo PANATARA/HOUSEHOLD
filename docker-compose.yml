@@ -14,12 +14,10 @@ services:
         depends_on:
             - postgres_db
             - redis
-            - clickhouse
         stdin_open: true
         tty: true
         networks:
-            - backend
-        restart: always
+            - shared_network
         ports:
             - "8000:8000"
         command: >
@@ -36,30 +34,21 @@ services:
         ports:
             - "5432:5432"
         networks:
-            - backend
-        restart: always
+            - shared_network
+        command: >
+            postgres -c wal_level=logical
+                    -c max_replication_slots=4
+                    -c max_wal_senders=4
     redis:
         image: redis:alpine
         container_name: redis
         ports:
             - "6379:6379"
         networks:
-            - backend
-    clickhouse:
-        image: clickhouse/clickhouse-server:latest
-        container_name: clickhouse
-        ports:
-            - "8123:8123"
-        environment:
-            - CLICKHOUSE_USER=${CLICK_HOUSE_USERNAME}
-            - CLICKHOUSE_PASSWORD=${CLICK_HOUSE_PASSWORD}
-        volumes:
-            - clickhouse-data:/var/lib/clickhouse
-        networks:
-            - backend
+            - shared_network
 volumes:
     pgdata:
-    clickhouse-data:
 
 networks:
-    backend:
+  shared_network:
+    external: true

@@ -10,7 +10,7 @@ from core.exceptions.chores import ChoreNotFoundError
 from chores.schemas import ChoreCreateSchema, ChoreSchema
 
 
-class AsyncChoreDAL(BaseDals[Chore], GetOrRaiseMixin[Chore], DeleteDALMixin[Chore]):
+class AsyncChoreDAL(BaseDals[Chore], GetOrRaiseMixin[Chore], DeleteDALMixin):
     model = Chore
     not_found_exception = ChoreNotFoundError
 
