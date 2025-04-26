@@ -26,10 +26,6 @@ REAL_DATABASE_URL = os.getenv(
 )
 REDIS_URL = os.getenv("redis_url", default="redis://redis:6379")
 
-CLICK_HOUSE_HOST: str = os.getenv("CLICK_HOUSE_HOST", default="localhost")
-CLICK_HOUSE_PORT: int = int(os.getenv("CLICK_HOUSE_PORT", default="8123"))
-CLICK_HOUSE_USERNAME: str = os.getenv("CLICK_HOUSE_USERNAME", default="default")
-CLICK_HOUSE_PASSWORD: str= os.getenv("CLICK_HOUSE_PASSWORD", default="clickhouse")
 
 """ VALIDATION SETTTINGS """
 PASSWORD_PATTERN = re.compile(r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$")
