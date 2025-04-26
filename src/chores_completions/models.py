@@ -2,13 +2,14 @@ import uuid
 
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
+from pydantic import BaseModel
 
-from core.base_model import BaseModel
+from core.base_model import BaseIdTimeStampModel
 from core.enums import StatusConfirmENUM
 from core.models import Base
 
 
-class ChoreCompletion(Base, BaseModel):
+class ChoreCompletion(Base, BaseIdTimeStampModel):
     __tablename__ = "chore_completion"
 
     chore_id: Mapped[uuid.UUID] = mapped_column(
@@ -34,3 +35,11 @@ class ChoreCompletion(Base, BaseModel):
 
     def __repr__(self):
         return super().__repr__()
+
+
+class ChoreCompletionModel(BaseModel):
+    family_id: uuid.UUID
+    message: str
+    completed_by_id: uuid.UUID
+    chore_id: uuid.UUID
+    status: StatusConfirmENUM

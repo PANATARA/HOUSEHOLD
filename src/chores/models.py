@@ -3,11 +3,11 @@ import uuid
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.base_model import BaseModel
+from core.base_model import BaseIdTimeStampModel
 from core.models import Base
 
 
-class Chore(Base, BaseModel):
+class Chore(Base, BaseIdTimeStampModel):
     __tablename__ = "chores"
 
     name: Mapped[str]

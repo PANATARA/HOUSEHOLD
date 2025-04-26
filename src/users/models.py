@@ -3,12 +3,12 @@ import uuid
 from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from core.base_model import BaseModel, OneToOneUserModel
+from core.base_model import BaseIdTimeStampModel, OneToOneUserModel
 from core.models import Base
 
 
 
-class User(Base, BaseModel):
+class User(Base, BaseIdTimeStampModel):
     __tablename__ = "users"
 
     username: Mapped[str] = mapped_column(String(60), unique=True)

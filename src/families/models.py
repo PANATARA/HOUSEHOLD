@@ -3,11 +3,11 @@ import uuid
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.base_model import BaseModel
+from core.base_model import BaseIdTimeStampModel
 from core.models import Base
 
 
-class Family(Base, BaseModel):
+class Family(Base, BaseIdTimeStampModel):
     __tablename__ = "family"
 
     name: Mapped[str]

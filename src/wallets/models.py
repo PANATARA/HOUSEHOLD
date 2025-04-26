@@ -7,7 +7,7 @@ from core.enums import (
     PeerTransactionENUM,
     RewardTransactionENUM,
 )
-from core.base_model import BaseModel, OneToOneUserModel
+from core.base_model import BaseIdTimeStampModel, OneToOneUserModel
 from core.models import Base
 
 
@@ -26,7 +26,7 @@ class Wallet(Base, OneToOneUserModel):
         return super().__repr__()
 
 
-class BaseTransaction(Base, BaseModel):
+class BaseTransaction(Base, BaseIdTimeStampModel):
     """
     Basic model of financial transactions
     """
