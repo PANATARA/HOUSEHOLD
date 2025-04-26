@@ -44,6 +44,7 @@ class CreateChoreCompletion(BaseService):
         chore_completion_dal = AsyncChoreCompletionDAL(self.db_session)
         chore_completion = await chore_completion_dal.create(
             fields={
+                "family_id": self.chore.family_id,
                 "message": self.message,
                 "completed_by_id": self.user.id,
                 "chore_id": self.chore.id,

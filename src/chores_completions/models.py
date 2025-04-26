@@ -14,6 +14,9 @@ class ChoreCompletion(Base, BaseModel):
     chore_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(column="chores.id", ondelete="SET NULL")
     )
+    family_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(column="family.id", ondelete="SET NULL")
+    )
     completed_by_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(column="users.id", ondelete="SET NULL")
     )
