@@ -108,7 +108,8 @@ class LogoutUserFromFamilyService(BaseService):
 
     async def _delete_user_permissions(self) -> None:
         permissions_repo = AsyncUserFamilyPermissionsDAL(self.db_session)
-        await permissions_repo.hard_delete(self.user.permissions.id)
+        user_permission = await permissions_repo.get_by_user_id(self.user.id)
+        await permissions_repo.hard_delete(user_permission.id)
 
     async def _delete_user_wallet(self) -> None:
         wallet_repo = AsyncWalletDAL(self.db_session)

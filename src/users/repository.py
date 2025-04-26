@@ -30,7 +30,7 @@ class AsyncUserSettingsDAL(BaseUserPkDals[UserSettings]):
     model = UserSettings
 
 
-class AsyncUserFamilyPermissionsDAL(BaseDals[UserFamilyPermissions], DeleteDALMixin):
+class AsyncUserFamilyPermissionsDAL(BaseUserPkDals[UserFamilyPermissions], DeleteDALMixin):
 
     model = UserFamilyPermissions
 
