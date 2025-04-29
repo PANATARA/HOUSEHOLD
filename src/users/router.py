@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from logging import getLogger
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -5,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions.base_exceptions import ImageError
 from core.exceptions.users import UserError
-from core.permissions import IsAuthenicatedPermission
+from core.metrics_requests import ActivitiesResponse, DateRangeSchema, get_user_activity
+from core.permissions import IsAuthenicatedPermission, FamilyMemberPermission
 from core.get_avatars import upload_object_image, update_user_avatars
 from database_connection import get_db
 from users.aggregates import UserProfileSchema
@@ -130,4 +132,15 @@ async def upload_user_avatar(
         surname=current_user.surname,
         avatar_url=avatar_url,
     )
+
+@user_router.get("/activity")
+async def me_user_get_activity(
+    current_user: User = Depends(FamilyMemberPermission()),
+) -> ActivitiesResponse:
     
+    interval = DateRangeSchema(
+        start=datetime.now() - timedelta(days=120),
+        end=datetime.now(),
+    )
+    result = await get_user_activity(user_id=current_user.id, interval=interval)
+    return result

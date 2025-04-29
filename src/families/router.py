@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from logging import getLogger
 from uuid import UUID
 
@@ -9,7 +9,15 @@ from starlette import status
 
 from core.exceptions.base_exceptions import ImageError
 from core.exceptions.users import UserNotFoundError
-from core.permissions import FamilyInvitePermission, FamilyMemberPermission, IsAuthenicatedPermission
+from core.metrics_requests import (
+    DateRangeSchema,
+    get_family_members_ids_by_total_completions,
+)
+from core.permissions import (
+    FamilyInvitePermission,
+    FamilyMemberPermission,
+    IsAuthenicatedPermission,
+)
 from core.exceptions.families import (
     FamilyNotFoundError,
     UserCannotLeaveFamily,
@@ -19,8 +27,18 @@ from core.get_avatars import update_family_avatars, upload_object_image
 from core.security import create_jwt_token, get_payload_from_jwt_token
 from database_connection import get_db
 from families.repository import AsyncFamilyDAL, FamilyDataService
-from families.schemas import FamilyBaseSchema, FamilyCreateSchema, FamilyDetailSchema, InviteTokenSchema, FamilyInviteSchema
-from families.services import AddUserToFamilyService, FamilyCreatorService, LogoutUserFromFamilyService
+from families.schemas import (
+    FamilyBaseSchema,
+    FamilyCreateSchema,
+    FamilyDetailSchema,
+    InviteTokenSchema,
+    FamilyInviteSchema,
+)
+from families.services import (
+    AddUserToFamilyService,
+    FamilyCreatorService,
+    LogoutUserFromFamilyService,
+)
 from users.models import User
 from users.repository import AsyncUserDAL
 from users.schemas import UserFamilyPermissionModelSchema
@@ -38,7 +56,6 @@ async def create_family(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> FamilyDetailSchema | None:
-
     async with async_session.begin():
         try:
             family_creator_service = FamilyCreatorService(
@@ -65,15 +82,29 @@ async def get_my_family(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> FamilyDetailSchema | None:
-
     async with async_session.begin():
         family_id = current_user.family_id
 
         family_data_service = FamilyDataService(async_session)
-        family = await family_data_service.get_family_with_members(
-            family_id
+        family = await family_data_service.get_family_with_members(family_id)
+        interval = DateRangeSchema(
+            start=datetime.now() - timedelta(days=7),
+            end=datetime.now(),
+        )
+        sorted_members = await get_family_members_ids_by_total_completions(
+            family_id=family_id, interval=interval
         )
         await update_family_avatars(family)
+
+        members_map = {member.id: member for member in family.members}
+
+        sorted_members = [
+            members_map.pop(member.user_id)
+            for member in sorted_members
+            if member.user_id in members_map
+        ]
+        sorted_members.extend(members_map.values())
+        family.members = sorted_members
         return family
 
 
@@ -83,7 +114,6 @@ async def logout_user_from_family(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
-
     async with async_session.begin():
         try:
             await LogoutUserFromFamilyService(
@@ -103,30 +133,27 @@ async def logout_user_from_family(
         status_code=200,
     )
 
+
 @families_router.delete(path="/kick/{user_id}", summary="Kick user from family")
 async def kick_user_from_family(
     user_id: UUID,
     current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
-
     async with async_session.begin():
         try:
             user_repo = AsyncUserDAL(async_session)
             user = await user_repo.get_or_raise(user_id)
             if user.family_id != current_user.family_id:
                 raise UserNotFoundError
-            
+
             await LogoutUserFromFamilyService(
                 user=user, db_session=async_session
             ).run_process()
-            
 
         except UserNotFoundError as e:
             return JSONResponse(
-                content={
-                    "message": str(e)
-                },
+                content={"message": str(e)},
                 status_code=400,
             )
 
@@ -164,9 +191,7 @@ async def generate_invite_token(
 ) -> InviteTokenSchema:
     payload = body.model_dump()
     payload["family_id"] = str(current_user.family_id)
-    invite_token = create_jwt_token(
-        data=payload, expires_delta=timedelta(seconds=900)
-    )
+    invite_token = create_jwt_token(data=payload, expires_delta=timedelta(seconds=900))
     return InviteTokenSchema(
         invite_token=invite_token,
         life_time=timedelta(seconds=900),
@@ -182,9 +207,7 @@ async def join_to_family(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
-
     async with async_session.begin():
-
         payload = get_payload_from_jwt_token(invite_token)
         family_id = payload.get("family_id")
         allowed_fields = UserFamilyPermissionModelSchema.model_fields.keys()
@@ -210,25 +233,20 @@ async def join_to_family(
             status_code=status.HTTP_200_OK,
         )
 
+
 @families_router.post("/avatar/file/", summary="Upload new family's avatar")
 async def upload_user_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> FamilyBaseSchema:
-    
     async with async_session.begin():
         family = await AsyncFamilyDAL(async_session).get_by_id(current_user.family_id)
-    
+
     try:
         family_avatar_url = await upload_object_image(family, file)
     except ImageError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=400, detail=str(e))
     return FamilyBaseSchema(
-        name=family.name,
-        icon=family.icon,
-        avatar_url=family_avatar_url
+        name=family.name, icon=family.icon, avatar_url=family_avatar_url
     )

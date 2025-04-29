@@ -1,4 +1,5 @@
 # from datetime import date, timedelta
+from datetime import datetime, timedelta
 from logging import getLogger
 from uuid import UUID
 
@@ -7,6 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.repository import AsyncChoreDAL, ChoreDataService
 from chores.services import ChoreCreatorService
+from core.metrics_requests import (
+    DateRangeSchema,
+    get_family_chores_ids_by_total_completions,
+)
 from core.permissions import (
     ChorePermission,
     FamilyMemberPermission,
@@ -22,7 +27,9 @@ chores_router = APIRouter()
 
 
 # List of all family  chores
-@chores_router.get("", summary="List of all families chore , sorted by number of completed")
+@chores_router.get(
+    "", summary="List of all families chore , sorted by number of completed"
+)
 async def get_family_chores(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -31,7 +38,22 @@ async def get_family_chores(
         family_chores = await ChoreDataService(async_session).get_family_chores(
             current_user.family_id
         )
-        return family_chores
+        interval = DateRangeSchema(
+            start=datetime.now() - timedelta(days=7),
+            end=datetime.now(),
+        )
+        sorted_chores_id = await get_family_chores_ids_by_total_completions(
+            current_user.family_id, interval=interval
+        )
+
+        chores_map = {chore.id: chore for chore in family_chores}
+        sorted_chores = [
+            chores_map.pop(item.chore_id)
+            for item in sorted_chores_id
+            if item.chore_id in chores_map
+        ]
+        sorted_chores.extend(chores_map.values())
+        return sorted_chores
 
 
 # Create a new family chore
