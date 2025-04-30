@@ -136,7 +136,7 @@ async def upload_user_avatar(
 @user_router.get("/activity")
 async def me_user_get_activity(
     current_user: User = Depends(FamilyMemberPermission()),
-) -> ActivitiesResponse:
+) -> ActivitiesResponse | None:
     
     interval = DateRangeSchema(
         start=datetime.now() - timedelta(days=120),

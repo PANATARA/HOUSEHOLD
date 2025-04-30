@@ -45,15 +45,15 @@ async def get_family_chores(
         sorted_chores_id = await get_family_chores_ids_by_total_completions(
             current_user.family_id, interval=interval
         )
-
-        chores_map = {chore.id: chore for chore in family_chores}
-        sorted_chores = [
-            chores_map.pop(item.chore_id)
-            for item in sorted_chores_id
-            if item.chore_id in chores_map
-        ]
-        sorted_chores.extend(chores_map.values())
-        return sorted_chores
+        if sorted_chores_id:
+            chores_map = {chore.id: chore for chore in family_chores}
+            family_chores = [
+                chores_map.pop(item.chore_id)
+                for item in sorted_chores_id
+                if item.chore_id in chores_map
+            ]
+            family_chores.extend(chores_map.values())
+        return family_chores
 
 
 # Create a new family chore

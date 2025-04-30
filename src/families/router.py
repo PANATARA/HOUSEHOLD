@@ -96,15 +96,16 @@ async def get_my_family(
         )
         await update_family_avatars(family)
 
-        members_map = {member.id: member for member in family.members}
+        if sorted_members:
+            members_map = {member.id: member for member in family.members}
 
-        sorted_members = [
-            members_map.pop(member.user_id)
-            for member in sorted_members
-            if member.user_id in members_map
-        ]
-        sorted_members.extend(members_map.values())
-        family.members = sorted_members
+            sorted_members = [
+                members_map.pop(member.user_id)
+                for member in sorted_members
+                if member.user_id in members_map
+            ]
+            sorted_members.extend(members_map.values())
+            family.members = sorted_members
         return family
 
 
