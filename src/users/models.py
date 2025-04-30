@@ -7,7 +7,6 @@ from core.base_model import BaseIdTimeStampModel, OneToOneUserModel
 from core.models import Base
 
 
-
 class User(Base, BaseIdTimeStampModel):
     __tablename__ = "users"
 

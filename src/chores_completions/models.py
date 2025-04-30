@@ -1,8 +1,8 @@
 import uuid
 
+from pydantic import BaseModel
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
-from pydantic import BaseModel
 
 from core.base_model import BaseIdTimeStampModel
 from core.enums import StatusConfirmENUM

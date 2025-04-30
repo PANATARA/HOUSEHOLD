@@ -4,9 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
 from chores.repository import AsyncChoreDAL
+from chores.schemas import ChoreCreateSchema
 from core.load_seed_data import load_seed_data
 from core.services import BaseService
-from chores.schemas import ChoreCreateSchema
 from families.models import Family
 
 

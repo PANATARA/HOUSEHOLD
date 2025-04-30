@@ -1,27 +1,27 @@
-from contextlib import asynccontextmanager
 import logging
+from contextlib import asynccontextmanager
 
 import uvicorn
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# import routers
-from users.router import user_router
-from families.router import families_router
+from auth.router import login_router
 from chores.router import chores_router
 from chores_completions.router import chores_completions_router
 from chores_confirmations.router import chores_confirmations_router
-from wallets.router import wallet_router
-from products.router import product_router
-from auth.router import login_router
-
 from config import swagger_ui_settings
 from core.enums import PostgreSQLEnum
 from core.redis_connection import redis_client
 from database_connection import engine
+from families.router import families_router
+from products.router import product_router
+
+# import routers
+from users.router import user_router
+from wallets.router import wallet_router
 
 logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()

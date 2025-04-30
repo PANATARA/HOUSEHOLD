@@ -1,20 +1,26 @@
+from dataclasses import dataclass
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import exists, select, update
-from sqlalchemy import String, case, cast, func, literal
+from sqlalchemy import String, case, cast, exists, func, literal, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from core.base_dals import BaseDals, BaseUserPkDals, DeleteDALMixin
-from dataclasses import dataclass
 from core.enums import PeerTransactionENUM, RewardTransactionENUM
 from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
-from wallets.schemas import CreateRewardTransactionSchema, PurchaseTransactionSchema, RewardTransactionSchema, TransferTransactionSchema, UnionTransactionsSchema, WalletBalanceSchema
+from wallets.schemas import (
+    CreateRewardTransactionSchema,
+    PurchaseTransactionSchema,
+    RewardTransactionSchema,
+    TransferTransactionSchema,
+    UnionTransactionsSchema,
+    WalletBalanceSchema,
+)
 
 
 class AsyncWalletDAL(BaseUserPkDals[Wallet], DeleteDALMixin):

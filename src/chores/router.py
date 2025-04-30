@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.repository import AsyncChoreDAL, ChoreDataService
+from chores.schemas import ChoreCreateSchema, ChoreSchema
 from chores.services import ChoreCreatorService
 from core.metrics_requests import (
     DateRangeSchema,
@@ -17,7 +18,6 @@ from core.permissions import (
     FamilyMemberPermission,
 )
 from database_connection import get_db
-from chores.schemas import ChoreCreateSchema, ChoreSchema
 from families.repository import AsyncFamilyDAL
 from users.models import User
 

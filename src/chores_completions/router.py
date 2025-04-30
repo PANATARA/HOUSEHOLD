@@ -5,24 +5,23 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.repository import AsyncChoreDAL
-from chores_completions.schemas import ChoreCompletionDetailSchema
 from chores_completions.repository import ChoreCompletionDataService
+from chores_completions.schemas import (
+    ChoreCompletionCreateSchema,
+    ChoreCompletionDetailSchema,
+    ChoreCompletionSchema,
+)
 from chores_completions.services import CreateChoreCompletion
 from core.enums import StatusConfirmENUM
+from core.exceptions.chores import ChoreNotFoundError
+from core.get_avatars import update_user_avatars
 from core.permissions import (
     ChoreCompletionPermission,
     ChorePermission,
     FamilyMemberPermission,
 )
-from core.exceptions.chores import ChoreNotFoundError
-from core.get_avatars import update_user_avatars
 from database_connection import get_db
-from chores_completions.schemas import (
-    ChoreCompletionCreateSchema,
-    ChoreCompletionSchema,
-)
 from users.models import User
-
 
 logger = getLogger(__name__)
 

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from users.schemas import UserSummarySchema
 
+
 class ProductBaseSchema(BaseModel):
     name: str
     description: str

@@ -1,17 +1,26 @@
 import asyncio
 from dataclasses import dataclass
 from uuid import UUID
+
 from fastapi import UploadFile
 from pydantic import BaseModel
 
-from config import ALLOWED_CONTENT_TYPES, USER_URL_AVATAR_EXPIRE, FAMILY_URL_AVATAR_EXPIRE
+from config import (
+    ALLOWED_CONTENT_TYPES,
+    FAMILY_URL_AVATAR_EXPIRE,
+    USER_URL_AVATAR_EXPIRE,
+)
 from core.enums import StorageFolderEnum
-from core.exceptions.image_exceptions import ImageSizeTooLargeError, NotAllowdedContentTypes
+from core.exceptions.image_exceptions import (
+    ImageSizeTooLargeError,
+    NotAllowdedContentTypes,
+)
+from core.redis_connection import redis_client
 from core.services import BaseService
 from core.storage import PresignedUrl, get_s3_client
-from core.redis_connection import redis_client
 from families.models import Family
 from users.models import User
+
 
 async def update_user_avatars(data):
     from users.schemas import UserSummarySchema

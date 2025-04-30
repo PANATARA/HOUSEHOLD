@@ -11,7 +11,6 @@ from families.schemas import FamilyDetailSchema
 from users.models import User, UserFamilyPermissions
 
 
-
 class AsyncFamilyDAL(BaseDals[Family], GetOrRaiseMixin[Family]):
 
     model = Family

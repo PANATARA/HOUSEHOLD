@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions.base_exceptions import ImageError
 from core.exceptions.users import UserError, UserNotFoundError
+from core.get_avatars import update_user_avatars, upload_object_image
 from core.metrics_requests import ActivitiesResponse, DateRangeSchema, get_user_activity
-from core.permissions import IsAuthenicatedPermission, FamilyMemberPermission
-from core.get_avatars import upload_object_image, update_user_avatars
+from core.permissions import FamilyMemberPermission, IsAuthenicatedPermission
 from database_connection import get_db
 from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
@@ -23,7 +23,6 @@ from users.schemas import (
 from users.services import UserCreatorService
 from wallets.repository import AsyncWalletDAL
 from wallets.schemas import WalletBalanceSchema
-
 
 logger = getLogger(__name__)
 

@@ -1,5 +1,5 @@
-from abc import abstractmethod
 import enum
+from abc import abstractmethod
 
 
 class StorageFolderEnum(enum.Enum):

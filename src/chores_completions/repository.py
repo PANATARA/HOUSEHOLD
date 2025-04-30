@@ -8,9 +8,11 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
 
 from chores.models import Chore
-from chores_completions.schemas import ChoreCompletionDetailSchema
 from chores_completions.models import ChoreCompletion
-from chores_completions.schemas import ChoreCompletionSchema
+from chores_completions.schemas import (
+    ChoreCompletionDetailSchema,
+    ChoreCompletionSchema,
+)
 from chores_confirmations.models import ChoreConfirmation
 from core.base_dals import BaseDals, GetOrRaiseMixin
 from core.enums import StatusConfirmENUM

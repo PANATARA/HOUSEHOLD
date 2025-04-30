@@ -1,5 +1,5 @@
-import re
 import os
+import re
 from decimal import Decimal
 
 """ JWT TOKEN SETTINGS """

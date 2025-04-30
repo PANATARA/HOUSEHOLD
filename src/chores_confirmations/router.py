@@ -5,17 +5,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from chores_confirmations.schemas import ChoreConfirmationDetailSchema
 from chores_confirmations.repository import ChoreConfirmationDataService
+from chores_confirmations.schemas import (
+    ChoreConfirmationDetailSchema,
+    ChoreConfirmationSetStatusSchema,
+)
 from chores_confirmations.services import set_status_chore_confirmation
-from core.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission
 from core.enums import StatusConfirmENUM
 from core.exceptions.base_exceptions import CanNotBeChangedError
 from core.get_avatars import update_user_avatars
+from core.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission
 from database_connection import get_db
-from chores_confirmations.schemas import ChoreConfirmationSetStatusSchema
 from users.models import User
-
 
 logger = getLogger(__name__)
 

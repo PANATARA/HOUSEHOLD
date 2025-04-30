@@ -2,13 +2,13 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import and_, func, select
-from core.base_dals import BaseDals
-from products.models import Product
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.base_dals import BaseDals
+from products.models import Product
 from products.schemas import ProductFullSchema, ProductWithSellerSchema
 from users.models import User
+
 
 class AsyncProductDAL(BaseDals[Product]):
 

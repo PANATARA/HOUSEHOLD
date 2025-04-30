@@ -5,9 +5,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.permissions import IsAuthenicatedPermission, ProductPermission
 from core.exceptions.products import ProductNotFoundError
 from core.get_avatars import update_user_avatars
+from core.permissions import IsAuthenicatedPermission, ProductPermission
 from database_connection import get_db
 from products.repository import AsyncProductDAL, ProductDataService
 from products.schemas import (

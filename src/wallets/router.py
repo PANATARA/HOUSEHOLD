@@ -4,21 +4,20 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.permissions import FamilyMemberPermission
 from core.exceptions.base_exceptions import ObjectNotFoundError
 from core.exceptions.wallets import NotEnoughCoins
 from core.get_avatars import update_user_avatars
+from core.permissions import FamilyMemberPermission
 from database_connection import get_db
 from users.models import User
 from users.repository import AsyncUserDAL
 from wallets.repository import TransactionDataService, WalletDataService
 from wallets.schemas import (
     MoneyTransferSchema,
-    WalletBalanceSchema,
     UnionTransactionsSchema,
+    WalletBalanceSchema,
 )
 from wallets.services import CoinsTransferService
-
 
 logger = getLogger(__name__)
 

@@ -1,10 +1,16 @@
 from contextlib import asynccontextmanager
-from config import S3_ACCESS_KEY, S3_BUCKET_NAME, S3_ENDPOINT_URL, S3_SECRET_KEY, USER_URL_AVATAR_EXPIRE
-from botocore.exceptions import ClientError
-import aioboto3
-
 from typing import NewType
 
+import aioboto3
+from botocore.exceptions import ClientError
+
+from config import (
+    S3_ACCESS_KEY,
+    S3_BUCKET_NAME,
+    S3_ENDPOINT_URL,
+    S3_SECRET_KEY,
+    USER_URL_AVATAR_EXPIRE,
+)
 from core.enums import StorageFolderEnum
 
 PresignedUrl = NewType("PresignedUrl", str)

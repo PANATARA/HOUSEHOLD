@@ -11,7 +11,6 @@ from products.models import Product
 from users.models import User
 
 
-
 def validate_user_in_family(user: User, family_id: UUID) -> None:
     if user.family_id != family_id:
         raise UserNotFoundInFamily()

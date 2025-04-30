@@ -1,12 +1,13 @@
 import enum
 import functools
+import time
+from datetime import date, datetime
 from typing import Awaitable, Callable, ParamSpec, TypeVar
 from urllib.parse import urljoin
-from datetime import date, datetime
 from uuid import UUID
+
 import httpx
 from pydantic import BaseModel
-import time
 
 from config import METRICS_BACKEND_URL
 
