@@ -1,16 +1,17 @@
 from datetime import datetime, timedelta
 from logging import getLogger
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions.base_exceptions import ImageError
-from core.exceptions.users import UserError
+from core.exceptions.users import UserError, UserNotFoundError
 from core.metrics_requests import ActivitiesResponse, DateRangeSchema, get_user_activity
 from core.permissions import IsAuthenicatedPermission, FamilyMemberPermission
 from core.get_avatars import upload_object_image, update_user_avatars
 from database_connection import get_db
-from users.aggregates import UserProfileSchema
+from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
 from users.repository import AsyncUserDAL, UserDataService
 from users.schemas import (
@@ -58,11 +59,11 @@ async def create_user(
 async def me_user_get(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> UserProfileSchema:
+) -> MeProfileSchema:
     async with async_session.begin():
         wallet = await AsyncWalletDAL(async_session).get_by_user_id(current_user.id)
     
-    result = UserProfileSchema(
+    result = MeProfileSchema(
         user=UserSummarySchema(
             id=current_user.id,
             username=current_user.username,
@@ -143,4 +144,31 @@ async def me_user_get_activity(
         end=datetime.now(),
     )
     result = await get_user_activity(user_id=current_user.id, interval=interval)
+    return result
+
+# Get user's profile
+@user_router.get("/profile/{user_id}", summary="Getting user's profile")
+async def get_user_profile(
+    user_id: UUID,
+    current_user: User = Depends(IsAuthenicatedPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> UserProfileSchema:
+    async with async_session.begin():
+        try:
+            user = await AsyncUserDAL(async_session).get_or_raise(user_id)
+        except UserNotFoundError:
+            raise HTTPException(status_code=404, detail={"detail": "User was not found"})
+    
+    if user.family_id != current_user.family_id:
+        raise HTTPException(status_code=404, detail={"detail": "User was not found"})
+    
+    result = UserProfileSchema(
+        user=UserSummarySchema(
+            id=user.id,
+            username=user.username,
+            name=user.name,
+            surname=user.surname,
+        ),
+    )
+    await update_user_avatars(result)
     return result
