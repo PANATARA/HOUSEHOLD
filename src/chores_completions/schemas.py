@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from chores.schemas import ChoreSchema
 from core.enums import StatusConfirmENUM
-from users.schemas import UserSummarySchema
+from users.schemas import UserResponseSchema
 
 
 class ChoreCompletionCreateSchema(BaseModel):
@@ -15,7 +15,7 @@ class ChoreCompletionCreateSchema(BaseModel):
 class ChoreCompletionSchema(BaseModel):
     id: UUID
     chore: ChoreSchema
-    completed_by: UserSummarySchema
+    completed_by: UserResponseSchema
     completed_at: datetime
     status: str
     message: str
@@ -30,7 +30,7 @@ class ChoreCompletionSummaryLiteSchema(BaseModel):
 
 
 class ChoreConfirmationSummarySchema(BaseModel):
-    user: UserSummarySchema
+    user: UserResponseSchema
     status: StatusConfirmENUM
 
 

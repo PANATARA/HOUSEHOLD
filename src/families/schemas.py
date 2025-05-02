@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from core.enums import StorageFolderEnum
 from core.get_avatars import AvatarService
-from users.schemas import UserSummarySchema
+from users.schemas import UserResponseSchema
 
 
 class FamilyCreateSchema(BaseModel):
@@ -29,7 +29,7 @@ class FamilyResponseSchema(BaseModel):
 
 class FamilyDetailSchema(BaseModel):
     family: FamilyResponseSchema
-    members: list[UserSummarySchema]
+    members: list[UserResponseSchema]
 
     def sort_members_by_id(self, members_ids: list[UUID]):
         members_map = {member.id: member for member in self.members}

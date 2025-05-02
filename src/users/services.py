@@ -1,15 +1,15 @@
 from dataclasses import dataclass
+from datetime import date
+from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core import constants
 from core.exceptions.users import UserAlreadyExistsError
-from core.hashing import Hasher
 from core.services import BaseService
 from users.models import User, UserSettings
 from users.repository import AsyncUserDAL, AsyncUserSettingsDAL
-from users.schemas import UserCreateSchema
+from users.schemas import UserCreateSchema, UserSettingsCreateSchema
 
 
 @dataclass
@@ -20,31 +20,30 @@ class UserCreatorService(BaseService[User]):
     db_session: AsyncSession
 
     async def process(self) -> User:
-        user = await self._create_user(
-            {
-                "username": self.user_data.username,
-                "name": self.user_data.name,
-                "surname": self.user_data.surname,
-                "hashed_password": self._get_hash_password(),
-            }
-        )
-        settings_fields = constants.default_user_settings
-        settings_fields["user_id"] = user.id
-        await self._create_settings(settings_fields)
+        self.user_data.hash_password()
+        user = await self._create_user()
+        await self._create_settings()
+        self._set_default_avatar()
         return user
 
-    def _get_hash_password(self) -> str:
-        return Hasher.get_password_hash(self.user_data.password)
-
-    async def _create_user(self, fields: dict) -> User:
+    async def _create_user(self) -> User:
         user_dal = AsyncUserDAL(self.db_session)
         try:
-            user = await user_dal.create(fields)
+            user = await user_dal.create(self.user_data.model_dump())
         except IntegrityError:
             raise UserAlreadyExistsError()
         else:
             return user
 
-    async def _create_settings(self, fields: dict) -> UserSettings:
+    async def _create_settings(self, user_id: UUID) -> UserSettings:
+        data = UserSettingsCreateSchema(
+            user_id=user_id,
+            app_theme="Dark",
+            language="ru",
+            date_of_birth=date(2001, 1, 1)
+        )
         settings_dal = AsyncUserSettingsDAL(self.db_session)
-        return await settings_dal.create(fields)
+        return await settings_dal.create(data)
+    
+    def _set_default_avatar(self) -> None:
+        pass

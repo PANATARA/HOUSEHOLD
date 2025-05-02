@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from users.schemas import UserSummarySchema
+from users.schemas import UserResponseSchema
 
 
 class ProductBaseSchema(BaseModel):
@@ -25,4 +25,4 @@ class ProductFullSchema(ProductBaseSchema):
 
 
 class ProductWithSellerSchema(ProductFullSchema):
-    seller: UserSummarySchema
+    seller: UserResponseSchema

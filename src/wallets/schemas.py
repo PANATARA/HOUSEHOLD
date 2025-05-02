@@ -8,7 +8,7 @@ from pydantic import BaseModel, field_validator
 from chores_completions.schemas import ChoreCompletionSummaryLiteSchema
 from core.enums import PeerTransactionENUM, RewardTransactionENUM
 from products.schemas import ProductFullSchema
-from users.schemas import UserSummarySchema
+from users.schemas import UserResponseSchema
 
 
 class WalletBalanceSchema(BaseModel):
@@ -49,13 +49,13 @@ class BaseWalletTransaction(BaseModel):
 
 class PurchaseTransactionSchema(BaseWalletTransaction):
     transaction_type: str = PeerTransactionENUM.purchase.value
-    other_user: UserSummarySchema
+    other_user: UserResponseSchema
     product: ProductFullSchema
 
 
 class TransferTransactionSchema(BaseWalletTransaction):
     transaction_type: str = PeerTransactionENUM.transfer.value
-    other_user: UserSummarySchema
+    other_user: UserResponseSchema
 
 
 class RewardTransactionSchema(BaseWalletTransaction):

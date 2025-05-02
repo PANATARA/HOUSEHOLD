@@ -25,6 +25,6 @@ async def authenticate_user(
         user = await user_dal.get_user_by_username(username=username)
         if user is None:
             return
-        if not Hasher.verify_password(password, user.hashed_password):
+        if not Hasher.verify_password(password, user.password):
             return
         return user

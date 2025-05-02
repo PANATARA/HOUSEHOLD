@@ -16,8 +16,8 @@ from users.models import User
 from users.repository import AsyncUserDAL, UserDataService
 from users.schemas import (
     UserCreateSchema,
-    UserSettingsShowSchema,
-    UserSummarySchema,
+    UserSettingsResponseSchema,
+    UserResponseSchema,
     UserUpdateSchema,
 )
 from users.services import UserCreatorService
@@ -31,10 +31,14 @@ router = APIRouter()
 
 
 # Create new User
-@router.post("", tags=["Users"])
-async def create_user(
+@router.post(
+    "",
+    tags=["Users"],
+    summary="Create new user, user's settings and set default user avatar",
+)
+async def create_new_user(
     body: UserCreateSchema, async_session: AsyncSession = Depends(get_db)
-) -> UserSummarySchema:
+) -> UserResponseSchema:
     async with async_session.begin():
         try:
             service = UserCreatorService(
@@ -45,25 +49,27 @@ async def create_user(
         except UserError as err:
             raise HTTPException(status_code=400, detail=f"Error: {err}")
 
-    return UserSummarySchema(
+    user_response = UserResponseSchema(
         id=user.id,
         username=user.username,
         name=user.name,
         surname=user.surname,
     )
+    await update_user_avatars(user_response)
+    return user_response
 
 
 # Get user's profile (all info)
-@router.get("", summary="Getting basic information about a user", tags=["Users"])
-async def me_user_get(
+@router.get("", summary="Getting user's profile info", tags=["Users"])
+async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> MeProfileSchema:
     async with async_session.begin():
         wallet = await AsyncWalletDAL(async_session).get_by_user_id(current_user.id)
-    
+
     result = MeProfileSchema(
-        user=UserSummarySchema(
+        user=UserResponseSchema(
             id=current_user.id,
             username=current_user.username,
             name=current_user.name,
@@ -73,7 +79,9 @@ async def me_user_get(
         wallet=WalletBalanceSchema(
             id=wallet.id,
             balance=wallet.balance,
-        ) if wallet else None
+        )
+        if wallet
+        else None,
     )
     await update_user_avatars(result)
     return result
@@ -85,13 +93,13 @@ async def me_user_partial_update(
     body: UserUpdateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> UserSummarySchema:
+) -> UserResponseSchema:
     async with async_session.begin():
         user_dal = AsyncUserDAL(async_session)
         user = await user_dal.update(
             object_id=current_user.id, fields=body.model_dump(exclude_unset=True)
         )
-    result = UserSummarySchema(
+    result = UserResponseSchema(
         id=user.id,
         username=user.username,
         name=user.name,
@@ -106,26 +114,22 @@ async def me_user_partial_update(
 async def me_user_get_settings(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> UserSettingsShowSchema:
+) -> UserSettingsResponseSchema:
     async with async_session.begin():
         data_service = UserDataService(async_session)
         return await data_service.get_user_settings(user_id=current_user.id)
 
 
 @router.post("/avatar/file", summary="Upload a new user avatar", tags=["Users avatars"])
-async def upload_user_avatar(
+async def me_user_upload_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(IsAuthenicatedPermission()),
-) -> UserSummarySchema:
-    
+) -> UserResponseSchema:
     try:
         avatar_url = await upload_object_image(current_user, file)
     except ImageError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
-    return UserSummarySchema(
+        raise HTTPException(status_code=400, detail=str(e))
+    return UserResponseSchema(
         id=current_user.id,
         username=current_user.username,
         name=current_user.name,
@@ -133,17 +137,18 @@ async def upload_user_avatar(
         avatar_url=avatar_url,
     )
 
+
 @router.get("/activity", tags=["Users statistics"])
 async def me_user_get_activity(
     current_user: User = Depends(FamilyMemberPermission()),
 ) -> ActivitiesResponse | None:
-    
     interval = DateRangeSchema(
         start=datetime.now() - timedelta(days=120),
         end=datetime.now(),
     )
     result = await get_user_activity(user_id=current_user.id, interval=interval)
     return result
+
 
 # Get user's profile
 @router.get("/profile/{user_id}", summary="Getting user's profile", tags=["Users"])
@@ -156,13 +161,15 @@ async def get_user_profile(
         try:
             user = await AsyncUserDAL(async_session).get_or_raise(user_id)
         except UserNotFoundError:
-            raise HTTPException(status_code=404, detail={"detail": "User was not found"})
-    
+            raise HTTPException(
+                status_code=404, detail={"detail": "User was not found"}
+            )
+
     if user.family_id != current_user.family_id:
         raise HTTPException(status_code=404, detail={"detail": "User was not found"})
-    
+
     result = UserProfileSchema(
-        user=UserSummarySchema(
+        user=UserResponseSchema(
             id=user.id,
             username=user.username,
             name=user.name,

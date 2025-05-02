@@ -1,6 +1,7 @@
+from datetime import date
 import uuid
 
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, String, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.base_model import BaseIdTimeStampModel, OneToOneUserModel
@@ -21,7 +22,7 @@ class User(Base, BaseIdTimeStampModel):
         )
     )
 
-    hashed_password: Mapped[str]
+    password: Mapped[str]
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -40,8 +41,10 @@ class UserSettings(Base, OneToOneUserModel):
     __tablename__ = "users_settings"
 
     user: Mapped["User"] = relationship("User", back_populates="settings")
-    app_theme: Mapped[str]
-
+    app_theme: Mapped[str] = mapped_column(String, default="Dark")
+    language: Mapped[str] = mapped_column(String, default="ru")
+    date_of_birth: Mapped[date] = mapped_column(Date, default=date(2001, 1, 1))
+    
     def __repr__(self):
         return super().__repr__()
 
