@@ -27,11 +27,11 @@ from wallets.schemas import WalletBalanceSchema
 logger = getLogger(__name__)
 
 
-user_router = APIRouter()
+router = APIRouter()
 
 
 # Create new User
-@user_router.post("")
+@router.post("", tags=["Users"])
 async def create_user(
     body: UserCreateSchema, async_session: AsyncSession = Depends(get_db)
 ) -> UserSummarySchema:
@@ -54,7 +54,7 @@ async def create_user(
 
 
 # Get user's profile (all info)
-@user_router.get("", summary="Getting basic information about a user")
+@router.get("", summary="Getting basic information about a user", tags=["Users"])
 async def me_user_get(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -80,7 +80,7 @@ async def me_user_get(
 
 
 # Update user
-@user_router.patch("")
+@router.patch("", tags=["Users"])
 async def me_user_partial_update(
     body: UserUpdateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -102,7 +102,7 @@ async def me_user_partial_update(
 
 
 # Get user's settings
-@user_router.get("/settings", summary="Getting user settings")
+@router.get("/settings", summary="Getting user settings", tags=["Users settings"])
 async def me_user_get_settings(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -112,7 +112,7 @@ async def me_user_get_settings(
         return await data_service.get_user_settings(user_id=current_user.id)
 
 
-@user_router.post("/avatar/file", summary="Upload a new user avatar")
+@router.post("/avatar/file", summary="Upload a new user avatar", tags=["Users avatars"])
 async def upload_user_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -133,7 +133,7 @@ async def upload_user_avatar(
         avatar_url=avatar_url,
     )
 
-@user_router.get("/activity")
+@router.get("/activity", tags=["Users statistics"])
 async def me_user_get_activity(
     current_user: User = Depends(FamilyMemberPermission()),
 ) -> ActivitiesResponse | None:
@@ -146,7 +146,7 @@ async def me_user_get_activity(
     return result
 
 # Get user's profile
-@user_router.get("/profile/{user_id}", summary="Getting user's profile")
+@router.get("/profile/{user_id}", summary="Getting user's profile", tags=["Users"])
 async def get_user_profile(
     user_id: UUID,
     current_user: User = Depends(IsAuthenicatedPermission()),

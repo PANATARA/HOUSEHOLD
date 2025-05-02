@@ -25,11 +25,11 @@ from users.models import User
 
 logger = getLogger(__name__)
 
-chores_completions_router = APIRouter()
+router = APIRouter()
 
 
 # Create a new chore completion
-@chores_completions_router.post(path="/{chore_id}")
+@router.post(path="/{chore_id}", tags=["Chores completions"])
 async def create_chore_completion(
     chore_id: UUID,
     body: ChoreCompletionCreateSchema,
@@ -57,7 +57,7 @@ async def create_chore_completion(
 
 
 # Get family's chores completions
-@chores_completions_router.get("", summary="Get a list of completed family chores sorted by date")
+@router.get("", summary="Get a list of completed family chores sorted by date", tags=["Chores completions"])
 async def get_family_chores_completions(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=50),
@@ -78,7 +78,7 @@ async def get_family_chores_completions(
 
 
 # Get family's chore completion detail
-@chores_completions_router.get("/{chore_completion_id}", summary="Get chore execution details")
+@router.get("/{chore_completion_id}", summary="Get chore execution details", tags=["Chores completions"])
 async def get_family_chore_completion_detail(
     chore_completion_id: UUID,
     current_user: User = Depends(ChoreCompletionPermission()),

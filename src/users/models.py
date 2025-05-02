@@ -50,6 +50,6 @@ class UserFamilyPermissions(Base, OneToOneUserModel):
     __tablename__ = "users_family_permissions"
 
     should_confirm_chore_completion: Mapped[bool]
-    can_invite_users: Mapped[bool] = True
+    can_invite_users: Mapped[bool] = mapped_column(Boolean, default=True)
 
     user: Mapped["User"] = relationship("User", back_populates="permissions")

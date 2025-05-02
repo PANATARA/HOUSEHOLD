@@ -20,11 +20,11 @@ from users.models import User
 
 logger = getLogger(__name__)
 
-product_router = APIRouter()
+router = APIRouter()
 
 
 # Create new product
-@product_router.post(path="")
+@router.post(path="", tags=["Products"])
 async def create_product(
     body: CreateNewProductSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -49,7 +49,7 @@ async def create_product(
 
 
 # Get a list of user's products
-@product_router.get(path="/users")
+@router.get(path="/users", tags=["Products"])
 async def get_user_products(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -60,7 +60,7 @@ async def get_user_products(
 
 
 # Get a list of active products in the family
-@product_router.get(path="/family")
+@router.get(path="/family", tags=["Products"])
 async def get_family_active_products(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=20),
@@ -79,7 +79,7 @@ async def get_family_active_products(
 
 
 # Buy a product
-@product_router.get(path="/buy/{product_id}")
+@router.get(path="/buy/{product_id}", tags=["Products"])
 async def buy_active_products(
     product_id: UUID,
     current_user: User = Depends(ProductPermission()),

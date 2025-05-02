@@ -61,9 +61,11 @@ class FamilyDataService:
         """Returns a pydantic model of the family and its members"""
         result = await self.db_session.execute(
             select(
-                Family.id,
-                Family.name,
-                Family.icon,
+                func.json_build_object(
+                    "id", Family.id,
+                    "name", Family.name,
+                    "icon", Family.icon,
+                ).label("family"),
                 func.json_agg(
                     func.json_build_object(
                         "id",User.id,

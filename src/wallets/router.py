@@ -21,11 +21,11 @@ from wallets.services import CoinsTransferService
 
 logger = getLogger(__name__)
 
-wallet_router = APIRouter()
+router = APIRouter()
 
 
 # Get user's wallet
-@wallet_router.get(path="", summary="Get user wallet information")
+@router.get(path="", summary="Get user wallet information", tags=["Wallet"])
 async def get_user_wallet(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -38,7 +38,7 @@ async def get_user_wallet(
 
 
 # Money transfer
-@wallet_router.post(path="/transfer", summary="Make a transfer of coins to the user")
+@router.post(path="/transfer", summary="Make a transfer of coins to the user", tags=["Wallet transfer"])
 async def money_transfer_wallet(
     body: MoneyTransferSchema,
     current_user: User = Depends(FamilyMemberPermission()),
@@ -69,7 +69,7 @@ async def money_transfer_wallet(
 
 
 # Get transactions user's wallet
-@wallet_router.get(path="/transactions", summary="Get transactions user's wallet")
+@router.get(path="/transactions", summary="Get transactions user's wallet", tags=["Wallet transactions"])
 async def get_user_wallet_transaction(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=20),

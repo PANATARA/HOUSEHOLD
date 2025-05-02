@@ -33,14 +33,14 @@ async def update_user_avatars(data):
         await asyncio.gather(*(update_user_avatars(getattr(data, field)) for field in data.model_fields))
 
 async def update_family_avatars(data):
-    from families.schemas import FamilyBaseSchema
+    from families.schemas import FamilyResponseSchema
     
-    if isinstance(data, FamilyBaseSchema):
+    if isinstance(data, FamilyResponseSchema):
             await data.set_avatar_url()
     if isinstance(data, list):
-        await asyncio.gather(*(update_user_avatars(item) for item in data))
+        await asyncio.gather(*(update_family_avatars(item) for item in data))
     elif isinstance(data, BaseModel):
-        await asyncio.gather(*(update_user_avatars(getattr(data, field)) for field in data.model_fields))
+        await asyncio.gather(*(update_family_avatars(getattr(data, field)) for field in data.model_fields))
 
 @dataclass
 class AvatarService(BaseService):

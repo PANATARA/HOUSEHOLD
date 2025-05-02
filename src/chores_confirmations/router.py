@@ -20,13 +20,14 @@ from users.models import User
 
 logger = getLogger(__name__)
 
-chores_confirmations_router = APIRouter()
+router = APIRouter()
 
 
 # Get my chores confirmations
-@chores_confirmations_router.get(
+@router.get(
     "",
     summary="Get all confirmation objects for chores completed by others and pending user's approval",
+    tags=["Chores confiramtions"],
 )
 async def get_my_chores_confirmations(
     status: StatusConfirmENUM | None = None,  # by default we return all confirmations
@@ -42,7 +43,7 @@ async def get_my_chores_confirmations(
         return result
 
 
-@chores_confirmations_router.patch("/{chore_confirmation_id}")
+@router.patch("/{chore_confirmation_id}", tags=["Chores confiramtions"])
 async def change_status_chore_confirmation(
     chore_confirmation_id: UUID,
     body: ChoreConfirmationSetStatusSchema,

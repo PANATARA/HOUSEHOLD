@@ -15,7 +15,8 @@ class FamilyCreateSchema(BaseModel):
     icon: str
 
 
-class FamilyBaseSchema(BaseModel):
+class FamilyResponseSchema(BaseModel):
+    id: UUID
     name: str
     icon: str
     avatar_url: str | None = None
@@ -26,15 +27,20 @@ class FamilyBaseSchema(BaseModel):
         ).run_process()
 
 
-class FamilySummarySchema(FamilyBaseSchema):
-    id: UUID
-
-
-class FamilyDetailSchema(FamilySummarySchema):
-    # TODO total_score: int
-    # total_completed_chores: int = 0
-    # top_member_weekly: TopMemberByChoreCompletion | None = None
+class FamilyDetailSchema(BaseModel):
+    family: FamilyResponseSchema
     members: list[UserSummarySchema]
+
+    def sort_members_by_id(self, members_ids: list[UUID]):
+        members_map = {member.id: member for member in self.members}
+
+        sorted_members = [
+            members_map.pop(member_id)
+            for member_id in members_ids
+            if member_id in members_map
+        ]
+        sorted_members.extend(members_map.values())
+        self.members = sorted_members
 
 
 class FamilyInviteSchema(BaseModel):

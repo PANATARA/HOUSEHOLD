@@ -12,13 +12,13 @@ from core.models import Base
 class ChoreCompletion(Base, BaseIdTimeStampModel):
     __tablename__ = "chore_completion"
 
-    chore_id: Mapped[uuid.UUID] = mapped_column(
+    chore_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(column="chores.id", ondelete="SET NULL")
     )
-    family_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey(column="family.id", ondelete="SET NULL")
+    family_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(column="family.id", ondelete="CASCADE")
     )
-    completed_by_id: Mapped[uuid.UUID] = mapped_column(
+    completed_by_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(column="users.id", ondelete="SET NULL")
     )
     status = mapped_column(

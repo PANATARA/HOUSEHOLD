@@ -199,14 +199,17 @@ class FamilyInvitePermission(BasePermission):
     ) -> User:
 
         user_id = token_payload.get("sub")
-        query = select(User).where(
-            User.id == user_id,
-            exists()
+        permission_exists = (
+            select(UserFamilyPermissions)
             .where(
                 (UserFamilyPermissions.user_id == user_id)
-                & (UserFamilyPermissions.can_invite_users == True)  # noqa: E712
+                & (UserFamilyPermissions.can_invite_users.is_(True))
             )
-            .correlate(User),
+            .exists()
+        )
+
+        query = select(User).where(
+            (User.id == user_id) & permission_exists
         )
         result = await async_session.execute(query)
         user = result.scalars().first()

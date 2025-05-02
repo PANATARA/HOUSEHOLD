@@ -28,10 +28,10 @@ from core.security import create_jwt_token, get_payload_from_jwt_token
 from database_connection import get_db
 from families.repository import AsyncFamilyDAL, FamilyDataService
 from families.schemas import (
-    FamilyBaseSchema,
     FamilyCreateSchema,
     FamilyDetailSchema,
     FamilyInviteSchema,
+    FamilyResponseSchema,
     InviteTokenSchema,
 )
 from families.services import (
@@ -45,11 +45,11 @@ from users.schemas import UserFamilyPermissionModelSchema
 
 logger = getLogger(__name__)
 
-families_router = APIRouter()
+router = APIRouter()
 
 
 # Create a new family
-@families_router.post("")
+@router.post("", tags=["Family"])
 async def create_family(
     body: FamilyCreateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -76,7 +76,9 @@ async def create_family(
 
 
 # Get user's family
-@families_router.get("", summary="Getting basic information about the user's family")
+@router.get(
+    "", summary="Getting basic information about the user's family", tags=["Family"]
+)
 async def get_my_family(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -96,20 +98,15 @@ async def get_my_family(
         await update_family_avatars(family)
 
         if sorted_members:
-            members_map = {member.id: member for member in family.members}
+            family.sort_members_by_id(
+                [sorted_members.user_id for sorted_members in sorted_members]
+            )
 
-            sorted_members = [
-                members_map.pop(member.user_id)
-                for member in sorted_members
-                if member.user_id in members_map
-            ]
-            sorted_members.extend(members_map.values())
-            family.members = sorted_members
         return family
 
 
 # Logout user from family
-@families_router.patch(path="/logout", summary="Logout me from family")
+@router.patch(path="/logout", summary="Logout me from family", tags=["Family members"])
 async def logout_user_from_family(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -134,7 +131,7 @@ async def logout_user_from_family(
     )
 
 
-@families_router.delete(path="/kick/{user_id}", summary="Kick user from family")
+@router.delete(path="/kick/{user_id}", summary="Kick user from family", tags=["Family members"])
 async def kick_user_from_family(
     user_id: UUID,
     current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
@@ -164,7 +161,7 @@ async def kick_user_from_family(
 
 
 # Change Family Administrator
-@families_router.patch(path="/change_admin/{user_id}")
+@router.patch(path="/change_admin/{user_id}", tags=["Family members"])
 async def change_family_admin(
     user_id: UUID,
     current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
@@ -184,7 +181,7 @@ async def change_family_admin(
     )
 
 
-@families_router.post(path="/invite", summary="Generate invite token")
+@router.post(path="/invite", summary="Generate invite token", tags=["Family invited"])
 async def generate_invite_token(
     body: FamilyInviteSchema,
     current_user: User = Depends(FamilyInvitePermission()),
@@ -199,8 +196,10 @@ async def generate_invite_token(
 
 
 # Join to family by invite-token
-@families_router.post(
-    path="/join/{invite_token}", summary="Join to family by invite-token"
+@router.post(
+    path="/join/{invite_token}",
+    summary="Join to family by invite-token",
+    tags=["Family invited"],
 )
 async def join_to_family(
     invite_token: str,
@@ -234,12 +233,12 @@ async def join_to_family(
         )
 
 
-@families_router.post("/avatar/file/", summary="Upload new family's avatar")
+@router.post("/avatar/file/", summary="Upload new family's avatar", tags=["Family avatar"])
 async def upload_user_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyBaseSchema:
+) -> FamilyResponseSchema:
     async with async_session.begin():
         family = await AsyncFamilyDAL(async_session).get_by_id(current_user.family_id)
 
@@ -247,6 +246,6 @@ async def upload_user_avatar(
         family_avatar_url = await upload_object_image(family, file)
     except ImageError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return FamilyBaseSchema(
-        name=family.name, icon=family.icon, avatar_url=family_avatar_url
+    return FamilyResponseSchema(
+        id=family.id, name=family.name, icon=family.icon, avatar_url=family_avatar_url
     )

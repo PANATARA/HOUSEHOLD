@@ -8,20 +8,18 @@ from fastapi.routing import APIRouter
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from auth.router import login_router
-from chores.router import chores_router
-from chores_completions.router import chores_completions_router
-from chores_confirmations.router import chores_confirmations_router
+from auth.router import router as auth_router
+from chores.router import router as chores_router
+from chores_completions.router import router as chores_completions_router
+from chores_confirmations.router import router as chores_confirmations_router
 from config import swagger_ui_settings
 from core.enums import PostgreSQLEnum
 from core.redis_connection import redis_client
 from database_connection import engine
-from families.router import families_router
-from products.router import product_router
-
-# import routers
-from users.router import user_router
-from wallets.router import wallet_router
+from families.router import router as families_router
+from products.router import router as product_router
+from users.router import router as user_router
+from wallets.router import router as wallet_router
 
 logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
@@ -77,16 +75,16 @@ app = FastAPI(
 main_api_router = APIRouter(prefix="/api")
 
 # # set routes to the app instance
-main_api_router.include_router(user_router, prefix="/users", tags=["Users"])
-main_api_router.include_router(login_router, prefix="/login", tags=["Auth"])
-main_api_router.include_router(families_router, prefix="/families", tags=["Family"])
-main_api_router.include_router(chores_completions_router, prefix="/chores-completions", tags=["Chores completions"])
-main_api_router.include_router(chores_confirmations_router, prefix="/chores-confirmations", tags=["Chores confiramtions"],)
-main_api_router.include_router(chores_router, prefix="/chores", tags=["Chore"])
-main_api_router.include_router(wallet_router, prefix="/wallets", tags=["Wallet"])
+main_api_router.include_router(user_router, prefix="/users")
+main_api_router.include_router(auth_router, prefix="/login")
+main_api_router.include_router(families_router, prefix="/families")
+main_api_router.include_router(chores_completions_router, prefix="/chores-completions")
+main_api_router.include_router(chores_confirmations_router, prefix="/chores-confirmations")
+main_api_router.include_router(chores_router, prefix="/chores")
+main_api_router.include_router(wallet_router, prefix="/wallets")
 
 
-main_api_router.include_router(product_router, prefix="/products", tags=["Products"])
+main_api_router.include_router(product_router, prefix="/products")
 
 app.include_router(main_api_router)
 

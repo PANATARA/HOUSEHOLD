@@ -13,10 +13,10 @@ from database_connection import get_db
 from families.repository import AsyncFamilyDAL
 from users.repository import AsyncUserDAL
 
-login_router = APIRouter()
+router = APIRouter()
 
 
-@login_router.post("/token", response_model=AccessRefreshTokens)
+@router.post("/token", response_model=AccessRefreshTokens, tags=["Auth"])
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
 ):
@@ -51,7 +51,7 @@ async def login_for_access_token(
     return AccessRefreshTokens(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
 
-@login_router.post("/refresh", response_model=AccessToken)
+@router.post("/refresh", response_model=AccessToken, tags=["Auth"])
 async def refresh_access_token(
     refresh_token: RefreshToken, db: AsyncSession = Depends(get_db)
 ):

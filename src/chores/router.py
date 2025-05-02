@@ -23,12 +23,12 @@ from users.models import User
 
 logger = getLogger(__name__)
 
-chores_router = APIRouter()
+router = APIRouter()
 
 
 # List of all family  chores
-@chores_router.get(
-    "", summary="List of all families chore , sorted by number of completed"
+@router.get(
+    "", summary="List of all families chore , sorted by number of completed", tags=["Chore"]
 )
 async def get_family_chores(
     current_user: User = Depends(FamilyMemberPermission()),
@@ -57,7 +57,7 @@ async def get_family_chores(
 
 
 # Create a new family chore
-@chores_router.post("")
+@router.post("", tags=["Chore"])
 async def create_family_chore(
     body: ChoreCreateSchema,
     current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
@@ -82,7 +82,7 @@ async def create_family_chore(
         )
 
 
-@chores_router.delete(path="/{chore_id}")
+@router.delete(path="/{chore_id}", tags=["Chore"])
 async def delete_family_chore(
     chore_id: UUID,
     current_user: User = Depends(ChorePermission(only_admin=True)),
