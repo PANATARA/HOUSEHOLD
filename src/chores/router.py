@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.repository import AsyncChoreDAL, ChoreDataService
@@ -36,12 +36,13 @@ router = APIRouter()
     tags=["Chore"],
 )
 async def get_family_chores(
+    limit: int | None = Query(None, ge=1),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> ChoresListResponseSchema | None:
     async with async_session.begin():
         family_chores = await ChoreDataService(async_session).get_family_chores(
-            current_user.family_id
+            current_user.family_id, limit=limit
         )
         result_response = ChoresListResponseSchema(chores=family_chores)
 

@@ -47,7 +47,7 @@ class ChoreDataService:
     db_session: AsyncSession
 
     async def get_family_chores(
-        self, family_id: UUID
+        self, family_id: UUID, limit: int | None = None
     ) -> list[ChoreResponseSchema] | None:
         """
         Retrieves a list of chores associated with a specific family.
@@ -56,7 +56,7 @@ class ChoreDataService:
             family_id (UUID): The ID of the family whose chores are being fetched.
 
         Returns:
-            list[ChioreSchema] | None: A list of chores if found, otherwise None.
+            list[ChoreResponseSchema] | None: A list of chores if found, otherwise None.
         """
         query = select(
             Chore.id,
@@ -65,6 +65,9 @@ class ChoreDataService:
             Chore.icon,
             Chore.valuation,
         ).where(Chore.family_id == family_id)
+
+        if limit is not None:
+            query = query.limit(limit)
 
         query_result = await self.db_session.execute(query)
         raw_data = query_result.mappings().all()
