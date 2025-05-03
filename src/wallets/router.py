@@ -38,7 +38,11 @@ async def get_user_wallet(
 
 
 # Money transfer
-@router.post(path="/transfer", summary="Make a transfer of coins to the user", tags=["Wallet transfer"])
+@router.post(
+    path="/transfer",
+    summary="Make a transfer of coins to the user",
+    tags=["Wallet transfer"],
+)
 async def money_transfer_wallet(
     body: MoneyTransferSchema,
     current_user: User = Depends(FamilyMemberPermission()),
@@ -69,14 +73,18 @@ async def money_transfer_wallet(
 
 
 # Get transactions user's wallet
-@router.get(path="/transactions", summary="Get transactions user's wallet", tags=["Wallet transactions"])
+@router.get(
+    path="/transactions",
+    summary="Get transactions user's wallet",
+    tags=["Wallet transactions"],
+)
 async def get_user_wallet_transaction(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=20),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> UnionTransactionsSchema:
-    
+
     async with async_session.begin():
         transactions_data = TransactionDataService(async_session)
         offset = (page - 1) * limit

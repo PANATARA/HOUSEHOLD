@@ -57,24 +57,32 @@ class FamilyDataService:
 
     db_session: AsyncSession
 
-    async def get_family_with_members(self, family_id: UUID) -> FamilyDetailSchema | None:
+    async def get_family_with_members(
+        self, family_id: UUID
+    ) -> FamilyDetailSchema | None:
         """Returns a pydantic model of the family and its members"""
         result = await self.db_session.execute(
             select(
                 func.json_build_object(
-                    "id", Family.id,
-                    "name", Family.name,
-                    "icon", Family.icon,
+                    "id",
+                    Family.id,
+                    "name",
+                    Family.name,
+                    "icon",
+                    Family.icon,
                 ).label("family"),
                 func.json_agg(
                     func.json_build_object(
-                        "id",User.id,
-                        "username",User.username,
-                        "name",User.name,
-                        "surname",User.surname,
+                        "id",
+                        User.id,
+                        "username",
+                        User.username,
+                        "name",
+                        User.name,
+                        "surname",
+                        User.surname,
                     )
-                ).label("members")
-                
+                ).label("members"),
             )
             .join(User, Family.id == User.family_id)
             .where(Family.id == family_id)
@@ -82,7 +90,7 @@ class FamilyDataService:
         )
 
         rows = result.mappings().all()
-        
+
         if rows is None:
             return None
         family = FamilyDetailSchema.model_validate(rows[0])

@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
-from chores.schemas import ChoreCreateSchema, ChoreSchema
+from chores.schemas import ChoreCreateSchema, ChoreResponseSchema
 from core.base_dals import BaseDals, DeleteDALMixin, GetOrRaiseMixin
 from core.exceptions.chores import ChoreNotFoundError
 
@@ -46,7 +46,9 @@ class AsyncChoreDAL(BaseDals[Chore], GetOrRaiseMixin[Chore], DeleteDALMixin):
 class ChoreDataService:
     db_session: AsyncSession
 
-    async def get_family_chores(self, family_id: UUID) -> list[ChoreSchema] | None:
+    async def get_family_chores(
+        self, family_id: UUID
+    ) -> list[ChoreResponseSchema] | None:
         """
         Retrieves a list of chores associated with a specific family.
 
@@ -70,4 +72,4 @@ class ChoreDataService:
         if not raw_data:
             return None
 
-        return [ChoreSchema.model_validate(item) for item in raw_data]
+        return [ChoreResponseSchema.model_validate(item) for item in raw_data]

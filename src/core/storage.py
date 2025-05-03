@@ -44,16 +44,20 @@ class S3Client:
             yield client
 
     async def upload_file(
-        self, file_obj: bytes, content_type: str, object_key: str, folder: StorageFolderEnum
+        self,
+        file_obj: bytes,
+        content_type: str,
+        object_key: str,
+        folder: StorageFolderEnum,
     ) -> None:
-        
+
         key = f"{folder.value}/{object_key}"
         async with self.get_client() as client:
             await client.put_object(
                 Bucket=self.bucket_name,
                 Key=key,
                 Body=file_obj,
-                ContentType=content_type
+                ContentType=content_type,
             )
 
     async def generate_presigned_url(
@@ -73,15 +77,16 @@ class S3Client:
                 )
                 return url
             except ClientError as e:
-                if e.response['Error']['Code'] == '404':
+                if e.response["Error"]["Code"] == "404":
                     return None
                 print(f"Error during generation presigned URL: {e}")
                 return None
+
 
 def get_s3_client() -> S3Client:
     return S3Client(
         access_key=S3_ACCESS_KEY,
         secret_key=S3_SECRET_KEY,
         endpoint_url=S3_ENDPOINT_URL,
-        bucket_name=S3_BUCKET_NAME
+        bucket_name=S3_BUCKET_NAME,
     )

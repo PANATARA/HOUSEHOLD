@@ -9,7 +9,7 @@ from chores_completions.repository import ChoreCompletionDataService
 from chores_completions.schemas import (
     ChoreCompletionCreateSchema,
     ChoreCompletionDetailSchema,
-    ChoreCompletionSchema,
+    ChoreCompletionResponseSchema,
 )
 from chores_completions.services import CreateChoreCompletion
 from core.enums import StatusConfirmENUM
@@ -57,7 +57,11 @@ async def create_chore_completion(
 
 
 # Get family's chores completions
-@router.get("", summary="Get a list of completed family chores sorted by date", tags=["Chores completions"])
+@router.get(
+    "",
+    summary="Get a list of completed family chores sorted by date",
+    tags=["Chores completions"],
+)
 async def get_family_chores_completions(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=50),
@@ -65,7 +69,7 @@ async def get_family_chores_completions(
     chore_id: UUID | None = Query(None),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> list[ChoreCompletionSchema]:
+) -> list[ChoreCompletionResponseSchema]:
 
     async with async_session.begin():
         offset = (page - 1) * limit
@@ -78,7 +82,11 @@ async def get_family_chores_completions(
 
 
 # Get family's chore completion detail
-@router.get("/{chore_completion_id}", summary="Get chore execution details", tags=["Chores completions"])
+@router.get(
+    "/{chore_completion_id}",
+    summary="Get chore execution details",
+    tags=["Chores completions"],
+)
 async def get_family_chore_completion_detail(
     chore_completion_id: UUID,
     current_user: User = Depends(ChoreCompletionPermission()),

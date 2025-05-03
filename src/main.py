@@ -24,6 +24,7 @@ from wallets.router import router as wallet_router
 logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 
+
 async def create_enum_if_not_exists(engine: AsyncEngine):
     async with engine.begin() as conn:
         for subclass in PostgreSQLEnum.get_subclasses():
@@ -50,7 +51,7 @@ async def lifespan(app: FastAPI):
         # Checking ENUMs in DB
         logger.info("🚀 Startup: Checking ENUMs in DB...")
         await create_enum_if_not_exists(engine)
-        
+
         # Redis connections
         logger.info("🚀 Startup: Redis connections...")
         await redis_client.connect()
@@ -79,7 +80,9 @@ main_api_router.include_router(user_router, prefix="/users")
 main_api_router.include_router(auth_router, prefix="/login")
 main_api_router.include_router(families_router, prefix="/families")
 main_api_router.include_router(chores_completions_router, prefix="/chores-completions")
-main_api_router.include_router(chores_confirmations_router, prefix="/chores-confirmations")
+main_api_router.include_router(
+    chores_confirmations_router, prefix="/chores-confirmations"
+)
 main_api_router.include_router(chores_router, prefix="/chores")
 main_api_router.include_router(wallet_router, prefix="/wallets")
 

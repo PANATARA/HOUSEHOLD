@@ -40,10 +40,10 @@ class UserCreatorService(BaseService[User]):
             user_id=user_id,
             app_theme="Dark",
             language="ru",
-            date_of_birth=date(2001, 1, 1)
+            date_of_birth=date(2001, 1, 1),
         )
         settings_dal = AsyncUserSettingsDAL(self.db_session)
         return await settings_dal.create(data)
-    
+
     def _set_default_avatar(self) -> None:
         pass

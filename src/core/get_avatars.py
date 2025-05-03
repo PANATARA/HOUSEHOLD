@@ -24,23 +24,32 @@ from users.models import User
 
 async def update_user_avatars(data):
     from users.schemas import UserResponseSchema
-    
+
     if isinstance(data, UserResponseSchema):
-            await data.set_avatar_url()
+        await data.set_avatar_url()
     if isinstance(data, list):
         await asyncio.gather(*(update_user_avatars(item) for item in data))
     elif isinstance(data, BaseModel):
-        await asyncio.gather(*(update_user_avatars(getattr(data, field)) for field in data.model_fields))
+        await asyncio.gather(
+            *(update_user_avatars(getattr(data, field)) for field in data.model_fields)
+        )
+
 
 async def update_family_avatars(data):
     from families.schemas import FamilyResponseSchema
-    
+
     if isinstance(data, FamilyResponseSchema):
-            await data.set_avatar_url()
+        await data.set_avatar_url()
     if isinstance(data, list):
         await asyncio.gather(*(update_family_avatars(item) for item in data))
     elif isinstance(data, BaseModel):
-        await asyncio.gather(*(update_family_avatars(getattr(data, field)) for field in data.model_fields))
+        await asyncio.gather(
+            *(
+                update_family_avatars(getattr(data, field))
+                for field in data.model_fields
+            )
+        )
+
 
 @dataclass
 class AvatarService(BaseService):
@@ -50,7 +59,7 @@ class AvatarService(BaseService):
     async def process(self) -> str | None:
         self.redis = redis_client.get_client()
         url = await self.get_url_from_redis()
-        
+
         if url == "no_avatar":
             return None
         if url is None:
@@ -63,7 +72,7 @@ class AvatarService(BaseService):
             else:
                 await self.set_url_redis(url)
         return url
-        
+
     async def get_url_from_redis(self) -> str | None:
         return await self.redis.get(str(self.object_id))
 
@@ -80,7 +89,7 @@ class AvatarService(BaseService):
 
 async def upload_object_image(object: User | Family, file: UploadFile) -> PresignedUrl:
     key = str(object.id)
-    
+
     if isinstance(object, User):
         folder = StorageFolderEnum.users_avatars
         expire = USER_URL_AVATAR_EXPIRE
@@ -88,7 +97,7 @@ async def upload_object_image(object: User | Family, file: UploadFile) -> Presig
         folder = StorageFolderEnum.family_avatars
         expire = FAMILY_URL_AVATAR_EXPIRE
     else:
-        raise ValueError() # TODO make a suitable exception
+        raise ValueError()  # TODO make a suitable exception
 
     content_type = file.content_type
 
@@ -98,7 +107,7 @@ async def upload_object_image(object: User | Family, file: UploadFile) -> Presig
         )
 
     object_image = await file.read()
-    if len(object_image) > 1_048_576: # TODO: increase file size
+    if len(object_image) > 1_048_576:  # TODO: increase file size
         raise ImageSizeTooLargeError(
             message=f"Image size too large: {len(object_image)} bytes"
         )

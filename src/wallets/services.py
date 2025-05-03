@@ -58,20 +58,18 @@ class CoinsTransferService(BaseService):
         data = CreatePeerTransactionSchema(
             detail=self.message,
             coins=self.count,
+            transaction_type=PeerTransactionENUM.transfer,
         )
         peer_transaction_service = PeerTransactionService(
             to_user=self.to_user,
             from_user=self.from_user,
             data=data,
-            transaction_type=PeerTransactionENUM.transfer,
             db_session=self.db_session,
         )
         return await peer_transaction_service.run_process()
-    
+
     def get_validators(self):
-        return [
-            lambda: validate_user_in_family(self.from_user, self.to_user.family_id)
-        ]
+        return [lambda: validate_user_in_family(self.from_user, self.to_user.family_id)]
 
 
 @dataclass
@@ -128,7 +126,6 @@ class PeerTransactionService(BaseService):
     to_user: User
     from_user: User
     data: CreatePeerTransactionSchema
-    transaction_type: PeerTransactionENUM
     db_session: AsyncSession
     product: Product | None = None
 
@@ -148,9 +145,9 @@ class PeerTransactionService(BaseService):
             raise NotEnoughCoins()
 
     async def _add_coins(self) -> None:
-        if self.transaction_type == PeerTransactionENUM.purchase:
+        if self.data.transaction_type == PeerTransactionENUM.purchase:
             total_coins = Decimal(self.data.coins * PURCHASE_RATE)
-        elif self.transaction_type == PeerTransactionENUM.transfer:
+        elif self.data.transaction_type == PeerTransactionENUM.transfer:
             total_coins = Decimal(self.data.coins * TRANSFER_RATE)
         wallet_dal = AsyncWalletDAL(self.db_session)
         await wallet_dal.add_balance(user_id=self.to_user.id, amount=total_coins)
@@ -162,7 +159,7 @@ class PeerTransactionService(BaseService):
             "to_user_id": self.to_user.id,
             "from_user_id": self.from_user.id,
             "product_id": self.product.id if self.product else None,
-            "transaction_type": self.transaction_type,
+            "transaction_type": self.data.transaction_type,
         }
         transaction_log_dal = PeerTransactionDAL(self.db_session)
         return await transaction_log_dal.create(fields=data)

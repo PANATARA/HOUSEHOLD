@@ -48,7 +48,9 @@ async def login_for_access_token(
         data={"sub": str(user.id), "is_family_admin": user_is_family_admin},
         expires_delta=refresh_token_expires,
     )
-    return AccessRefreshTokens(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+    return AccessRefreshTokens(
+        access_token=access_token, refresh_token=refresh_token, token_type="bearer"
+    )
 
 
 @router.post("/refresh", response_model=AccessToken, tags=["Auth"])
@@ -62,7 +64,7 @@ async def refresh_access_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token, missing user_id",
         )
-    
+
     async with db.begin():
         try:
             user = await AsyncUserDAL(db).get_or_raise(object_id=user_id)
@@ -76,7 +78,7 @@ async def refresh_access_token(
                 detail="User not found",
             )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+
     access_token = create_jwt_token(
         data={"sub": str(user_id), "is_family_admin": user_is_family_admin},
         expires_delta=access_token_expires,

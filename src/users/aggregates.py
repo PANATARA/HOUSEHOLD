@@ -9,7 +9,8 @@ class MeProfileSchema(BaseModel):
     is_family_member: bool
     wallet: WalletBalanceSchema | None
 
+
 class UserProfileSchema(BaseModel):
     user: UserResponseSchema
-    chore_copletion_count: int = 10 # TODO:
-    chore_confirmed_count: int = 10 # TODO:
+    chore_copletion_count: int = 10  # TODO:
+    chore_confirmed_count: int = 10  # TODO:

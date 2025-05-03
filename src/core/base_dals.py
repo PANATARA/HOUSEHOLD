@@ -9,6 +9,7 @@ from core.base_model import BaseIdTimeStampModel, BaseUserModel
 T = TypeVar("T", bound=BaseIdTimeStampModel)
 T_U = TypeVar("T_U", bound=BaseUserModel)
 
+
 class BaseDal(Generic[T]):
     model: Type[T]
 
@@ -47,7 +48,7 @@ class BaseDals(BaseDal[T]):
         return obj
 
 
-class DeleteDALMixin():
+class DeleteDALMixin:
     """Soft delete an object by setting `is_active` to `False`.
 
     Args:

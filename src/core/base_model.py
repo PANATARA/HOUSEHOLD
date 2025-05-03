@@ -13,6 +13,7 @@ class BaseIdTimeStampModel:
     - updated_at : datetime
 
     """
+
     __abstract__ = True
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -43,7 +44,4 @@ class OneToOneUserModel(BaseUserModel):
 
     @declared_attr
     def user_id(cls) -> Mapped[uuid.UUID]:
-        return mapped_column(
-            ForeignKey("users.id", ondelete="CASCADE"),
-            unique=True
-        )
+        return mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)

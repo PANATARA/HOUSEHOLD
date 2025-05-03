@@ -50,7 +50,9 @@ class AsyncWalletDAL(BaseUserPkDals[Wallet], DeleteDALMixin):
 
         return result.scalar()
 
-    async def check_and_deduct_balance(self, user_id: UUID, amount: Decimal) -> Decimal | None:
+    async def check_and_deduct_balance(
+        self, user_id: UUID, amount: Decimal
+    ) -> Decimal | None:
         """
         Deducts the specified amount from the user's wallet balance if sufficient funds are available.
 
@@ -102,7 +104,6 @@ class WalletDataService:
             return None
 
         wallet = WalletBalanceSchema(
-            id=rows["wallet_id"],
             balance=rows["wallet_balance"],
         )
         return wallet
@@ -127,7 +128,9 @@ class TransactionDataService:
                 PeerTransaction.id,
                 PeerTransaction.detail,
                 PeerTransaction.coins,
-                cast(PeerTransaction.transaction_type, String),  # converting enum to string to correctly combine two queries
+                cast(
+                    PeerTransaction.transaction_type, String
+                ),  # converting enum to string to correctly combine two queries
                 case(
                     (PeerTransaction.to_user_id == user_id, "incoming"),
                     (PeerTransaction.from_user_id == user_id, "outgoing"),
@@ -147,13 +150,20 @@ class TransactionDataService:
                     (
                         p.id.isnot(None),
                         func.json_build_object(
-                            "id", p.id, 
-                            "name", p.name, 
-                            "description", p.description,
-                            "icon", p.icon, 
-                            "price", p.price,
-                            "is_active", p.is_active,
-                            "created_at", p.created_at
+                            "id",
+                            p.id,
+                            "name",
+                            p.name,
+                            "description",
+                            p.description,
+                            "icon",
+                            p.icon,
+                            "price",
+                            p.price,
+                            "is_active",
+                            p.is_active,
+                            "created_at",
+                            p.created_at,
                         ),
                     ),
                     else_=None,
@@ -180,7 +190,9 @@ class TransactionDataService:
                 RewardTransaction.id,
                 RewardTransaction.detail,
                 RewardTransaction.coins,
-                cast(RewardTransaction.transaction_type, String), # converting enum to string to correctly combine two queries
+                cast(
+                    RewardTransaction.transaction_type, String
+                ),  # converting enum to string to correctly combine two queries
                 func.text("incoming").label("transaction_direction"),
                 RewardTransaction.created_at,
                 literal(None).label("product"),
@@ -214,7 +226,7 @@ class TransactionDataService:
         final_query = union_query.limit(limit).offset(offset)
         query_result = await self.db_session.execute(final_query)
         raw_data = query_result.mappings().all()
-        
+
         result = []
         for item in raw_data:
             transaction_type = item["transaction_type"]
@@ -226,7 +238,7 @@ class TransactionDataService:
                 result.append(RewardTransactionSchema.model_validate(item))
             else:
                 raise ValueError(f"Unknown transaction type: {transaction_type}")
-        
+
         return UnionTransactionsSchema(transactions=result)
 
 

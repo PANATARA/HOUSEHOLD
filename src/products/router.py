@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions.products import ProductNotFoundError
+from core.exceptions.wallets import NotEnoughCoins
 from core.get_avatars import update_user_avatars
 from core.permissions import IsAuthenicatedPermission, ProductPermission
 from database_connection import get_db
@@ -97,4 +98,6 @@ async def buy_active_products(
             await service.run_process()
         except ProductNotFoundError:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        except NotEnoughCoins:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

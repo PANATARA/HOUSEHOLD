@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from chores.schemas import ChoreSchema
+from chores.schemas import ChoreResponseSchema
 from core.enums import StatusConfirmENUM
 from users.schemas import UserResponseSchema
 
@@ -12,28 +12,19 @@ class ChoreCompletionCreateSchema(BaseModel):
     message: str
 
 
-class ChoreCompletionSchema(BaseModel):
+class ChoreCompletionResponseSchema(BaseModel):
     id: UUID
-    chore: ChoreSchema
+    chore: ChoreResponseSchema
     completed_by: UserResponseSchema
     completed_at: datetime
     status: str
     message: str
 
 
-class ChoreCompletionSummaryLiteSchema(BaseModel):
-    """Schema for user's wallet transactions"""
-
-    id: UUID
-    chore: ChoreSchema
-    completed_at: datetime
-
-
-class ChoreConfirmationSummarySchema(BaseModel):
-    user: UserResponseSchema
-    status: StatusConfirmENUM
-
-
 class ChoreCompletionDetailSchema(BaseModel):
-    chore_completion: ChoreCompletionSchema
-    confirmed_by: list[ChoreConfirmationSummarySchema | None]
+    class ConfirmedBySchema(BaseModel):
+        user: UserResponseSchema
+        status: StatusConfirmENUM
+
+    chore_completion: ChoreCompletionResponseSchema
+    confirmed_by: list[ConfirmedBySchema | None]

@@ -35,10 +35,12 @@ class FamilyMember(BaseModel):
 class ActivitiesResponse(BaseModel):
     activities: list[ActivityItem]
 
+
 class CircuitBreakerStateEnum(enum.Enum):
     closed = "CLOSED"
     half_open = "HALF_OPEN"
     open = "OPEN"
+
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -52,8 +54,10 @@ class CircuitBreaker:
         self.failures = 0
         self.last_failure_time = None
         self.state = CircuitBreakerStateEnum.closed
-    
-    def __call__(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R | None]]:
+
+    def __call__(
+        self, func: Callable[P, Awaitable[R]]
+    ) -> Callable[P, Awaitable[R | None]]:
         @functools.wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs):
             if not self.can_request:
@@ -66,6 +70,7 @@ class CircuitBreaker:
             else:
                 self.success()
                 return result
+
         return async_wrapper
 
     def success(self):
@@ -92,7 +97,9 @@ class CircuitBreaker:
         self.last_failure_time = None
         self.state = CircuitBreakerStateEnum.closed
 
+
 circuit_breaker = CircuitBreaker(max_failures=5, reset_timeout=15)
+
 
 def get_time_query_params(interval: DateRangeSchema) -> dict:
     query_params = {}
@@ -102,7 +109,9 @@ def get_time_query_params(interval: DateRangeSchema) -> dict:
         query_params["end"] = interval.end
     return query_params
 
+
 timeout = httpx.Timeout(2.0, connect=2.0)
+
 
 @circuit_breaker
 async def get_family_members_ids_by_total_completions(
@@ -123,6 +132,7 @@ async def get_family_members_ids_by_total_completions(
         result = [FamilyMember(**item) for item in raw_data]
         return result
 
+
 @circuit_breaker
 async def get_family_chores_ids_by_total_completions(
     family_id: UUID, interval: DateRangeSchema
@@ -141,6 +151,7 @@ async def get_family_chores_ids_by_total_completions(
         raw_data = response.json()
         result = [ChoreItem(**item) for item in raw_data]
         return result
+
 
 @circuit_breaker
 async def get_user_activity(

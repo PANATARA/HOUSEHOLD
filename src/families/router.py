@@ -15,7 +15,7 @@ from core.exceptions.families import (
 )
 from core.exceptions.users import UserNotFoundError
 from core.get_avatars import update_family_avatars, upload_object_image
-from core.metrics_requests import (
+from metrics import (
     DateRangeSchema,
     get_family_members_ids_by_total_completions,
 )
@@ -88,6 +88,7 @@ async def get_my_family(
 
         family_data_service = FamilyDataService(async_session)
         family = await family_data_service.get_family_with_members(family_id)
+        await update_family_avatars(family)
         interval = DateRangeSchema(
             start=datetime.now() - timedelta(days=7),
             end=datetime.now(),
@@ -95,7 +96,6 @@ async def get_my_family(
         sorted_members = await get_family_members_ids_by_total_completions(
             family_id=family_id, interval=interval
         )
-        await update_family_avatars(family)
 
         if sorted_members:
             family.sort_members_by_id(
@@ -131,7 +131,9 @@ async def logout_user_from_family(
     )
 
 
-@router.delete(path="/kick/{user_id}", summary="Kick user from family", tags=["Family members"])
+@router.delete(
+    path="/kick/{user_id}", summary="Kick user from family", tags=["Family members"]
+)
 async def kick_user_from_family(
     user_id: UUID,
     current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
@@ -233,7 +235,9 @@ async def join_to_family(
         )
 
 
-@router.post("/avatar/file/", summary="Upload new family's avatar", tags=["Family avatar"])
+@router.post(
+    "/avatar/file/", summary="Upload new family's avatar", tags=["Family avatar"]
+)
 async def upload_user_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(FamilyMemberPermission()),

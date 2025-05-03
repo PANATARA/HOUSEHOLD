@@ -23,17 +23,15 @@ class PurchaseService(BaseService):
         data = CreatePeerTransactionSchema(
             detail="message",
             coins=self.product.price,
-        )
-        from_user = await AsyncUserDAL(self.db_session).get_by_id(
-            self.product.seller_id
-        )
-        peer_transaction_service = PeerTransactionService(
-            to_user=self.user,
-            from_user=from_user,
-            product=self.product,
-            data=data,
             transaction_type=PeerTransactionENUM.purchase,
+        )
+        to_user = await AsyncUserDAL(self.db_session).get_by_id(self.product.seller_id)
+        peer_transaction_service = PeerTransactionService(
+            to_user=to_user,
+            from_user=self.user,
+            data=data,
             db_session=self.db_session,
+            product=self.product,
         )
         transaction_log = await peer_transaction_service.run_process()
         await self._change_product_activity()
@@ -47,5 +45,5 @@ class PurchaseService(BaseService):
     def get_validators(self):
         return [
             lambda: validate_product_is_active(self.product),
-            lambda: validate_user_can_buy_product(self.product, self.user)
+            lambda: validate_user_can_buy_product(self.product, self.user),
         ]

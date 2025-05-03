@@ -5,6 +5,7 @@ from config import REDIS_URL
 
 class Singleton(type):
     _instances = {}
+
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
@@ -12,7 +13,13 @@ class Singleton(type):
 
 
 class RedisClient(metaclass=Singleton):
-    def __init__(self, redis_url: str, max_connections: int = 10, timeout: int = 1, health_check_interval: int = 10):
+    def __init__(
+        self,
+        redis_url: str,
+        max_connections: int = 10,
+        timeout: int = 1,
+        health_check_interval: int = 10,
+    ):
         self.redis_url = redis_url
         self.max_connections = max_connections
         self.timeout = timeout
@@ -21,7 +28,9 @@ class RedisClient(metaclass=Singleton):
 
     async def connect(self):
         try:
-            pool = aioredis.ConnectionPool.from_url(self.redis_url, decode_responses=True)
+            pool = aioredis.ConnectionPool.from_url(
+                self.redis_url, decode_responses=True
+            )
             self.client = aioredis.Redis.from_pool(pool)
             print(f"Ping redis successful: {await self.client.ping()}")
         except Exception as e:
@@ -33,5 +42,6 @@ class RedisClient(metaclass=Singleton):
 
     def get_client(self):
         return self.client
+
 
 redis_client = RedisClient(redis_url=REDIS_URL)

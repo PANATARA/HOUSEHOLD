@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores_confirmations.repository import ChoreConfirmationDataService
 from chores_confirmations.schemas import (
-    ChoreConfirmationDetailSchema,
+    ChoreConfirmationResponseSchema,
     ChoreConfirmationSetStatusSchema,
 )
 from chores_confirmations.services import set_status_chore_confirmation
@@ -33,7 +33,7 @@ async def get_my_chores_confirmations(
     status: StatusConfirmENUM | None = None,  # by default we return all confirmations
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> list[ChoreConfirmationDetailSchema]:
+) -> list[ChoreConfirmationResponseSchema]:
     async with async_session.begin():
         data_service = ChoreConfirmationDataService(db_session=async_session)
         result = await data_service.get_user_chore_confirmations(

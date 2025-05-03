@@ -11,7 +11,7 @@ from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from chores_completions.schemas import (
     ChoreCompletionDetailSchema,
-    ChoreCompletionSchema,
+    ChoreCompletionResponseSchema,
 )
 from chores_confirmations.models import ChoreConfirmation
 from core.base_dals import BaseDals, GetOrRaiseMixin
@@ -21,7 +21,6 @@ from users.models import User
 
 
 class AsyncChoreCompletionDAL(BaseDals[ChoreCompletion], GetOrRaiseMixin):
-
     model = ChoreCompletion
     not_found_exception = ChoreCompletionNotFoundError
 
@@ -33,8 +32,13 @@ class ChoreCompletionDataService:
     db_session: AsyncSession
 
     async def get_family_chore_completion(
-        self, family_id: UUID, offset: int, limit: int, status: StatusConfirmENUM | None, chore_id: UUID | None
-    ) -> list[ChoreCompletionSchema]:
+        self,
+        family_id: UUID,
+        offset: int,
+        limit: int,
+        status: StatusConfirmENUM | None,
+        chore_id: UUID | None,
+    ) -> list[ChoreCompletionResponseSchema]:
         """
         Retrieves a list of chore completion records for a specific family,
         including details of the completed chores and the users who completed them.
@@ -60,17 +64,26 @@ class ChoreCompletionDataService:
             select(
                 ChoreCompletion.id.label("id"),
                 func.json_build_object(
-                    "id", Chore.id,
-                    "name", Chore.name,
-                    "description", Chore.description,
-                    "icon", Chore.icon,
-                    "valuation", Chore.valuation,
+                    "id",
+                    Chore.id,
+                    "name",
+                    Chore.name,
+                    "description",
+                    Chore.description,
+                    "icon",
+                    Chore.icon,
+                    "valuation",
+                    Chore.valuation,
                 ).label("chore"),
                 func.json_build_object(
-                    "id", User.id,
-                    "username", User.username,
-                    "name", User.name,
-                    "surname", User.surname,
+                    "id",
+                    User.id,
+                    "username",
+                    User.username,
+                    "name",
+                    User.name,
+                    "surname",
+                    User.surname,
                 ).label("completed_by"),
                 ChoreCompletion.created_at.label("completed_at"),
                 ChoreCompletion.status.label("status"),
@@ -86,7 +99,7 @@ class ChoreCompletionDataService:
         query_result = await self.db_session.execute(query)
         raw_data = query_result.mappings().all()
         chores_completions = [
-            ChoreCompletionSchema.model_validate(item) for item in raw_data
+            ChoreCompletionResponseSchema.model_validate(item) for item in raw_data
         ]
         return chores_completions
 
@@ -111,23 +124,38 @@ class ChoreCompletionDataService:
         query = (
             select(
                 func.json_build_object(
-                    "id", ChoreCompletion.id,
-                    "chore", func.json_build_object(
-                        "id", Chore.id,
-                        "name", Chore.name,
-                        "description", Chore.description,
-                        "icon", Chore.icon,
-                        "valuation", Chore.valuation,
+                    "id",
+                    ChoreCompletion.id,
+                    "chore",
+                    func.json_build_object(
+                        "id",
+                        Chore.id,
+                        "name",
+                        Chore.name,
+                        "description",
+                        Chore.description,
+                        "icon",
+                        Chore.icon,
+                        "valuation",
+                        Chore.valuation,
                     ),
-                    "completed_by", func.json_build_object(
-                        "id", User.id,
-                        "username", User.username,
-                        "name", User.name,
-                        "surname", User.surname,
+                    "completed_by",
+                    func.json_build_object(
+                        "id",
+                        User.id,
+                        "username",
+                        User.username,
+                        "name",
+                        User.name,
+                        "surname",
+                        User.surname,
                     ),
-                    "completed_at", ChoreCompletion.created_at,
-                    "message", ChoreCompletion.message,
-                    "status", ChoreCompletion.status,
+                    "completed_at",
+                    ChoreCompletion.created_at,
+                    "message",
+                    ChoreCompletion.message,
+                    "status",
+                    ChoreCompletion.status,
                 ).label("chore_completion"),
                 func.json_agg(
                     case(
@@ -136,12 +164,17 @@ class ChoreCompletionDataService:
                             func.json_build_object(
                                 "user",
                                 func.json_build_object(
-                                    "id", confirm_user.id,
-                                    "username", confirm_user.username,
-                                    "name", confirm_user.name,
-                                    "surname", confirm_user.surname,
+                                    "id",
+                                    confirm_user.id,
+                                    "username",
+                                    confirm_user.username,
+                                    "name",
+                                    confirm_user.name,
+                                    "surname",
+                                    confirm_user.surname,
                                 ),
-                                "status", ChoreConfirmation.status,
+                                "status",
+                                ChoreConfirmation.status,
                             ),
                         ),
                         else_=None,

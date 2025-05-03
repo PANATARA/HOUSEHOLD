@@ -43,13 +43,15 @@ class CreateChoreCompletion(BaseService):
     async def _create_chore_completion(self, status: str) -> ChoreCompletion:
         chore_completion_dal = AsyncChoreCompletionDAL(self.db_session)
         chore_completion_model = ChoreCompletionModel(
-            family_id = self.chore.family_id,
-            message = self.message,
-            completed_by_id = self.user.id,
-            chore_id = self.chore.id,
-            status = status
+            family_id=self.chore.family_id,
+            message=self.message,
+            completed_by_id=self.user.id,
+            chore_id=self.chore.id,
+            status=status,
         )
-        chore_completion = await chore_completion_dal.create(chore_completion_model.model_dump())
+        chore_completion = await chore_completion_dal.create(
+            chore_completion_model.model_dump()
+        )
         return chore_completion
 
     async def _get_users_should_confirm_chore_completion(self) -> list[UUID] | None:

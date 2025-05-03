@@ -45,7 +45,7 @@ class FamilyMemberPermission(IsAuthenicatedPermission):
         async_session: AsyncSession,
         **kwargs,
     ) -> User:
-        
+
         if self.only_admin:
             user_is_family_admin = token_payload.get("is_family_admin")
             if not user_is_family_admin:
@@ -70,6 +70,7 @@ class ChorePermission(BasePermission):
     If http method not in SAFE_METHODS ("GET", "HEAD", "OPTIONS", "TRACE")
     then the administrator is also checked
     """
+
     def __init__(self, only_admin: bool = False):
         self.only_admin = only_admin
         super().__init__()
@@ -175,8 +176,7 @@ class ProductPermission(BasePermission):
         query = select(User).where(
             User.id == user_id,
             exists().where(
-                (Product.family_id == User.family_id)
-                & (Product.id == product_id)
+                (Product.family_id == User.family_id) & (Product.id == product_id)
             ),
         )
 
@@ -208,9 +208,7 @@ class FamilyInvitePermission(BasePermission):
             .exists()
         )
 
-        query = select(User).where(
-            (User.id == user_id) & permission_exists
-        )
+        query = select(User).where((User.id == user_id) & permission_exists)
         result = await async_session.execute(query)
         user = result.scalars().first()
 

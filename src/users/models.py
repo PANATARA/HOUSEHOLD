@@ -15,11 +15,7 @@ class User(Base, BaseIdTimeStampModel):
     name: Mapped[str] = mapped_column(String(50))
     surname: Mapped[str | None] = mapped_column(String(50))
     family_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey(
-            column="family.id",
-            ondelete="SET NULL",
-            use_alter=True
-        )
+        ForeignKey(column="family.id", ondelete="SET NULL", use_alter=True)
     )
 
     password: Mapped[str]
@@ -44,7 +40,7 @@ class UserSettings(Base, OneToOneUserModel):
     app_theme: Mapped[str] = mapped_column(String, default="Dark")
     language: Mapped[str] = mapped_column(String, default="ru")
     date_of_birth: Mapped[date] = mapped_column(Date, default=date(2001, 1, 1))
-    
+
     def __repr__(self):
         return super().__repr__()
 

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.exceptions.base_exceptions import ImageError
 from core.exceptions.users import UserError, UserNotFoundError
 from core.get_avatars import update_user_avatars, upload_object_image
-from core.metrics_requests import ActivitiesResponse, DateRangeSchema, get_user_activity
+from metrics import ActivitiesResponse, DateRangeSchema, get_user_activity
 from core.permissions import FamilyMemberPermission, IsAuthenicatedPermission
 from database_connection import get_db
 from users.aggregates import MeProfileSchema, UserProfileSchema
@@ -68,23 +68,29 @@ async def me_get_user_profile(
     async with async_session.begin():
         wallet = await AsyncWalletDAL(async_session).get_by_user_id(current_user.id)
 
-    result = MeProfileSchema(
-        user=UserResponseSchema(
-            id=current_user.id,
-            username=current_user.username,
-            name=current_user.name,
-            surname=current_user.surname,
-        ),
-        is_family_member=bool(current_user.family_id),
-        wallet=WalletBalanceSchema(
-            id=wallet.id,
+    user_response = UserResponseSchema(
+        id=current_user.id,
+        username=current_user.username,
+        name=current_user.name,
+        surname=current_user.surname,
+    )
+    await update_user_avatars(user_response)
+
+    wallet_response = (
+        WalletBalanceSchema(
             balance=wallet.balance,
         )
         if wallet
-        else None,
+        else None
     )
-    await update_user_avatars(result)
-    return result
+
+    result_response = MeProfileSchema(
+        user=user_response,
+        is_family_member=bool(current_user.family_id),
+        wallet=wallet_response,
+    )
+
+    return result_response
 
 
 # Update user
@@ -99,14 +105,14 @@ async def me_user_partial_update(
         user = await user_dal.update(
             object_id=current_user.id, fields=body.model_dump(exclude_unset=True)
         )
-    result = UserResponseSchema(
+    result_response = UserResponseSchema(
         id=user.id,
         username=user.username,
         name=user.name,
         surname=user.surname,
     )
-    await update_user_avatars(result)
-    return result
+    await update_user_avatars(result_response)
+    return result_response
 
 
 # Get user's settings

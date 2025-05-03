@@ -33,7 +33,7 @@ class BaseService(Generic[T], metaclass=ABCMeta):
         """Executes all validators (both sync and async)."""
         validators = self.get_validators()
         tasks = []
-        
+
         for validator in validators:
             if asyncio.iscoroutinefunction(validator):
                 tasks.append(validator())  # Собираем асинхронные задачи
@@ -41,7 +41,9 @@ class BaseService(Generic[T], metaclass=ABCMeta):
                 validator()  # Вызываем синхронные валидаторы сразу
 
         if tasks:
-            await asyncio.gather(*tasks)  # Дожидаемся выполнения всех асинхронных валидаторов
+            await asyncio.gather(
+                *tasks
+            )  # Дожидаемся выполнения всех асинхронных валидаторов
 
     async def run_process(self) -> T:
         """Runs validation and then executes the `process` method."""

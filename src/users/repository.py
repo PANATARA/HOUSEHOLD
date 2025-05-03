@@ -30,7 +30,9 @@ class AsyncUserSettingsDAL(BaseUserPkDals[UserSettings]):
     model = UserSettings
 
 
-class AsyncUserFamilyPermissionsDAL(BaseUserPkDals[UserFamilyPermissions], DeleteDALMixin):
+class AsyncUserFamilyPermissionsDAL(
+    BaseUserPkDals[UserFamilyPermissions], DeleteDALMixin
+):
 
     model = UserFamilyPermissions
 
@@ -41,7 +43,9 @@ class UserDataService:
 
     db_session: AsyncSession
 
-    async def get_user_settings(self, user_id: UUID) -> UserSettingsResponseSchema | None:
+    async def get_user_settings(
+        self, user_id: UUID
+    ) -> UserSettingsResponseSchema | None:
         """Returns a pydantic model of the user settings"""
         result = await self.db_session.execute(
             select(
@@ -56,6 +60,6 @@ class UserDataService:
 
         if not rows:
             return None
-        
+
         settings = UserSettingsResponseSchema.model_validate(rows)
         return settings

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from chores_confirmations.models import ChoreConfirmation
-from chores_confirmations.schemas import ChoreConfirmationDetailSchema
+from chores_confirmations.schemas import ChoreConfirmationResponseSchema
 from core.base_dals import BaseDals
 from core.enums import StatusConfirmENUM
 from users.models import User
@@ -59,7 +59,7 @@ class ChoreConfirmationDataService:
 
     async def get_user_chore_confirmations(
         self, user_id: UUID, status: StatusConfirmENUM | None
-    ) -> list[ChoreConfirmationDetailSchema]:
+    ) -> list[ChoreConfirmationResponseSchema]:
         """
         Fetches the list of chore confirmations for a specific user.
 
@@ -77,7 +77,7 @@ class ChoreConfirmationDataService:
 
         conditions = [ChoreConfirmation.user_id == user_id]
         if status is not None:
-            conditions.append(ChoreConfirmation.status==status)
+            conditions.append(ChoreConfirmation.status == status)
 
         query = (
             select(
@@ -119,7 +119,10 @@ class ChoreConfirmationDataService:
                 ChoreConfirmation.created_at.label("created_at"),
                 ChoreConfirmation.status.label("status"),
             )
-            .join(ChoreCompletion, ChoreConfirmation.chore_completion_id == ChoreCompletion.id)
+            .join(
+                ChoreCompletion,
+                ChoreConfirmation.chore_completion_id == ChoreCompletion.id,
+            )
             .join(Chore, ChoreCompletion.chore_id == Chore.id)
             .join(User, ChoreCompletion.completed_by_id == User.id)
             .where(*conditions)
@@ -129,7 +132,7 @@ class ChoreConfirmationDataService:
         raw_data = query_result.mappings().all()
 
         confirmations = [
-            ChoreConfirmationDetailSchema.model_validate(item) for item in raw_data
+            ChoreConfirmationResponseSchema.model_validate(item) for item in raw_data
         ]
 
         return confirmations

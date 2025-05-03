@@ -26,9 +26,7 @@ def create_jwt_token(data: dict, expires_delta: timedelta | None = None) -> str:
 
 def get_payload_from_jwt_token(token: str):
     try:
-        payload = jwt.decode(
-            token, config.SECRET_KEY, algorithms=[config.ALGORITHM]
-        )
+        payload = jwt.decode(token, config.SECRET_KEY, algorithms=[config.ALGORITHM])
     except ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

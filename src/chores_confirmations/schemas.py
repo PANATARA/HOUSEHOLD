@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
-from chores_completions.schemas import ChoreCompletionSchema
+from chores_completions.schemas import ChoreCompletionResponseSchema
 from core.enums import StatusConfirmENUM
 
 
@@ -16,7 +16,7 @@ class ChoreConfirmationSetStatusSchema(BaseModel):
         return v
 
 
-class ChoreConfirmationDetailSchema(BaseModel):
+class ChoreConfirmationResponseSchema(BaseModel):
     id: UUID
-    chore_completion: ChoreCompletionSchema
+    chore_completion: ChoreCompletionResponseSchema
     status: StatusConfirmENUM
