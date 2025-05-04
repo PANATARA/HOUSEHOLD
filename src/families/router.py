@@ -14,7 +14,11 @@ from core.exceptions.families import (
     UserIsAlreadyFamilyMember,
 )
 from core.exceptions.users import UserNotFoundError
-from core.get_avatars import update_family_avatars, upload_object_image
+from core.get_avatars import (
+    update_family_avatars,
+    update_user_avatars,
+    upload_object_image,
+)
 from core.permissions import (
     FamilyInvitePermission,
     FamilyMemberPermission,
@@ -93,6 +97,7 @@ async def get_my_family(
         family_data_service = FamilyDataService(async_session)
         family = await family_data_service.get_family_with_members(family_id)
         await update_family_avatars(family)
+        await update_user_avatars(family)
 
         interval = DateRangeSchema(
             start=datetime.now() - timedelta(days=7),

@@ -58,7 +58,7 @@ async def create_chore_completion(
             )
     return JSONResponse(
         content={"detail": "Chore completion was created"},
-        status_code=204,
+        status_code=201,
     )
 
 
