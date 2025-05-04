@@ -21,6 +21,7 @@ from core.permissions import (
     ChorePermission,
     FamilyMemberPermission,
 )
+from core.query_depends import get_pagination_params
 from database_connection import get_db
 from users.models import User
 
@@ -67,15 +68,14 @@ async def create_chore_completion(
     tags=["Chores completions"],
 )
 async def get_family_chores_completions(
-    page: int = Query(1, ge=1),
-    limit: int = Query(10, le=50),
+    pagination: tuple[int, int] = Depends(get_pagination_params),
     status: StatusConfirmENUM | None = None,
     chore_id: UUID | None = Query(None),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[ChoreCompletionResponseSchema]:
     async with async_session.begin():
-        offset = (page - 1) * limit
+        offset, limit = pagination
         data_service = ChoreCompletionDataService(async_session)
         result_response = await data_service.get_family_chore_completion(
             current_user.family_id, offset, limit, status, chore_id

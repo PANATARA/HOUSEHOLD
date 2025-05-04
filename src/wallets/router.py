@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +8,7 @@ from core.exceptions.base_exceptions import ObjectNotFoundError
 from core.exceptions.wallets import NotEnoughCoins
 from core.get_avatars import update_user_avatars
 from core.permissions import FamilyMemberPermission
+from core.query_depends import get_pagination_params
 from database_connection import get_db
 from users.models import User
 from users.repository import AsyncUserDAL
@@ -76,15 +77,14 @@ async def money_transfer_wallet(
     tags=["Wallet transactions"],
 )
 async def get_user_wallet_transaction(
-    page: int = Query(1, ge=1),
-    limit: int = Query(10, le=20),
+    pagination: tuple[int, int] = Depends(get_pagination_params),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> UnionTransactionsSchema:
 
     async with async_session.begin():
         transactions_data = TransactionDataService(async_session)
-        offset = (page - 1) * limit
+        offset, limit = pagination
 
         user_transactions = await transactions_data.get_union_user_transactions(
             user_id=current_user.id,

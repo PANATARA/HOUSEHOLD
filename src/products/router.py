@@ -2,13 +2,14 @@ from decimal import Decimal
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions.products import ProductNotFoundError
 from core.exceptions.wallets import NotEnoughCoins
 from core.get_avatars import update_user_avatars
 from core.permissions import IsAuthenicatedPermission, ProductPermission
+from core.query_depends import get_pagination_params
 from database_connection import get_db
 from products.repository import AsyncProductDAL, ProductDataService
 from products.schemas import (
@@ -69,13 +70,12 @@ async def get_user_products(
     tags=["Products"],
 )
 async def get_family_active_products(
-    page: int = Query(1, ge=1),
-    limit: int = Query(10, le=20),
+    pagination: tuple[int, int] = Depends(get_pagination_params),
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[ProductWithSellerSchema]:
     async with async_session.begin():
-        offset = (page - 1) * limit
+        offset, limit = pagination
         product_data = ProductDataService(async_session)
         family_id = current_user.family_id
         if family_id is None:
