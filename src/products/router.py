@@ -25,7 +25,7 @@ router = APIRouter()
 
 
 # Create new product
-@router.post(path="", tags=["Products"])
+@router.post(path="", summary="Create a new product", tags=["Products"])
 async def create_product(
     body: CreateNewProductSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -50,18 +50,24 @@ async def create_product(
 
 
 # Get a list of user's products
-@router.get(path="/users", tags=["Products"])
+@router.get(
+    path="/users", summary="Get a list of user's active products", tags=["Products"]
+)
 async def get_user_products(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[ProductFullSchema]:
     async with async_session.begin():
         product_data = ProductDataService(async_session)
-        return await product_data.get_user_active_products(current_user.id)
+        result_response = await product_data.get_user_active_products(current_user.id)
+    return result_response
 
 
-# Get a list of active products in the family
-@router.get(path="/family", tags=["Products"])
+@router.get(
+    path="/family",
+    summary="Get a list of active products for the user's family, with pagination",
+    tags=["Products"],
+)
 async def get_family_active_products(
     page: int = Query(1, ge=1),
     limit: int = Query(10, le=20),
@@ -79,8 +85,11 @@ async def get_family_active_products(
         return result
 
 
-# Buy a product
-@router.get(path="/buy/{product_id}", tags=["Products"])
+@router.post(
+    path="/buy/{product_id}",
+    summary="Buy a product from the active product list",
+    tags=["Products"],
+)
 async def buy_active_products(
     product_id: UUID,
     current_user: User = Depends(ProductPermission()),

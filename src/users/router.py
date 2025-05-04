@@ -8,16 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.exceptions.base_exceptions import ImageError
 from core.exceptions.users import UserError, UserNotFoundError
 from core.get_avatars import update_user_avatars, upload_object_image
-from metrics import ActivitiesResponse, DateRangeSchema, get_user_activity
 from core.permissions import FamilyMemberPermission, IsAuthenicatedPermission
 from database_connection import get_db
+from metrics import ActivitiesResponse, DateRangeSchema, get_user_activity
 from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
 from users.repository import AsyncUserDAL, UserDataService
 from users.schemas import (
     UserCreateSchema,
-    UserSettingsResponseSchema,
     UserResponseSchema,
+    UserSettingsResponseSchema,
     UserUpdateSchema,
 )
 from users.services import UserCreatorService
@@ -30,11 +30,10 @@ logger = getLogger(__name__)
 router = APIRouter()
 
 
-# Create new User
 @router.post(
-    "",
+    path="",
     tags=["Users"],
-    summary="Create new user, user's settings and set default user avatar",
+    summary="Create new user, user's settings",
 )
 async def create_new_user(
     body: UserCreateSchema, async_session: AsyncSession = Depends(get_db)
@@ -59,8 +58,7 @@ async def create_new_user(
     return user_response
 
 
-# Get user's profile (all info)
-@router.get("", summary="Getting user's profile info", tags=["Users"])
+@router.get(path="", summary="Get user's full profile information", tags=["Users"])
 async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -94,7 +92,7 @@ async def me_get_user_profile(
 
 
 # Update user
-@router.patch("", tags=["Users"])
+@router.patch(path="", summary="Update user information", tags=["Users"])
 async def me_user_partial_update(
     body: UserUpdateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -115,8 +113,7 @@ async def me_user_partial_update(
     return result_response
 
 
-# Get user's settings
-@router.get("/settings", summary="Getting user settings", tags=["Users settings"])
+@router.get(path="/settings", summary="Get user's settings", tags=["Users settings"])
 async def me_user_get_settings(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -126,7 +123,9 @@ async def me_user_get_settings(
         return await data_service.get_user_settings(user_id=current_user.id)
 
 
-@router.post("/avatar/file", summary="Upload a new user avatar", tags=["Users avatars"])
+@router.post(
+    path="/avatar/file", summary="Upload a new user avatar", tags=["Users avatars"]
+)
 async def me_user_upload_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -144,7 +143,11 @@ async def me_user_upload_avatar(
     )
 
 
-@router.get("/activity", tags=["Users statistics"])
+@router.get(
+    path="/activity",
+    summary="Get user's activity statistics",
+    tags=["Users statistics"],
+)
 async def me_user_get_activity(
     current_user: User = Depends(FamilyMemberPermission()),
 ) -> ActivitiesResponse | None:
@@ -156,8 +159,11 @@ async def me_user_get_activity(
     return result
 
 
-# Get user's profile
-@router.get("/profile/{user_id}", summary="Getting user's profile", tags=["Users"])
+@router.get(
+    path="/profile/{user_id}",
+    summary="Get user's profile information by user ID",
+    tags=["Users"],
+)
 async def get_user_profile(
     user_id: UUID,
     current_user: User = Depends(IsAuthenicatedPermission()),

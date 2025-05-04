@@ -24,8 +24,7 @@ logger = getLogger(__name__)
 router = APIRouter()
 
 
-# Get user's wallet
-@router.get(path="", summary="Get user wallet information", tags=["Wallet"])
+@router.get(path="", summary="Get user wallet balance", tags=["Wallet"])
 async def get_user_wallet(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -37,10 +36,9 @@ async def get_user_wallet(
         return wallet_data
 
 
-# Money transfer
 @router.post(
     path="/transfer",
-    summary="Make a transfer of coins to the user",
+    summary="Transfer coins to another user",
     tags=["Wallet transfer"],
 )
 async def money_transfer_wallet(
@@ -72,10 +70,9 @@ async def money_transfer_wallet(
     )
 
 
-# Get transactions user's wallet
 @router.get(
     path="/transactions",
-    summary="Get transactions user's wallet",
+    summary="Get user's wallet transactions",
     tags=["Wallet transactions"],
 )
 async def get_user_wallet_transaction(

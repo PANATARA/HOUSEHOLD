@@ -15,10 +15,6 @@ from core.exceptions.families import (
 )
 from core.exceptions.users import UserNotFoundError
 from core.get_avatars import update_family_avatars, upload_object_image
-from metrics import (
-    DateRangeSchema,
-    get_family_members_ids_by_total_completions,
-)
 from core.permissions import (
     FamilyInvitePermission,
     FamilyMemberPermission,
@@ -39,6 +35,10 @@ from families.services import (
     FamilyCreatorService,
     LogoutUserFromFamilyService,
 )
+from metrics import (
+    DateRangeSchema,
+    get_family_members_ids_by_total_completions,
+)
 from users.models import User
 from users.repository import AsyncUserDAL
 from users.schemas import UserFamilyPermissionModelSchema
@@ -48,8 +48,11 @@ logger = getLogger(__name__)
 router = APIRouter()
 
 
-# Create a new family
-@router.post("", tags=["Family"])
+@router.post(
+    path="",
+    summary="Create a new family and add the current user as a member",
+    tags=["Family"],
+)
 async def create_family(
     body: FamilyCreateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -75,9 +78,10 @@ async def create_family(
             return family_detail
 
 
-# Get user's family
 @router.get(
-    "", summary="Getting basic information about the user's family", tags=["Family"]
+    path="",
+    summary="Get basic information about the user's family, including members and completion statistics",
+    tags=["Family"],
 )
 async def get_my_family(
     current_user: User = Depends(FamilyMemberPermission()),
@@ -89,6 +93,7 @@ async def get_my_family(
         family_data_service = FamilyDataService(async_session)
         family = await family_data_service.get_family_with_members(family_id)
         await update_family_avatars(family)
+
         interval = DateRangeSchema(
             start=datetime.now() - timedelta(days=7),
             end=datetime.now(),
@@ -105,8 +110,11 @@ async def get_my_family(
         return family
 
 
-# Logout user from family
-@router.patch(path="/logout", summary="Logout me from family", tags=["Family members"])
+@router.patch(
+    path="/logout",
+    summary="Logout the user from the family, preventing administrators from leaving",
+    tags=["Family members"],
+)
 async def logout_user_from_family(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -132,7 +140,9 @@ async def logout_user_from_family(
 
 
 @router.delete(
-    path="/kick/{user_id}", summary="Kick user from family", tags=["Family members"]
+    path="/kick/{user_id}",
+    summary="Kick a user from the family (admin only)",
+    tags=["Family members"],
 )
 async def kick_user_from_family(
     user_id: UUID,
@@ -162,8 +172,11 @@ async def kick_user_from_family(
     )
 
 
-# Change Family Administrator
-@router.patch(path="/change_admin/{user_id}", tags=["Family members"])
+@router.patch(
+    path="/change_admin/{user_id}",
+    summary="Change the family administrator",
+    tags=["Family members"],
+)
 async def change_family_admin(
     user_id: UUID,
     current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
@@ -183,7 +196,11 @@ async def change_family_admin(
     )
 
 
-@router.post(path="/invite", summary="Generate invite token", tags=["Family invited"])
+@router.post(
+    path="/invite",
+    summary="Generate an invite token for family invitations",
+    tags=["Family invited"],
+)
 async def generate_invite_token(
     body: FamilyInviteSchema,
     current_user: User = Depends(FamilyInvitePermission()),
@@ -197,7 +214,6 @@ async def generate_invite_token(
     )
 
 
-# Join to family by invite-token
 @router.post(
     path="/join/{invite_token}",
     summary="Join to family by invite-token",
@@ -236,7 +252,7 @@ async def join_to_family(
 
 
 @router.post(
-    "/avatar/file/", summary="Upload new family's avatar", tags=["Family avatar"]
+    path="/avatar/file/", summary="Upload new family's avatar", tags=["Family avatar"]
 )
 async def upload_user_avatar(
     file: UploadFile = File(...),

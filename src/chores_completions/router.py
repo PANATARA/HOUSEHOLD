@@ -2,6 +2,7 @@ from logging import getLogger
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.repository import AsyncChoreDAL
@@ -28,15 +29,18 @@ logger = getLogger(__name__)
 router = APIRouter()
 
 
-# Create a new chore completion
-@router.post(path="/{chore_id}", tags=["Chores completions"])
+@router.post(
+    path="/{chore_id}",
+    tags=["Chores completions"],
+    summary="Create a chore completion for a specific chore",
+    description="Marks a chore as completed by the current user. May require confirmation from other family members.",
+)
 async def create_chore_completion(
     chore_id: UUID,
     body: ChoreCompletionCreateSchema,
     current_user: User = Depends(ChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
 ) -> Response:
-
     async with async_session.begin():
         try:
             chore = await AsyncChoreDAL(async_session).get_or_raise(chore_id)
@@ -51,14 +55,14 @@ async def create_chore_completion(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Chore not found"
             )
-    return Response(
+    return JSONResponse(
+        content={"detail": "Chore completion was created"},
         status_code=204,
     )
 
 
-# Get family's chores completions
 @router.get(
-    "",
+    path="",
     summary="Get a list of completed family chores sorted by date",
     tags=["Chores completions"],
 )
@@ -70,21 +74,20 @@ async def get_family_chores_completions(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[ChoreCompletionResponseSchema]:
-
     async with async_session.begin():
         offset = (page - 1) * limit
         data_service = ChoreCompletionDataService(async_session)
-        result = await data_service.get_family_chore_completion(
+        result_response = await data_service.get_family_chore_completion(
             current_user.family_id, offset, limit, status, chore_id
         )
-        await update_user_avatars(result)
-        return result
+        await update_user_avatars(result_response)
+        return result_response
 
 
 # Get family's chore completion detail
 @router.get(
-    "/{chore_completion_id}",
-    summary="Get chore execution details",
+    path="/{chore_completion_id}",
+    summary="Retrieve detailed information about a specific chore completion",
     tags=["Chores completions"],
 )
 async def get_family_chore_completion_detail(
@@ -92,11 +95,10 @@ async def get_family_chore_completion_detail(
     current_user: User = Depends(ChoreCompletionPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> ChoreCompletionDetailSchema | None:
-
     async with async_session.begin():
         data_service = ChoreCompletionDataService(async_session)
-        result = await data_service.get_family_chore_completion_detail(
+        result_response = await data_service.get_family_chore_completion_detail(
             chore_completion_id
         )
-        await update_user_avatars(result)
-        return result
+        await update_user_avatars(result_response)
+        return result_response

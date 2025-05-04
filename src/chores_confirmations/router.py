@@ -23,9 +23,8 @@ logger = getLogger(__name__)
 router = APIRouter()
 
 
-# Get my chores confirmations
 @router.get(
-    "",
+    path="",
     summary="Get all confirmation objects for chores completed by others and pending user's approval",
     tags=["Chores confiramtions"],
 )
@@ -43,7 +42,11 @@ async def get_my_chores_confirmations(
         return result
 
 
-@router.patch("/{chore_confirmation_id}", tags=["Chores confiramtions"])
+@router.patch(
+    path="/{chore_confirmation_id}",
+    summary="Update the status of a chore confirmation",
+    tags=["Chores confiramtions"],
+)
 async def change_status_chore_confirmation(
     chore_confirmation_id: UUID,
     body: ChoreConfirmationSetStatusSchema,

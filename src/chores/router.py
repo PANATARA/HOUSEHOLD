@@ -12,16 +12,16 @@ from chores.schemas import (
     ChoresListResponseSchema,
 )
 from chores.services import ChoreCreatorService
-from metrics import (
-    DateRangeSchema,
-    get_family_chores_ids_by_total_completions,
-)
 from core.permissions import (
     ChorePermission,
     FamilyMemberPermission,
 )
 from database_connection import get_db
 from families.repository import AsyncFamilyDAL
+from metrics import (
+    DateRangeSchema,
+    get_family_chores_ids_by_total_completions,
+)
 from users.models import User
 
 logger = getLogger(__name__)
@@ -29,10 +29,9 @@ logger = getLogger(__name__)
 router = APIRouter()
 
 
-# List of all family  chores
 @router.get(
-    "",
-    summary="List of all families chore , sorted by number of completed",
+    path="",
+    summary="Get a list of chores for the user's family, optionally limited and sorted by completions in the last 7 days",
     tags=["Chore"],
 )
 async def get_family_chores(
@@ -60,8 +59,11 @@ async def get_family_chores(
         return result_response
 
 
-# Create a new family chore
-@router.post("", tags=["Chore"])
+@router.post(
+    path="",
+    summary="Create a new chore for the user's family (admin only)",
+    tags=["Chore"],
+)
 async def create_family_chore(
     body: ChoreCreateSchema,
     current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
@@ -86,7 +88,11 @@ async def create_family_chore(
         )
 
 
-@router.delete(path="/{chore_id}", tags=["Chore"])
+@router.delete(
+    path="/{chore_id}",
+    summary="Delete a family chore by ID (admin only)",
+    tags=["Chore"],
+)
 async def delete_family_chore(
     chore_id: UUID,
     current_user: User = Depends(ChorePermission(only_admin=True)),

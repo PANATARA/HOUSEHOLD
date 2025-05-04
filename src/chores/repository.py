@@ -64,7 +64,7 @@ class ChoreDataService:
             Chore.description,
             Chore.icon,
             Chore.valuation,
-        ).where(Chore.family_id == family_id)
+        ).where(Chore.family_id == family_id, Chore.is_active)
 
         if limit is not None:
             query = query.limit(limit)
