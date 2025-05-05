@@ -22,7 +22,7 @@ class UserCreatorService(BaseService[User]):
     async def process(self) -> User:
         self.user_data.hash_password()
         user = await self._create_user()
-        await self._create_settings()
+        await self._create_settings(user.id)
         self._set_default_avatar()
         return user
 
@@ -43,7 +43,7 @@ class UserCreatorService(BaseService[User]):
             date_of_birth=date(2001, 1, 1),
         )
         settings_dal = AsyncUserSettingsDAL(self.db_session)
-        return await settings_dal.create(data)
+        return await settings_dal.create(data.model_dump())
 
     def _set_default_avatar(self) -> None:
         pass
