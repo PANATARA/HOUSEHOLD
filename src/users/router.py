@@ -152,7 +152,7 @@ async def me_user_get_activity(
     current_user: User = Depends(FamilyMemberPermission()),
 ) -> ActivitiesResponse | None:
     interval = DateRangeSchema(
-        start=datetime.now() - timedelta(days=120),
+        start=datetime.now() - timedelta(days=112),
         end=datetime.now(),
     )
     result = await get_user_activity(user_id=current_user.id, interval=interval)
