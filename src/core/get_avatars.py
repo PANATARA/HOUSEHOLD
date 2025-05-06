@@ -52,7 +52,7 @@ async def update_family_avatars(data):
 
 
 @dataclass
-class AvatarService(BaseService):
+class AvatarService(BaseService[str | None]):
     object_id: UUID
     folder: StorageFolderEnum
 

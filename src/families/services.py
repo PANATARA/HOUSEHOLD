@@ -59,7 +59,7 @@ class FamilyCreatorService(BaseService[Family]):
 
 
 @dataclass
-class AddUserToFamilyService(BaseService):
+class AddUserToFamilyService(BaseService[Family]):
     """Create and return a new Family"""
 
     family: Family
@@ -92,7 +92,7 @@ class AddUserToFamilyService(BaseService):
 
 
 @dataclass
-class LogoutUserFromFamilyService(BaseService):
+class LogoutUserFromFamilyService(BaseService[None]):
     """Logout user from family"""
 
     user: User

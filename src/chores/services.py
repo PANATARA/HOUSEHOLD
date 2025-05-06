@@ -11,7 +11,7 @@ from families.models import Family
 
 
 @dataclass
-class ChoreCreatorService(BaseService):
+class ChoreCreatorService(BaseService[Chore | list[Chore]]):
     """Create and return a new Family"""
 
     family: Family

@@ -9,12 +9,13 @@ from products.models import Product
 from products.repository import AsyncProductDAL
 from users.models import User
 from users.repository import AsyncUserDAL
+from wallets.models import PeerTransaction
 from wallets.schemas import CreatePeerTransactionSchema
 from wallets.services import PeerTransactionService
 
 
 @dataclass
-class PurchaseService(BaseService):
+class PurchaseService(BaseService[PeerTransaction | None]):
     product: Product
     user: User
     db_session: AsyncSession

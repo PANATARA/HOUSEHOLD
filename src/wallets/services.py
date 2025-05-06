@@ -43,7 +43,7 @@ class WalletCreatorService(BaseService[Wallet]):
 
 
 @dataclass
-class CoinsTransferService(BaseService):
+class CoinsTransferService(BaseService[PeerTransaction | None]):
     """
     Service for transferring coins between two users of the same family
     """
@@ -107,7 +107,7 @@ class CoinsRewardService(BaseService[RewardTransaction]):
 
 
 @dataclass
-class PeerTransactionService(BaseService):
+class PeerTransactionService(BaseService[PeerTransaction | None]):
     """
     Service for handling peer-to-peer transactions, including coin transfers and product buying
 

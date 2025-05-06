@@ -19,7 +19,7 @@ from wallets.services import CoinsRewardService
 
 
 @dataclass
-class CreateChoreCompletion(BaseService):
+class CreateChoreCompletion(BaseService[ChoreCompletion]):
     user: User
     chore: Chore
     message: str
@@ -77,7 +77,7 @@ class CreateChoreCompletion(BaseService):
 
 
 @dataclass
-class ApproveChoreCompletion(BaseService):
+class ApproveChoreCompletion(BaseService[None]):
     chore_completion: ChoreCompletion
     db_session: AsyncSession
 
@@ -105,7 +105,7 @@ class ApproveChoreCompletion(BaseService):
 
 
 @dataclass
-class CancellChoreCompletion(BaseService):
+class CancellChoreCompletion(BaseService[None]):
     chore_completion: ChoreCompletion
     db_session: AsyncSession
 
