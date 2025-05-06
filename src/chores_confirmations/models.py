@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.base_model import BaseUserModel
+from core.models import BaseUserModel
 from core.enums import StatusConfirmENUM
 from core.models import Base
 

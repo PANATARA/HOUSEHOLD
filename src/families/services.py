@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.services import ChoreCreatorService, get_default_chore_data
-from core import constants
 from core.exceptions.families import UserCannotLeaveFamily
 from core.services import BaseService
 from core.validators import validate_user_not_in_family
@@ -44,7 +43,7 @@ class FamilyCreatorService(BaseService[Family]):
             family=family,
             user=self.user,
             permissions=UserFamilyPermissionModelSchema(
-                **constants.default_admin_permissions
+                should_confirm_chore_completion=True
             ),
             db_session=self.db_session,
         )

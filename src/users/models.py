@@ -4,7 +4,7 @@ from datetime import date
 from sqlalchemy import Boolean, Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from core.base_model import BaseIdTimeStampModel, OneToOneUserModel
+from core.models import BaseIdTimeStampModel, OneToOneUserModel
 from core.models import Base
 
 
