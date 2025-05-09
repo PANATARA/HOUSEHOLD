@@ -4,7 +4,6 @@ services:
             context: .
             dockerfile: Dockerfile.test
         container_name: test_app
-        # command: [ "pytest", "tests/" ]
         command: tail -f /dev/null
         volumes:
             - ./src:/usr/src/app/src:cached
