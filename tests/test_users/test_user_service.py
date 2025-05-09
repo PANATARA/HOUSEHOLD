@@ -5,7 +5,7 @@ from users.repository import AsyncUserDAL, AsyncUserSettingsDAL
 
 @pytest.mark.asyncio
 async def test_user_created_with_settings(user_factory, async_session_test):
-    user = await user_factory.create_user(username="unique_user")
+    user = await user_factory(username="unique_user")
 
     user_dal = AsyncUserDAL(async_session_test)
     user_from_db = await user_dal.get_user_by_username(user.username)
