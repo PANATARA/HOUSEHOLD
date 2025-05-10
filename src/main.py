@@ -2,7 +2,6 @@ import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
 from sqlalchemy import text
@@ -22,8 +21,6 @@ from users.router import router as user_router
 from wallets.router import router as wallet_router
 
 logger = logging.getLogger(__name__)
-scheduler = AsyncIOScheduler()
-
 
 async def create_enum_if_not_exists(engine: AsyncEngine):
     async with engine.begin() as conn:

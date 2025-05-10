@@ -4,7 +4,7 @@ from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from core.enums import StatusConfirmENUM
 from core.exceptions.chores import ChoreNotFoundError
-from core.exceptions.chores_completion import ChoreCompletionCanNotBeChanged
+from core.exceptions.chores_completion import ChoreCompletionCanNotBeChanged, ChoreCompletionIsNotApproved
 from core.exceptions.families import UserIsAlreadyFamilyMember, UserNotFoundInFamily
 from core.exceptions.products import ProductError, ProductNotFoundError
 from products.models import Product
@@ -25,6 +25,9 @@ def validate_chore_completion_is_changable(chore_completion: ChoreCompletion) ->
     if chore_completion.status != StatusConfirmENUM.awaits:
         raise ChoreCompletionCanNotBeChanged()
 
+def validate_chore_completion_is_approved(chore_completion: ChoreCompletion) -> None:
+    if chore_completion.status != StatusConfirmENUM.approved:
+        raise ChoreCompletionIsNotApproved()
 
 def validate_user_not_in_family(user: User) -> None:
     if user.family_id is not None:

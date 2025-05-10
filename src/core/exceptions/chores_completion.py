@@ -15,3 +15,8 @@ class ChoreCompletionNotFoundError(ChoreCompletionError, ObjectNotFoundError):
 class ChoreCompletionCanNotBeChanged(ChoreCompletionError, CanNotBeChangedError):
     def __init__(self, message="The specified chore completion can't be cahnged"):
         super().__init__(message)
+
+
+class ChoreCompletionIsNotApproved(ChoreCompletionError, CanNotBeChangedError):
+    def __init__(self, message="The specified chore completion is not approved"):
+        super().__init__(message)

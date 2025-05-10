@@ -10,7 +10,7 @@ from config import PURCHASE_RATE, TRANSFER_RATE
 from core.enums import PeerTransactionENUM
 from core.exceptions.wallets import NotEnoughCoins
 from core.services import BaseService
-from core.validators import validate_user_in_family
+from core.validators import validate_chore_completion_is_approved, validate_user_in_family
 from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
@@ -105,6 +105,8 @@ class CoinsRewardService(BaseService[RewardTransaction]):
         transaction_log_dal = RewardTransactionDAL(self.db_session)
         return await transaction_log_dal.create_reward_for_chore_transaction(data=data)
 
+    def get_validators(self):
+        return [lambda: validate_chore_completion_is_approved(self.chore_completion)]
 
 @dataclass
 class PeerTransactionService(BaseService[PeerTransaction | None]):
@@ -129,7 +131,7 @@ class PeerTransactionService(BaseService[PeerTransaction | None]):
     db_session: AsyncSession
     product: Product | None = None
 
-    async def process(self) -> PeerTransaction | None:
+    async def process(self) -> PeerTransaction:
         await self._take_coins()
         await self._add_coins()
         transaction_log = await self._create_transaction_log()
