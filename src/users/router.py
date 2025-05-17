@@ -30,8 +30,21 @@ logger = getLogger(__name__)
 router = APIRouter()
 
 
+def get_16_week_range_to_upcoming_sunday() -> DateRangeSchema:
+    today = datetime.now()
+
+    days_until_sunday = (6 - today.weekday()) % 7
+    upcoming_sunday = (today + timedelta(days=days_until_sunday)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+
+    start_sunday = upcoming_sunday - timedelta(weeks=16)
+
+    return DateRangeSchema(start=start_sunday, end=upcoming_sunday)
+
+
 @router.post(
-    path="",
+    path="/me",
     tags=["Users"],
     summary="Create new user, user's settings",
 )
@@ -58,7 +71,7 @@ async def create_new_user(
     return user_response
 
 
-@router.get(path="", summary="Get user's full profile information", tags=["Users"])
+@router.get(path="/me", summary="Get user's full profile information", tags=["Users"])
 async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -92,7 +105,7 @@ async def me_get_user_profile(
 
 
 # Update user
-@router.patch(path="", summary="Update user information", tags=["Users"])
+@router.patch(path="/me", summary="Update user information", tags=["Users"])
 async def me_user_partial_update(
     body: UserUpdateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -113,7 +126,7 @@ async def me_user_partial_update(
     return result_response
 
 
-@router.get(path="/settings", summary="Get user's settings", tags=["Users settings"])
+@router.get(path="/me/settings", summary="Get user's settings", tags=["Users settings"])
 async def me_user_get_settings(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -124,7 +137,7 @@ async def me_user_get_settings(
 
 
 @router.post(
-    path="/avatar/file", summary="Upload a new user avatar", tags=["Users avatars"]
+    path="me/avatar/file", summary="Upload a new user avatar", tags=["Users avatars"]
 )
 async def me_user_upload_avatar(
     file: UploadFile = File(...),
@@ -144,23 +157,44 @@ async def me_user_upload_avatar(
 
 
 @router.get(
-    path="/activity",
+    path="/me/activity",
     summary="Get user's activity statistics",
     tags=["Users statistics"],
 )
 async def me_user_get_activity(
     current_user: User = Depends(FamilyMemberPermission()),
 ) -> ActivitiesResponse | None:
-    interval = DateRangeSchema(
-        start=datetime.now() - timedelta(days=112),
-        end=datetime.now(),
-    )
+    interval = get_16_week_range_to_upcoming_sunday()
     result = await get_user_activity(user_id=current_user.id, interval=interval)
     return result
 
 
 @router.get(
-    path="/profile/{user_id}",
+    path="/activity/{user_id}",
+    summary="Get user's activity statistics",
+    tags=["Users statistics"],
+)
+async def user_get_activity(
+    user_id: UUID,
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> ActivitiesResponse | None:
+    async with async_session.begin():
+        try:
+            user = await AsyncUserDAL(async_session).get_or_raise(user_id)
+            if user.family_id != current_user.family_id:
+                raise UserNotFoundError()
+        except UserNotFoundError:
+            raise HTTPException(
+                status_code=404, detail={"detail": "User was not found"}
+            )
+    interval = get_16_week_range_to_upcoming_sunday()
+    result = await get_user_activity(user_id=user.id, interval=interval)
+    return result
+
+
+@router.get(
+    path="/{user_id}",
     summary="Get user's profile information by user ID",
     tags=["Users"],
 )
