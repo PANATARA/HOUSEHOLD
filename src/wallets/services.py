@@ -155,13 +155,13 @@ class PeerTransactionService(BaseService[PeerTransaction | None]):
         await wallet_dal.add_balance(user_id=self.to_user.id, amount=total_coins)
 
     async def _create_transaction_log(self):
-        data = {
-            "detail": self.data.detail,
-            "coins": self.data.coins,
-            "to_user_id": self.to_user.id,
-            "from_user_id": self.from_user.id,
-            "product_id": self.product.id if self.product else None,
-            "transaction_type": self.data.transaction_type,
-        }
+        transaction = PeerTransaction(
+            detail=self.data.detail,
+            coins=self.data.coins,
+            to_user_id=self.to_user.id,
+            from_user_id=self.from_user.id,
+            product_id=self.product.id if self.product else None,
+            transaction_type=self.data.transaction_type,
+        )
         transaction_log_dal = PeerTransactionDAL(self.db_session)
-        return await transaction_log_dal.create(fields=data)
+        return await transaction_log_dal.create(transaction)

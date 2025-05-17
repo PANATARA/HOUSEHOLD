@@ -27,12 +27,11 @@ class BaseDals(BaseDal[T]):
         result = await self.db_session.execute(query)
         return result.scalar_one_or_none()
 
-    async def create(self, fields: dict) -> T:
-        obj = self.model(**fields)
-        self.db_session.add(obj)
+    async def create(self, object: T) -> T:
+        self.db_session.add(object)
         await self.db_session.flush()
-        await self.db_session.refresh(obj)
-        return obj
+        await self.db_session.refresh(object)
+        return object
 
     async def update(self, object_id: UUID, fields: dict) -> T | None:
         obj = await self.get_by_id(object_id)

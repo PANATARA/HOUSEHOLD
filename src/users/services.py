@@ -29,7 +29,7 @@ class UserCreatorService(BaseService[User]):
     async def _create_user(self) -> User:
         user_dal = AsyncUserDAL(self.db_session)
         try:
-            user = await user_dal.create(self.user_data.model_dump())
+            user = await user_dal.create(User(**self.user_data.model_dump()))
         except IntegrityError:
             raise UserAlreadyExistsError()
         else:

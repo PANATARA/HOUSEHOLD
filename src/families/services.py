@@ -34,7 +34,7 @@ class FamilyCreatorService(BaseService[Family]):
     async def _create_family(self) -> Family:
         family_dal = AsyncFamilyDAL(self.db_session)
         new_family = await family_dal.create(
-            {"name": self.name, "family_admin_id": self.user.id}
+            Family(name=self.name, family_admin_id=self.user.id)
         )
         return new_family
 

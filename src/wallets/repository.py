@@ -255,5 +255,5 @@ class RewardTransactionDAL(BaseDals[RewardTransaction]):
         transaction_type = RewardTransactionENUM.reward_for_chore.value
         raw_data = data.model_dump()
         raw_data.update({"transaction_type": transaction_type})
-        reward_transaction = super().create(raw_data)
+        reward_transaction = super().create(RewardTransaction(**raw_data))
         return reward_transaction

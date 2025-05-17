@@ -11,6 +11,7 @@ from core.get_avatars import update_user_avatars
 from core.permissions import IsAuthenicatedPermission, ProductPermission
 from core.query_depends import get_pagination_params
 from database_connection import get_db
+from products.models import Product
 from products.repository import AsyncProductDAL, ProductDataService
 from products.schemas import (
     CreateNewProductSchema,
@@ -38,7 +39,8 @@ async def create_product(
         fields.update(
             {"seller_id": current_user.id, "family_id": current_user.family_id}
         )
-        new_product = await product_dal.create(fields)
+        new_product = Product(**fields)
+        new_product = await product_dal.create(new_product)
         return ProductFullSchema(
             id=new_product.id,
             name=new_product.name,

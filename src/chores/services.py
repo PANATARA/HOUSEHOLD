@@ -27,13 +27,13 @@ class ChoreCreatorService(BaseService[Chore | list[Chore]]):
             return await chore_dal.create_chores_many(self.family.id, self.data)
         else:
             return await chore_dal.create(
-                fields={
-                    "name": self.data.name,
-                    "description": self.data.description,
-                    "icon": self.data.icon,
-                    "valuation": self.data.valuation,
-                    "family_id": self.family.id,
-                }
+                Chore(
+                    name=self.data.name,
+                    description=self.data.description,
+                    icon=self.data.icon,
+                    valuation=self.data.valuation,
+                    family_id=self.family.id,
+                )
             )
 
 
