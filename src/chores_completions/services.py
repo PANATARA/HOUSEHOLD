@@ -89,7 +89,7 @@ class ApproveChoreCompletion(BaseService[None]):
         chore_completion_dal = AsyncChoreCompletionDAL(db_session=self.db_session)
         await chore_completion_dal.update(
             object_id=self.chore_completion.id,
-            fields={"status": StatusConfirmENUM.approved.value},
+            fields={"status": StatusConfirmENUM.approved},
         )
 
     async def send_reward(self):
