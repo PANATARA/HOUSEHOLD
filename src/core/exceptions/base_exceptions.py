@@ -1,14 +1,18 @@
-class ObjectNotFoundError(Exception):
+class BaseAPIException(Exception):
     pass
 
 
-class ConflictError(Exception):
+class ObjectNotFoundError(BaseAPIException):
     pass
 
 
-class CanNotBeChangedError(Exception):
+class ConflictError(BaseAPIException):
     pass
 
 
-class ImageError(Exception):
+class CanNotBeChangedError(BaseAPIException):
+    pass
+
+
+class ImageError(BaseAPIException):
     pass

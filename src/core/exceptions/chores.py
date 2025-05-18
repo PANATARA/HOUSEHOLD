@@ -1,7 +1,7 @@
-from core.exceptions.base_exceptions import ObjectNotFoundError
+from core.exceptions.base_exceptions import BaseAPIException, ObjectNotFoundError
 
 
-class ChoreError(Exception):
+class ChoreError(BaseAPIException):
     """Base exception for all errors related to chores actions."""
 
     pass

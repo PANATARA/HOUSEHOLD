@@ -1,7 +1,11 @@
-from core.exceptions.base_exceptions import CanNotBeChangedError, ObjectNotFoundError
+from core.exceptions.base_exceptions import (
+    BaseAPIException,
+    CanNotBeChangedError,
+    ObjectNotFoundError,
+)
 
 
-class ChoreCompletionError(Exception):
+class ChoreCompletionError(BaseAPIException):
     """Base exception for all errors related to chore completion actions."""
 
     pass

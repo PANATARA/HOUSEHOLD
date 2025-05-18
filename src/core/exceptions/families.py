@@ -1,7 +1,11 @@
-from core.exceptions.base_exceptions import ConflictError, ObjectNotFoundError
+from core.exceptions.base_exceptions import (
+    BaseAPIException,
+    ConflictError,
+    ObjectNotFoundError,
+)
 
 
-class FamilyError(Exception):
+class FamilyError(BaseAPIException):
     """Base exception for all errors related to family actions."""
 
     pass

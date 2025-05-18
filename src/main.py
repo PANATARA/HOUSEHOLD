@@ -1,8 +1,9 @@
 import logging
 from contextlib import asynccontextmanager
 
+from fastapi.responses import JSONResponse
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.routing import APIRouter
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -13,6 +14,7 @@ from chores_completions.router import router as chores_completions_router
 from chores_confirmations.router import router as chores_confirmations_router
 from config import swagger_ui_settings
 from core.enums import PostgreSQLEnum
+from core.exceptions.base_exceptions import BaseAPIException
 from core.redis_connection import redis_client
 from database_connection import engine
 from families.router import router as families_router
@@ -21,6 +23,7 @@ from users.router import router as user_router
 from wallets.router import router as wallet_router
 
 logger = logging.getLogger(__name__)
+
 
 async def create_enum_if_not_exists(engine: AsyncEngine):
     async with engine.begin() as conn:
@@ -68,6 +71,12 @@ app = FastAPI(
     swagger_ui_parameters=swagger_ui_settings,
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(BaseAPIException)
+async def api_exception_handler(request: Request, exc: BaseAPIException):
+    return JSONResponse(status_code=400, content={"serviceError": str(exc)})
+
 
 # create the instance for the routes
 main_api_router = APIRouter(prefix="/api")

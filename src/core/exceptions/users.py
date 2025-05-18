@@ -1,7 +1,11 @@
-from core.exceptions.base_exceptions import ImageError, ObjectNotFoundError
+from core.exceptions.base_exceptions import (
+    BaseAPIException,
+    ImageError,
+    ObjectNotFoundError,
+)
 
 
-class UserError(Exception):
+class UserError(BaseAPIException):
     """Base exception for all errors related to users actions."""
 
     pass

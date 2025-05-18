@@ -1,7 +1,7 @@
-from core.exceptions.base_exceptions import CanNotBeChangedError
+from core.exceptions.base_exceptions import BaseAPIException, CanNotBeChangedError
 
 
-class ChoreConfirmationError(Exception):
+class ChoreConfirmationError(BaseAPIException):
     """Base exception for all errors related to chore completion actions."""
 
     pass
