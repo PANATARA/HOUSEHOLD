@@ -13,7 +13,6 @@ from core.exceptions.families import (
     UserCannotLeaveFamily,
     UserIsAlreadyFamilyMember,
 )
-from core.exceptions.users import UserNotFoundError
 from core.get_avatars import (
     update_family_avatars,
     update_user_avatars,
@@ -22,6 +21,7 @@ from core.get_avatars import (
 from core.permissions import (
     FamilyInvitePermission,
     FamilyMemberPermission,
+    FamilyUserAccessPermission,
     IsAuthenicatedPermission,
 )
 from core.security import create_jwt_token, get_payload_from_jwt_token
@@ -151,25 +151,14 @@ async def logout_user_from_family(
 )
 async def kick_user_from_family(
     user_id: UUID,
-    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
+    current_user: User = Depends(FamilyUserAccessPermission(only_admin=True)),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():
-        try:
-            user_repo = AsyncUserDAL(async_session)
-            user = await user_repo.get_or_raise(user_id)
-            if user.family_id != current_user.family_id:
-                raise UserNotFoundError
-
-            await LogoutUserFromFamilyService(
-                user=user, db_session=async_session
-            ).run_process()
-
-        except UserNotFoundError as e:
-            return JSONResponse(
-                content={"message": str(e)},
-                status_code=400,
-            )
+        user = await AsyncUserDAL(async_session).get_by_id(user_id)
+        await LogoutUserFromFamilyService(
+            user=user, db_session=async_session
+        ).run_process()
 
     return JSONResponse(
         content={"message": "OK"},
@@ -184,7 +173,7 @@ async def kick_user_from_family(
 )
 async def change_family_admin(
     user_id: UUID,
-    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
+    current_user: User = Depends(FamilyUserAccessPermission(only_admin=True)),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():

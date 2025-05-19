@@ -3,12 +3,18 @@ from logging import getLogger
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.enums import StorageFolderEnum
 from core.exceptions.base_exceptions import ImageError
-from core.exceptions.users import UserError, UserNotFoundError
-from core.get_avatars import update_user_avatars, upload_object_image
-from core.permissions import FamilyMemberPermission, IsAuthenicatedPermission
+from core.exceptions.users import UserError
+from core.get_avatars import AvatarService, update_user_avatars, upload_object_image
+from core.permissions import (
+    FamilyMemberPermission,
+    FamilyUserAccessPermission,
+    IsAuthenicatedPermission,
+)
 from database_connection import get_db
 from metrics import ActivitiesResponse, DateRangeSchema, get_user_activity
 from users.aggregates import MeProfileSchema, UserProfileSchema
@@ -157,6 +163,18 @@ async def me_user_upload_avatar(
 
 
 @router.get(
+    path="/{user_id}/avatar/", summary="Get user's avatar", tags=["Users avatars"]
+)
+async def user_get_avatar(
+    user_id: UUID,
+    current_user: User = Depends(FamilyUserAccessPermission()),
+) -> UserResponseSchema:
+    service = AvatarService(user_id, StorageFolderEnum.users_avatars)
+    avatar_url = await service.run_process()
+    return JSONResponse(content={"avatar_url": avatar_url}, status_code=200)
+
+
+@router.get(
     path="/me/activity",
     summary="Get user's activity statistics",
     tags=["Users statistics"],
@@ -176,20 +194,10 @@ async def me_user_get_activity(
 )
 async def user_get_activity(
     user_id: UUID,
-    current_user: User = Depends(FamilyMemberPermission()),
-    async_session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(FamilyUserAccessPermission()),
 ) -> ActivitiesResponse | None:
-    async with async_session.begin():
-        try:
-            user = await AsyncUserDAL(async_session).get_or_raise(user_id)
-            if user.family_id != current_user.family_id:
-                raise UserNotFoundError()
-        except UserNotFoundError:
-            raise HTTPException(
-                status_code=404, detail={"detail": "User was not found"}
-            )
     interval = get_16_week_range_to_upcoming_sunday()
-    result = await get_user_activity(user_id=user.id, interval=interval)
+    result = await get_user_activity(user_id=user_id, interval=interval)
     return result
 
 
@@ -200,19 +208,11 @@ async def user_get_activity(
 )
 async def get_user_profile(
     user_id: UUID,
-    current_user: User = Depends(IsAuthenicatedPermission()),
+    current_user: User = Depends(FamilyUserAccessPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> UserProfileSchema:
     async with async_session.begin():
-        try:
-            user = await AsyncUserDAL(async_session).get_or_raise(user_id)
-        except UserNotFoundError:
-            raise HTTPException(
-                status_code=404, detail={"detail": "User was not found"}
-            )
-
-    if user.family_id != current_user.family_id:
-        raise HTTPException(status_code=404, detail={"detail": "User was not found"})
+        user = await AsyncUserDAL(async_session).get_by_id(user_id)
 
     result = UserProfileSchema(
         user=UserResponseSchema(
