@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from chores.repository import AsyncChoreDAL
 from chores_completions.models import ChoreCompletion
 from config import PURCHASE_RATE, TRANSFER_RATE
-from core.enums import PeerTransactionENUM
+from core.enums import PeerTransactionENUM, RewardTransactionENUM
 from core.exceptions.wallets import NotEnoughCoins
 from core.services import BaseService
 from core.validators import (
@@ -18,7 +18,7 @@ from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
 from wallets.repository import AsyncWalletDAL, PeerTransactionDAL, RewardTransactionDAL
-from wallets.schemas import CreatePeerTransactionSchema, CreateRewardTransactionSchema
+from wallets.schemas import CreatePeerTransactionSchema
 
 
 @dataclass
@@ -99,14 +99,15 @@ class CoinsRewardService(BaseService[RewardTransaction]):
         await wallet_dal.add_balance(user_id=user_id, amount=amount)
 
     async def _create_transaction_log(self, user_id: UUID, amount: Decimal):
-        data = CreateRewardTransactionSchema(
+        transaction = RewardTransaction(
             detail=self.message,
             coins=amount,
             to_user_id=user_id,
             chore_completion_id=self.chore_completion.id,
+            transaction_type = RewardTransactionENUM.reward_for_chore
         )
         transaction_log_dal = RewardTransactionDAL(self.db_session)
-        return await transaction_log_dal.create_reward_for_chore_transaction(data=data)
+        return await transaction_log_dal.create(transaction)
 
     def get_validators(self):
         return [lambda: validate_chore_completion_is_approved(self.chore_completion)]

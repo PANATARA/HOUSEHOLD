@@ -32,13 +32,6 @@ class CreatePeerTransactionSchema(BaseModel):
     transaction_type: PeerTransactionENUM
 
 
-class CreateRewardTransactionSchema(BaseModel):
-    detail: str
-    coins: Decimal
-    to_user_id: UUID
-    chore_completion_id: UUID
-
-
 class BaseWalletTransaction(BaseModel):
     """ABSTRACT MODEL"""
 

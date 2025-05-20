@@ -14,7 +14,6 @@ from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
 from wallets.schemas import (
-    CreateRewardTransactionSchema,
     PurchaseTransactionSchema,
     RewardTransactionSchema,
     TransferTransactionSchema,
@@ -221,10 +220,3 @@ class PeerTransactionDAL(BaseDals[PeerTransaction]):
 class RewardTransactionDAL(BaseDals[RewardTransaction]):
 
     model = RewardTransaction
-
-    def create_reward_for_chore_transaction(self, data: CreateRewardTransactionSchema):
-        transaction_type = RewardTransactionENUM.reward_for_chore.value
-        raw_data = data.model_dump()
-        raw_data.update({"transaction_type": transaction_type})
-        reward_transaction = super().create(RewardTransaction(**raw_data))
-        return reward_transaction
