@@ -10,7 +10,10 @@ from config import PURCHASE_RATE, TRANSFER_RATE
 from core.enums import PeerTransactionENUM
 from core.exceptions.wallets import NotEnoughCoins
 from core.services import BaseService
-from core.validators import validate_chore_completion_is_approved, validate_user_in_family
+from core.validators import (
+    validate_chore_completion_is_approved,
+    validate_user_in_family,
+)
 from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
@@ -108,6 +111,7 @@ class CoinsRewardService(BaseService[RewardTransaction]):
     def get_validators(self):
         return [lambda: validate_chore_completion_is_approved(self.chore_completion)]
 
+
 @dataclass
 class PeerTransactionService(BaseService[PeerTransaction | None]):
     """
@@ -140,11 +144,12 @@ class PeerTransactionService(BaseService[PeerTransaction | None]):
 
     async def _take_coins(self) -> None:
         wallet_dal = AsyncWalletDAL(self.db_session)
-        result = await wallet_dal.check_and_deduct_balance(
-            user_id=self.from_user.id, amount=self.data.coins
-        )
-        if result is None:
+        user_balance = await wallet_dal.get_user_balance(self.from_user.id)
+        if user_balance < self.data.coins:
             raise NotEnoughCoins()
+        await wallet_dal.update_by_user_id(
+            self.from_user.id, {"balance": user_balance - self.data.coins}
+        )
 
     async def _add_coins(self) -> None:
         if self.data.transaction_type == PeerTransactionENUM.purchase:
