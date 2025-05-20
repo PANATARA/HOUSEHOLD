@@ -87,10 +87,8 @@ class ApproveChoreCompletion(BaseService[None]):
 
     async def change_chore_completion_status(self):
         chore_completion_dal = AsyncChoreCompletionDAL(db_session=self.db_session)
-        await chore_completion_dal.update(
-            object_id=self.chore_completion.id,
-            fields={"status": StatusConfirmENUM.approved},
-        )
+        self.chore_completion.status = StatusConfirmENUM.approved
+        await chore_completion_dal.update(self.chore_completion)
 
     async def send_reward(self):
         service = CoinsRewardService(
@@ -114,10 +112,8 @@ class CancellChoreCompletion(BaseService[None]):
 
     async def change_status_chore_completion(self) -> None:
         chore_completion_dal = AsyncChoreCompletionDAL(db_session=self.db_session)
-        await chore_completion_dal.update(
-            object_id=self.chore_completion.id,
-            fields={"status": StatusConfirmENUM.canceled.value},
-        )
+        self.chore_completion.status = StatusConfirmENUM.canceled
+        await chore_completion_dal.update(self.chore_completion)
 
     def get_validators(self):
         return [lambda: validate_chore_completion_is_changable(self.chore_completion)]

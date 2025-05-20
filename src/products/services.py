@@ -41,7 +41,8 @@ class PurchaseService(BaseService[PeerTransaction | None]):
 
     async def _change_product_activity(self) -> None:
         product_dal = AsyncProductDAL(self.db_session)
-        await product_dal.update(object_id=self.product.id, fields={"is_active": False})
+        self.product.is_active = False
+        await product_dal.update(self.product)
 
     def get_validators(self):
         return [

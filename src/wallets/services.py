@@ -36,7 +36,7 @@ class WalletCreatorService(BaseService[Wallet]):
 
     async def _create_wallet(self) -> Wallet:
         wallet_dal = AsyncWalletDAL(self.db_session)
-        wallet = await wallet_dal.create({"user_id": self.user.id})
+        wallet = await wallet_dal.create(Wallet(user_id=self.user.id))
         return wallet
 
     async def validate(self):
@@ -145,12 +145,11 @@ class PeerTransactionService(BaseService[PeerTransaction | None]):
 
     async def _take_coins(self) -> None:
         wallet_dal = AsyncWalletDAL(self.db_session)
-        user_balance = await wallet_dal.get_user_balance(self.from_user.id)
-        if user_balance < self.data.coins:
+        user_wallet = await wallet_dal.get_by_user_id(self.from_user.id)
+        if user_wallet.balance < self.data.coins:
             raise NotEnoughCoins()
-        await wallet_dal.update_by_user_id(
-            self.from_user.id, {"balance": user_balance - self.data.coins}
-        )
+        user_wallet.balance = user_wallet.balance = self.data.coins
+        await wallet_dal.update(user_wallet)
 
     async def _add_coins(self) -> None:
         if self.data.transaction_type == PeerTransactionENUM.purchase:

@@ -10,6 +10,7 @@ from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from core.base_dals import BaseDals, BaseUserPkDals, DeleteDALMixin
 from core.enums import PeerTransactionENUM, RewardTransactionENUM
+from core.exceptions.wallets import TransactionNotFoundError, WalletNotFoundError
 from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
@@ -22,8 +23,9 @@ from wallets.schemas import (
 )
 
 
-class AsyncWalletDAL(BaseUserPkDals[Wallet], DeleteDALMixin):
+class AsyncWalletDAL(BaseDals[Wallet], BaseUserPkDals[Wallet], DeleteDALMixin):
     model = Wallet
+    not_found_exception = WalletNotFoundError
 
     async def exist_wallet_user(self, user: UUID) -> bool:
         query = select(exists().where(Wallet.user_id == user))
@@ -213,10 +215,10 @@ class TransactionDataService:
 
 
 class PeerTransactionDAL(BaseDals[PeerTransaction]):
-
     model = PeerTransaction
+    not_found_exception = TransactionNotFoundError
 
 
 class RewardTransactionDAL(BaseDals[RewardTransaction]):
-
     model = RewardTransaction
+    not_found_exception = TransactionNotFoundError

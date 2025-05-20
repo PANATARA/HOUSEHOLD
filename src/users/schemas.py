@@ -45,10 +45,3 @@ class UserSettingsResponseSchema(BaseModel):
     app_theme: str
     language: str
     date_of_birth: date
-
-
-class UserSettingsCreateSchema(BaseModel):
-    user_id: UUID
-    app_theme: str
-    language: str
-    date_of_birth: date

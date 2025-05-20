@@ -3,15 +3,19 @@ from uuid import UUID
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import NoResultFound
 
+from core.exceptions.base_exceptions import ObjectNotFoundError
 from core.models import BaseIdTimeStampModel, BaseUserModel
 
 T = TypeVar("T", bound=BaseIdTimeStampModel)
+T_EXE = TypeVar("T_EXE", bound=ObjectNotFoundError)
 T_U = TypeVar("T_U", bound=BaseUserModel)
 
 
 class BaseDal(Generic[T]):
     model: Type[T]
+    not_found_exception: Type[T_EXE]
 
     def __init__(self, db_session: AsyncSession):
         if not hasattr(self, "model"):
@@ -22,10 +26,13 @@ class BaseDal(Generic[T]):
 class BaseDals(BaseDal[T]):
     """Implementation of basic CRU operations"""
 
-    async def get_by_id(self, object_id: UUID) -> T | None:
+    async def get_by_id(self, object_id: UUID) -> T:
         query = select(self.model).where(self.model.id == object_id)
         result = await self.db_session.execute(query)
-        return result.scalar_one_or_none()
+        try:
+            return result.scalar_one()
+        except NoResultFound:
+            raise self.not_found_exception
 
     async def create(self, object: T) -> T:
         self.db_session.add(object)
@@ -33,18 +40,11 @@ class BaseDals(BaseDal[T]):
         await self.db_session.refresh(object)
         return object
 
-    async def update(self, object_id: UUID, fields: dict) -> T | None:
-        obj = await self.get_by_id(object_id)
-
-        if obj is None:
-            return None
-
-        for field, value in fields.items():
-            setattr(obj, field, value)
-
-        self.db_session.add(obj)
+    async def update(self, object: T) -> T:
+        self.db_session.add(object)
         await self.db_session.flush()
-        return obj
+        await self.db_session.refresh(object)
+        return object
 
 
 class DeleteDALMixin:
@@ -81,54 +81,6 @@ class DeleteDALMixin:
         await self.db_session.execute(query)
 
 
-class GetOrRaiseMixin(BaseDal[T]):
-    """
-    Mixin for retrieving a database object or raising an exception if the object is not found.
-
-    This mixin provides the `get_or_raise` method, which performs an SQL query
-    to retrieve an object by a specified field (default: 'id'). If the object
-    is not found, it raises the exception defined in `Meta.not_found_exception`.
-
-    Requirements for the subclass:
-    - Must define a `Meta` class with the following attributes:
-      - `model` (the SQLAlchemy model where the search is performed)
-      - `not_found_exception` (the exception to raise when the object is not found)
-    - Must have a `db_session` attribute to execute queries.
-
-    Example usage:
-
-    ```python
-    class AsyncUserDAL(BaseDals, GetOrRaiseMixin):
-
-        model = User
-        not_found_exception = UserNotFound
-
-    user_dal = AsyncUserDAL(db_session)
-
-    # Retrieve a user by ID or raise an exception
-    user = await user_dal.get_or_raise(user_id)
-
-    # Retrieve a user by email
-    user = await user_dal.get_or_raise("admin@example.com", field_name="email")
-    ```
-    """
-
-    not_found_exception: Type[Exception]
-
-    async def get_or_raise(self, object_id: UUID) -> T:
-        if not hasattr(self, "not_found_exception"):
-            raise AttributeError("Class must define 'not_found_exception' attribute.")
-
-        query = select(self.model).where(self.model.id == object_id)
-        result = await self.db_session.execute(query)
-        object = result.scalar_one_or_none()
-
-        if object is None:
-            raise self.not_found_exception()
-
-        return object
-
-
 class BaseUserPkDals(Generic[T_U]):
     """Implementation of basic CRUD operation"""
 
@@ -143,16 +95,3 @@ class BaseUserPkDals(Generic[T_U]):
         result = await self.db_session.execute(query)
         obj = result.scalar_one_or_none()
         return obj
-
-    async def create(self, fields: dict) -> T_U:
-        obj = self.model(**fields)
-        self.db_session.add(obj)
-        await self.db_session.flush()
-        await self.db_session.refresh(obj)
-        return obj
-
-    async def update_by_user_id(self, user_id: UUID, fields: dict) -> None:
-        query = update(self.model).where(self.model.user_id == user_id).values(**fields)
-        await self.db_session.execute(query)
-        await self.db_session.flush()
-        return None

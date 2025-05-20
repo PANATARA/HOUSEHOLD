@@ -6,11 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
 from chores.schemas import ChoreCreateSchema, ChoreResponseSchema
-from core.base_dals import BaseDals, DeleteDALMixin, GetOrRaiseMixin
+from core.base_dals import BaseDals, DeleteDALMixin
 from core.exceptions.chores import ChoreNotFoundError
 
 
-class AsyncChoreDAL(BaseDals[Chore], GetOrRaiseMixin[Chore], DeleteDALMixin):
+class AsyncChoreDAL(BaseDals[Chore], DeleteDALMixin):
     model = Chore
     not_found_exception = ChoreNotFoundError
 

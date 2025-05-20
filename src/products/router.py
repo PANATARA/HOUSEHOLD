@@ -100,9 +100,6 @@ async def buy_active_products(
     async with async_session.begin():
         try:
             product = await AsyncProductDAL(async_session).get_by_id(product_id)
-            if not product:
-                raise ProductNotFoundError
-
             service = PurchaseService(
                 product=product, user=current_user, db_session=async_session
             )

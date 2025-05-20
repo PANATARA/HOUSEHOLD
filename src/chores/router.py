@@ -70,7 +70,7 @@ async def create_family_chore(
     async_session: AsyncSession = Depends(get_db),
 ) -> ChoreResponseSchema:
     async with async_session.begin():
-        family = await AsyncFamilyDAL(async_session).get_or_raise(
+        family = await AsyncFamilyDAL(async_session).get_by_id(
             current_user.family_id
         )
         creator_service = ChoreCreatorService(

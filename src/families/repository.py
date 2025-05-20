@@ -4,14 +4,14 @@ from uuid import UUID
 from sqlalchemy import and_, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.base_dals import BaseDals, GetOrRaiseMixin
+from core.base_dals import BaseDals
 from core.exceptions.families import FamilyNotFoundError
 from families.models import Family
 from families.schemas import FamilyDetailSchema
 from users.models import User, UserFamilyPermissions
 
 
-class AsyncFamilyDAL(BaseDals[Family], GetOrRaiseMixin[Family]):
+class AsyncFamilyDAL(BaseDals[Family]):
 
     model = Family
     not_found_exception = FamilyNotFoundError

@@ -5,6 +5,7 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.base_dals import BaseDals
+from core.exceptions.products import ProductNotFoundError
 from products.models import Product
 from products.schemas import ProductFullSchema, ProductWithSellerSchema
 from users.models import User
@@ -13,6 +14,7 @@ from users.models import User
 class AsyncProductDAL(BaseDals[Product]):
 
     model = Product
+    not_found_exception = ProductNotFoundError
 
 
 @dataclass

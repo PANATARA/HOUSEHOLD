@@ -12,11 +12,13 @@ async def set_status_chore_confirmation(
     chore_confirmation_id: UUID, status: StatusConfirmENUM, db_session: AsyncSession
 ) -> None:
     chore_confirmation_dal = AsyncChoreConfirmationDAL(db_session)
-    chore_confirmation = await chore_confirmation_dal.update(
-        object_id=chore_confirmation_id, fields={"status": status}
-    )
+
+    chore_confirmation = await chore_confirmation_dal.get_by_id(chore_confirmation_id)
+    chore_confirmation.status = status
+    chore_confirmation = await chore_confirmation_dal.update(chore_confirmation)
+
     chore_completion_dal = AsyncChoreCompletionDAL(db_session=db_session)
-    chore_completion = await chore_completion_dal.get_or_raise(
+    chore_completion = await chore_completion_dal.get_by_id(
         chore_confirmation.chore_completion_id
     )
     if status == StatusConfirmENUM.canceled:

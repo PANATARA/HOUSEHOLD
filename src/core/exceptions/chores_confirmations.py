@@ -1,4 +1,8 @@
-from core.exceptions.base_exceptions import BaseAPIException, CanNotBeChangedError
+from core.exceptions.base_exceptions import (
+    BaseAPIException,
+    CanNotBeChangedError,
+    ObjectNotFoundError,
+)
 
 
 class ChoreConfirmationError(BaseAPIException):
@@ -9,4 +13,9 @@ class ChoreConfirmationError(BaseAPIException):
 
 class ChoreConfiramtionCanNotBeCahnged(ChoreConfirmationError, CanNotBeChangedError):
     def __init__(self, message="The specified chore confirmation can't be cahnged"):
+        super().__init__(message)
+
+
+class ChoreConfiramtionNotFound(ChoreConfirmationError, ObjectNotFoundError):
+    def __init__(self, message="The specified chore confirmation was not found"):
         super().__init__(message)

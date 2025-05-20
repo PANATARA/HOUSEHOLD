@@ -75,13 +75,14 @@ class AddUserToFamilyService(BaseService[Family]):
 
     async def _add_user_to_family(self) -> None:
         user_dal = AsyncUserDAL(self.db_session)
-        await user_dal.update(self.user.id, {"family_id": self.family.id})
+        self.user.family_id = self.family.id
+        await user_dal.update(self.user)
 
     async def _create_permissions(self, fields: dict) -> UserFamilyPermissions:
         perm_dal = AsyncUserFamilyPermissionsDAL(self.db_session)
         fields = self.permissions.model_dump()
         fields["user_id"] = self.user.id
-        return await perm_dal.create(fields)
+        return await perm_dal.create(UserFamilyPermissions(**fields))
 
     async def _create_user_wallet(self) -> Wallet:
         user_wallet = WalletCreatorService(self.user, self.db_session)
@@ -105,7 +106,8 @@ class LogoutUserFromFamilyService(BaseService[None]):
 
     async def _update_user_field(self) -> None:
         user_dal = AsyncUserDAL(self.db_session)
-        await user_dal.update(self.user.id, {"family_id": None})
+        self.user.family_id = None
+        await user_dal.update(self.user)
 
     async def _delete_user_permissions(self) -> None:
         permissions_repo = AsyncUserFamilyPermissionsDAL(self.db_session)

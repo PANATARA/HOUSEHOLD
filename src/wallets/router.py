@@ -50,7 +50,7 @@ async def money_transfer_wallet(
     async with async_session.begin():
         try:
             user_dal = AsyncUserDAL(async_session)
-            to_user = await user_dal.get_or_raise(body.to_user_id)
+            to_user = await user_dal.get_by_id(body.to_user_id)
 
             transfer_service = CoinsTransferService(
                 from_user=current_user,

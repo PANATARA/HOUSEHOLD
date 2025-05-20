@@ -14,13 +14,13 @@ from chores_completions.schemas import (
     ChoreCompletionResponseSchema,
 )
 from chores_confirmations.models import ChoreConfirmation
-from core.base_dals import BaseDals, GetOrRaiseMixin
+from core.base_dals import BaseDals
 from core.enums import StatusConfirmENUM
 from core.exceptions.chores_completion import ChoreCompletionNotFoundError
 from users.models import User
 
 
-class AsyncChoreCompletionDAL(BaseDals[ChoreCompletion], GetOrRaiseMixin):
+class AsyncChoreCompletionDAL(BaseDals[ChoreCompletion]):
     model = ChoreCompletion
     not_found_exception = ChoreCompletionNotFoundError
 

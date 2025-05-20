@@ -67,7 +67,7 @@ async def refresh_access_token(
 
     async with db.begin():
         try:
-            user = await AsyncUserDAL(db).get_or_raise(object_id=user_id)
+            user = await AsyncUserDAL(db).get_by_id(object_id=user_id)
             family_dal = AsyncFamilyDAL(db_session=db)
             user_is_family_admin = await family_dal.user_is_family_admin(
                 user_id=user.id, family_id=user.family_id

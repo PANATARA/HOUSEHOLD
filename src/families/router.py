@@ -9,7 +9,6 @@ from starlette import status
 
 from core.exceptions.base_exceptions import ImageError
 from core.exceptions.families import (
-    FamilyNotFoundError,
     UserCannotLeaveFamily,
     UserIsAlreadyFamilyMember,
 )
@@ -178,12 +177,9 @@ async def change_family_admin(
 ) -> JSONResponse:
     async with async_session.begin():
         family_dal = AsyncFamilyDAL(async_session)
-        family_id = current_user.family_id
-        if family_id is None:
-            raise FamilyNotFoundError
-        await family_dal.update(
-            object_id=family_id, fields={"family_admin_id": user_id}
-        )
+        family = await family_dal.get_by_id(current_user.family_id)
+        family.family_admin_id = user_id
+        await family_dal.update(family)
     return JSONResponse(
         content={"detail": "New family administrator appointed"},
         status_code=status.HTTP_200_OK,
@@ -226,7 +222,7 @@ async def join_to_family(
             **{key: payload[key] for key in allowed_fields if key in payload}
         )
         try:
-            family = await AsyncFamilyDAL(async_session).get_or_raise(family_id)
+            family = await AsyncFamilyDAL(async_session).get_by_id(family_id)
             service = AddUserToFamilyService(
                 family=family,
                 user=current_user,

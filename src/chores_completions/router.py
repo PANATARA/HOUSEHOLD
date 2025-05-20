@@ -44,7 +44,7 @@ async def create_chore_completion(
 ) -> Response:
     async with async_session.begin():
         try:
-            chore = await AsyncChoreDAL(async_session).get_or_raise(chore_id)
+            chore = await AsyncChoreDAL(async_session).get_by_id(chore_id)
             creator_service = CreateChoreCompletion(
                 user=current_user,
                 chore=chore,

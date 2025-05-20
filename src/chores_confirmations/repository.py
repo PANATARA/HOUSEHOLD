@@ -10,12 +10,14 @@ from chores_confirmations.models import ChoreConfirmation
 from chores_confirmations.schemas import ChoreConfirmationResponseSchema
 from core.base_dals import BaseDals
 from core.enums import StatusConfirmENUM
+from core.exceptions.chores_confirmations import ChoreConfiramtionNotFound
 from users.models import User
 
 
 class AsyncChoreConfirmationDAL(BaseDals[ChoreConfirmation]):
 
     model = ChoreConfirmation
+    not_found_exception = ChoreConfiramtionNotFound
 
     async def create_many_chore_confirmation(
         self, users_ids: list[UUID], chore_completion_id: UUID

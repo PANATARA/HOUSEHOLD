@@ -12,6 +12,11 @@ class WalletNotFoundError(WalletError, ObjectNotFoundError):
         super().__init__(message)
 
 
+class TransactionNotFoundError(WalletError, ObjectNotFoundError):
+    def __init__(self, message="Transaction was not found"):
+        super().__init__(message)
+
+
 class NotEnoughCoins(WalletError):
     def __init__(self, message="User does not have enough coins for the transaction."):
         super().__init__(message)

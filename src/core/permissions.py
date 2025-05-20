@@ -65,7 +65,7 @@ class IsAuthenicatedPermission(BasePermission):
         if user_id is None:
             raise permission_denided
         user_dal = AsyncUserDAL(async_session)
-        user = await user_dal.get_or_raise(user_id)
+        user = await user_dal.get_by_id(user_id)
 
         return user
 

@@ -9,7 +9,7 @@ from core.exceptions.users import UserAlreadyExistsError
 from core.services import BaseService
 from users.models import User, UserSettings
 from users.repository import AsyncUserDAL, AsyncUserSettingsDAL
-from users.schemas import UserCreateSchema, UserSettingsCreateSchema
+from users.schemas import UserCreateSchema
 
 
 @dataclass
@@ -36,14 +36,11 @@ class UserCreatorService(BaseService[User]):
             return user
 
     async def _create_settings(self, user_id: UUID) -> UserSettings:
-        data = UserSettingsCreateSchema(
+        settings = UserSettings(
             user_id=user_id,
             app_theme="Dark",
             language="ru",
             date_of_birth=date(2001, 1, 1),
         )
         settings_dal = AsyncUserSettingsDAL(self.db_session)
-        return await settings_dal.create(data.model_dump())
-
-    def _set_default_avatar(self) -> None:
-        pass
+        return await settings_dal.create(settings)
