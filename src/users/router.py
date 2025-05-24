@@ -165,12 +165,12 @@ async def me_user_upload_avatar(
 
 
 @router.get(
-    path="/{user_id}/avatar/", summary="Get user's avatar", tags=["Users avatars"]
+    path="/{user_id}/avatar", summary="Get user's avatar", tags=["Users avatars"]
 )
 async def user_get_avatar(
     user_id: UUID,
     current_user: User = Depends(FamilyUserAccessPermission()),
-) -> UserResponseSchema:
+) -> JSONResponse:
     service = AvatarService(user_id, StorageFolderEnum.users_avatars)
     avatar_url = await service.run_process()
     return JSONResponse(content={"avatar_url": avatar_url}, status_code=200)
