@@ -28,7 +28,6 @@ class FamilyCreatorService(BaseService[Family]):
         family = await self._create_family()
         await self._add_user_to_family(family)
         await self._create_default_family_chore(family)
-        self._set_default_avatar()
         return family
 
     async def _create_family(self) -> Family:
@@ -53,9 +52,6 @@ class FamilyCreatorService(BaseService[Family]):
         data = get_default_chore_data()
         default_chores = ChoreCreatorService(family, self.db_session, data)
         return await default_chores.run_process()
-
-    def _set_default_avatar(self) -> None:
-        pass
 
 
 @dataclass

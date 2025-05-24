@@ -23,7 +23,6 @@ class UserCreatorService(BaseService[User]):
         self.user_data.hash_password()
         user = await self._create_user()
         await self._create_settings(user.id)
-        self._set_default_avatar()
         return user
 
     async def _create_user(self) -> User:
