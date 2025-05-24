@@ -38,6 +38,7 @@ class ChoreCompletionDataService:
         limit: int,
         status: StatusConfirmENUM | None,
         chore_id: UUID | None,
+        user_id: UUID | None
     ) -> list[ChoreCompletionResponseSchema]:
         """
         Retrieves a list of chore completion records for a specific family,
@@ -49,7 +50,7 @@ class ChoreCompletionDataService:
             limit (int): The maximum number of records to retrieve.
 
         Returns:
-            list[ChoreCompletionSchema]: A list of `ChoreCompletionSchema` Pydantic models
+            list[ChoreCompletionResponseSchema]: A list of `ChoreCompletionResponseSchema` Pydantic models
             representing the details of the completed chores, including chore information,
             the user who completed it, and the completion status.
         """
@@ -59,6 +60,8 @@ class ChoreCompletionDataService:
             conditions.append(ChoreCompletion.status == status.value)
         if chore_id is not None:
             conditions.append(ChoreCompletion.chore_id == chore_id)
+        if user_id is not None:
+            conditions.append(ChoreCompletion.completed_by_id == user_id)
 
         query = (
             select(

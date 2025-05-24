@@ -71,6 +71,7 @@ async def get_family_chores_completions(
     pagination: tuple[int, int] = Depends(get_pagination_params),
     status: StatusConfirmENUM | None = None,
     chore_id: UUID | None = Query(None),
+    user_id: UUID | None = Query(None),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[ChoreCompletionResponseSchema]:
@@ -78,7 +79,7 @@ async def get_family_chores_completions(
         offset, limit = pagination
         data_service = ChoreCompletionDataService(async_session)
         result_response = await data_service.get_family_chore_completion(
-            current_user.family_id, offset, limit, status, chore_id
+            current_user.family_id, offset, limit, status, chore_id, user_id
         )
         await update_user_avatars(result_response)
         return result_response
