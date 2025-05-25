@@ -16,7 +16,12 @@ from core.permissions import (
     IsAuthenicatedPermission,
 )
 from database_connection import get_db
-from metrics import ActivitiesResponse, DateRangeSchema, get_user_activity
+from metrics import (
+    ActivitiesResponse,
+    DateRangeSchema,
+    get_user_activity,
+    get_user_counts_chores_completions,
+)
 from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
 from users.repository import AsyncUserDAL, UserDataService
@@ -123,7 +128,7 @@ async def me_user_partial_update(
             setattr(current_user, field, value)
 
         user = await user_dal.update(current_user)
-        
+
     result_response = UserResponseSchema(
         id=user.id,
         username=user.username,
@@ -215,7 +220,10 @@ async def get_user_profile(
 ) -> UserProfileSchema:
     async with async_session.begin():
         user = await AsyncUserDAL(async_session).get_by_id(user_id)
-
+    interval = DateRangeSchema(start=None, end=None)
+    user_chore_completion_count = await get_user_counts_chores_completions(
+        user_id, interval
+    )
     result = UserProfileSchema(
         user=UserResponseSchema(
             id=user.id,
@@ -223,6 +231,7 @@ async def get_user_profile(
             name=user.name,
             surname=user.surname,
         ),
+        chore_completion_count=user_chore_completion_count,
     )
     await update_user_avatars(result)
     return result

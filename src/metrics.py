@@ -47,7 +47,6 @@ R = TypeVar("R")
 
 
 class CircuitBreaker:
-
     def __init__(self, max_failures: int, reset_timeout: int):
         self.max_failures = max_failures
         self.reset_timeout = reset_timeout
@@ -171,3 +170,23 @@ async def get_user_activity(
         raw_data = response.json()
         result = ActivitiesResponse(**raw_data)
         return result
+
+
+@circuit_breaker
+async def get_user_counts_chores_completions(
+    user_id: UUID, interval: DateRangeSchema
+) -> int:
+    url = urljoin(METRICS_BACKEND_URL, f"/api/stats/user/{user_id}/counts")
+    query_params = get_time_query_params(interval)
+
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        try:
+            response = await client.get(url, params=query_params)
+            response.raise_for_status()
+        except httpx.RequestError as e:
+            print(f"First request failed: {e}. Retrying...")
+            response = await client.get(url, params=query_params)
+            response.raise_for_status()
+        raw_data = response.json()
+        result = FamilyMember(**raw_data)
+        return result.chores_completions_counts

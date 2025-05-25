@@ -12,5 +12,5 @@ class MeProfileSchema(BaseModel):
 
 class UserProfileSchema(BaseModel):
     user: UserResponseSchema
-    chore_copletion_count: int = 10  # TODO:
+    chore_completion_count: int | None
     chore_confirmed_count: int = 10  # TODO:
