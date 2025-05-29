@@ -89,7 +89,7 @@ class TransactionDataService:
 
     async def get_union_user_transactions(
         self, user_id: UUID, offset: int, limit: int
-    ) -> list[UnionTransactionsSchema]:
+    ) -> UnionTransactionsSchema:
         u = aliased(User)
         p = aliased(Product)
         cc = aliased(ChoreCompletion)
@@ -194,8 +194,13 @@ class TransactionDataService:
             .where(RewardTransaction.to_user_id == user_id)
         )
 
-        union_query = peer_transactions_query.union_all(reward_transactions_query)
-        final_query = union_query.limit(limit).offset(offset)
+        union_query = peer_transactions_query.union_all(reward_transactions_query).subquery()
+        final_query = (
+            select(union_query)
+            .order_by(union_query.c.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
         query_result = await self.db_session.execute(final_query)
         raw_data = query_result.mappings().all()
 
