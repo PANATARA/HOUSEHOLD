@@ -16,12 +16,8 @@ from core.permissions import (
     IsAuthenicatedPermission,
 )
 from database_connection import get_db
-from metrics import (
-    ActivitiesResponse,
-    DateRangeSchema,
-    get_user_activity,
-    get_user_counts_chores_completions,
-)
+from metrics.metrics_client import get_user_activity, get_user_counts_chores_completions
+from metrics.schemas import ActivitiesResponse, DateRangeSchema
 from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
 from users.repository import AsyncUserDAL, UserDataService

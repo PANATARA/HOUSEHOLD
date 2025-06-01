@@ -18,10 +18,8 @@ from core.permissions import (
 )
 from database_connection import get_db
 from families.repository import AsyncFamilyDAL
-from metrics import (
-    DateRangeSchema,
-    get_family_chores_ids_by_total_completions,
-)
+from metrics.metrics_client import get_family_chores_ids_by_total_completions
+from metrics.schemas import DateRangeSchema
 from users.models import User
 
 logger = getLogger(__name__)
@@ -70,9 +68,7 @@ async def create_family_chore(
     async_session: AsyncSession = Depends(get_db),
 ) -> ChoreResponseSchema:
     async with async_session.begin():
-        family = await AsyncFamilyDAL(async_session).get_by_id(
-            current_user.family_id
-        )
+        family = await AsyncFamilyDAL(async_session).get_by_id(current_user.family_id)
         creator_service = ChoreCreatorService(
             family=family,
             db_session=async_session,

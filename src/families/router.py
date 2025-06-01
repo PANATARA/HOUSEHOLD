@@ -38,10 +38,8 @@ from families.services import (
     FamilyCreatorService,
     LogoutUserFromFamilyService,
 )
-from metrics import (
-    DateRangeSchema,
-    get_family_members_ids_by_total_completions,
-)
+from metrics.metrics_client import get_family_members_ids_by_total_completions
+from metrics.schemas import DateRangeSchema
 from users.models import User
 from users.repository import AsyncUserDAL
 from users.schemas import UserFamilyPermissionModelSchema
