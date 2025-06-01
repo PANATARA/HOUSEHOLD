@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from core.enums import StorageFolderEnum
 from core.get_avatars import AvatarService
+from metrics.schemas import UserChoreCompletionCount
 from users.schemas import UserResponseSchema
 
 
@@ -27,9 +28,15 @@ class FamilyResponseSchema(BaseModel):
         ).run_process()
 
 
+class FamilyMetrics(BaseModel):
+    family: None = None
+    members: list[UserChoreCompletionCount] | None = None
+
+
 class FamilyDetailSchema(BaseModel):
     family: FamilyResponseSchema
     members: list[UserResponseSchema]
+    metrics: FamilyMetrics | None = None
 
     def sort_members_by_id(self, members_ids: list[UUID]):
         members_map = {member.id: member for member in self.members}

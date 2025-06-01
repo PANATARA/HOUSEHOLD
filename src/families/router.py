@@ -30,6 +30,7 @@ from families.schemas import (
     FamilyCreateSchema,
     FamilyDetailSchema,
     FamilyInviteSchema,
+    FamilyMetrics,
     FamilyResponseSchema,
     InviteTokenSchema,
 )
@@ -87,7 +88,7 @@ async def create_family(
 async def get_my_family(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyDetailSchema | None:
+) -> FamilyDetailSchema:
     async with async_session.begin():
         family_id = current_user.family_id
 
@@ -97,16 +98,16 @@ async def get_my_family(
         await update_user_avatars(family)
 
         interval = DateRangeSchema(
-            start=datetime.now() - timedelta(days=7),
+            start=datetime.now() - timedelta(days=30),
             end=datetime.now(),
         )
-        sorted_members = await get_family_members_ids_by_total_completions(
+        members_metrics = await get_family_members_ids_by_total_completions(
             family_id=family_id, interval=interval
         )
-
-        if sorted_members:
+        family.metrics = FamilyMetrics(members=members_metrics)
+        if members_metrics:
             family.sort_members_by_id(
-                [sorted_members.user_id for sorted_members in sorted_members]
+                [sorted_members.user_id for sorted_members in members_metrics]
             )
 
         return family

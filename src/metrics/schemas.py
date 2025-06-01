@@ -19,7 +19,7 @@ class ChoreItem(BaseModel):
     chores_completions_counts: int
 
 
-class FamilyMember(BaseModel):
+class UserChoreCompletionCount(BaseModel):
     user_id: UUID
     chores_completions_counts: int
 

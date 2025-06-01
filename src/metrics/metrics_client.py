@@ -5,7 +5,7 @@ import httpx
 
 from config import METRICS_BACKEND_URL
 from metrics.circuit_breaker import CircuitBreaker
-from metrics.schemas import ActivitiesResponse, ChoreItem, DateRangeSchema, FamilyMember
+from metrics.schemas import ActivitiesResponse, ChoreItem, DateRangeSchema, UserChoreCompletionCount
 
 
 circuit_breaker = CircuitBreaker(max_failures=5, reset_timeout=15)
@@ -26,7 +26,7 @@ timeout = httpx.Timeout(2.0, connect=2.0)
 @circuit_breaker
 async def get_family_members_ids_by_total_completions(
     family_id: UUID, interval: DateRangeSchema
-) -> list[FamilyMember]:
+) -> list[UserChoreCompletionCount]:
     url = urljoin(METRICS_BACKEND_URL, f"/api/stats/families/{family_id}/members")
     query_params = get_time_query_params(interval)
 
@@ -39,7 +39,7 @@ async def get_family_members_ids_by_total_completions(
             response = await client.get(url, params=query_params)
             response.raise_for_status()
         raw_data = response.json()
-        result = [FamilyMember(**item) for item in raw_data]
+        result = [UserChoreCompletionCount(**item) for item in raw_data]
         return result
 
 
@@ -99,5 +99,5 @@ async def get_user_counts_chores_completions(
             response = await client.get(url, params=query_params)
             response.raise_for_status()
         raw_data = response.json()
-        result = FamilyMember(**raw_data)
+        result = UserChoreCompletionCount(**raw_data)
         return result.chores_completions_counts
