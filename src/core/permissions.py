@@ -307,8 +307,4 @@ class FamilyInvitePermission(BasePermission):
         if user is None:
             raise permission_denided
 
-        user_is_family_admin = token_payload.get("is_family_admin")
-        if not user_is_family_admin:
-            raise permission_denided
-
         return user
