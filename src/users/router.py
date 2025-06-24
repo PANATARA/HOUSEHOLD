@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.enums import StorageFolderEnum
 from core.exceptions.base_exceptions import ImageError
-from core.exceptions.users import UserError
 from core.get_avatars import AvatarService, update_user_avatars, upload_object_image
 from core.permissions import (
     FamilyMemberPermission,
@@ -22,12 +21,10 @@ from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
 from users.repository import AsyncUserDAL, UserDataService
 from users.schemas import (
-    UserCreateSchema,
     UserResponseSchema,
     UserSettingsResponseSchema,
     UserUpdateSchema,
 )
-from users.services import UserCreatorService
 from wallets.repository import AsyncWalletDAL
 from wallets.schemas import WalletBalanceSchema
 
@@ -48,34 +45,6 @@ def get_16_week_range_to_upcoming_sunday() -> DateRangeSchema:
     start_sunday = upcoming_sunday - timedelta(weeks=16)
 
     return DateRangeSchema(start=start_sunday, end=upcoming_sunday)
-
-
-@router.post(
-    path="/me",
-    tags=["Users"],
-    summary="Create new user, user's settings",
-)
-async def create_new_user(
-    body: UserCreateSchema, async_session: AsyncSession = Depends(get_db)
-) -> UserResponseSchema:
-    async with async_session.begin():
-        try:
-            service = UserCreatorService(
-                user_data=body,
-                db_session=async_session,
-            )
-            user = await service.run_process()
-        except UserError as err:
-            raise HTTPException(status_code=400, detail=f"Error: {err}")
-
-    user_response = UserResponseSchema(
-        id=user.id,
-        username=user.username,
-        name=user.name,
-        surname=user.surname,
-    )
-    await update_user_avatars(user_response)
-    return user_response
 
 
 @router.get(path="/me", summary="Get user's full profile information", tags=["Users"])

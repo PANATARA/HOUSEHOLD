@@ -20,6 +20,15 @@ class AsyncUserDAL(BaseDals[User]):
         user = result.fetchone()
         return user[0] if user is not None else None
 
+    async def get_user_by_email(self, email: str) -> User:
+        query = select(User).where(User.email == email)
+        result = await self.db_session.execute(query)
+        user = result.fetchone()
+        if user:
+            return user[0]
+        else:
+            raise self.not_found_exception
+
     async def get_users_where_permission(self, family_id: UUID):
         pass
 

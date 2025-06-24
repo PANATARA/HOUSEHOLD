@@ -12,13 +12,12 @@ class User(Base, BaseIdTimeStampModel):
     __tablename__ = "users"
 
     username: Mapped[str] = mapped_column(String(60), unique=True)
-    name: Mapped[str] = mapped_column(String(50))
-    surname: Mapped[str | None] = mapped_column(String(50))
+    name: Mapped[str | None] = mapped_column(String(50), default=None)
+    surname: Mapped[str | None] = mapped_column(String(50), default=None)
     family_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(column="family.id", ondelete="SET NULL", use_alter=True)
     )
-
-    password: Mapped[str]
+    email: Mapped[str] = mapped_column(String(255), unique=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 

@@ -12,9 +12,13 @@ from core.exceptions.http_exceptions import permission_denided
 from products.models import Product
 from users.models import User, UserFamilyPermissions
 from users.repository import AsyncUserDAL
-from auth.actions import oauth2_scheme
 from core.security import get_payload_from_jwt_token
 from database_connection import get_db
+
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Security
+
+security = HTTPBearer()
 
 
 class BasePermission:
@@ -26,9 +30,10 @@ class BasePermission:
     async def __call__(
         self,
         request: Request,
-        token: str = Depends(oauth2_scheme),
+        credentials: HTTPAuthorizationCredentials = Security(security),
         async_session: AsyncSession = Depends(get_db),
     ) -> User:
+        token = credentials.credentials
         token_payload = get_payload_from_jwt_token(token)
         async with async_session.begin():
             user = await self.get_user_and_check_permission(

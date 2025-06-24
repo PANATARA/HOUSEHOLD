@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ваш код подтверждения</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      font-family: Arial, sans-serif;
+    }
+    .email-container {
+      max-width: 480px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      border-radius: 10px;
+      /* box-shadow: 0 5px 15px rgba(0,0,0,0.1); */
+      padding: 30px;
+      text-align: center;
+    }
+    .email-title {
+      font-size: 20px;
+      color: #333333;
+      margin-bottom: 20px;
+    }
+    .email-code {
+      font-size: 36px;
+      letter-spacing: 8px;
+      font-weight: bold;
+      color: #007BFF;
+      background-color: #f0f8ff;
+      padding: 15px 0;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .email-footer {
+      font-size: 14px;
+      color: #888888;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+      <img src="https://i.pinimg.com/736x/da/6a/84/da6a84ef5fecd50eeb520c2163ca54ad.jpg" alt="Логотип" width="45" height="45" style="display: block;"/>
+      <div style="font-size: 22px; color: #333333; margin-left: 15px; font-weight: bold;">
+        HouseHold
+      </div>
+    </div>
+    <div class="email-title">Привет! Введите этот код, чтобы продолжить вход: </div>
+    <div class="email-code">{{code}}</div>
+    <p style="font-size: 18px;">Этот код действителен в течение 20 минут и может быть использован только один раз. Когда вы вводите этот код, вы также подтверждаете адрес электронной почты, который привязан к вашей учетной записи. </p>
+    <div class="email-footer" style="font-size: 18px;">
+      Если вы не запрашивали этот код, просто проигнорируйте письмо.
+    </div>
+    <p style="font-size: 16px;">Ваш HouseHold</p>
+  </div>
+</body>
+</html>

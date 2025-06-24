@@ -9,26 +9,23 @@ from core.exceptions.users import UserAlreadyExistsError
 from core.services import BaseService
 from users.models import User, UserSettings
 from users.repository import AsyncUserDAL, AsyncUserSettingsDAL
-from users.schemas import UserCreateSchema
 
 
 @dataclass
 class UserCreatorService(BaseService[User]):
-    """Create and return a new Family"""
-
-    user_data: UserCreateSchema
+    email: str
     db_session: AsyncSession
 
     async def process(self) -> User:
-        self.user_data.hash_password()
         user = await self._create_user()
         await self._create_settings(user.id)
         return user
 
     async def _create_user(self) -> User:
         user_dal = AsyncUserDAL(self.db_session)
+        new_user = User(username=self.email.split("@")[0], email=self.email)
         try:
-            user = await user_dal.create(User(**self.user_data.model_dump()))
+            user = await user_dal.create(object=new_user)
         except IntegrityError:
             raise UserAlreadyExistsError()
         else:

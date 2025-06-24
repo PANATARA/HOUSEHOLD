@@ -16,3 +16,4 @@ redis==5.2.1
 mypy==1.15.0
 aioboto3==14.1.0
 gunicorn==23.0.0
+aiosmtplib==4.0.1

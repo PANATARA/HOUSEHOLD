@@ -58,3 +58,7 @@ FAMILY_URL_AVATAR_EXPIRE = 60 * 60 * 24
 
 
 METRICS_BACKEND_URL: str = os.getenv("METRICS_BACKEND_URL", "http://localhost:8080")
+
+
+EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS", "example@ex.com")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "password")
