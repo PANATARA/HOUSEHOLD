@@ -62,3 +62,4 @@ METRICS_BACKEND_URL: str = os.getenv("METRICS_BACKEND_URL", "http://localhost:80
 
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS", "example@ex.com")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "password")
+EMAIL_HOSTNAME = os.getenv("EMAIL_HOSTNAME", "smtp.hostname.ru")

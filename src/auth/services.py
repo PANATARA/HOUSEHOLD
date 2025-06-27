@@ -4,7 +4,7 @@ import aiofiles
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from config import EMAIL_ADDRESS, EMAIL_PASSWORD
+from config import EMAIL_ADDRESS, EMAIL_PASSWORD, EMAIL_HOSTNAME
 
 current_dir = os.path.dirname(__file__)
 template_path = os.path.join(current_dir, "email_template.html")
@@ -27,7 +27,7 @@ async def send_email_secret_code(to_email: str, secret_code: int):
 
     await aiosmtplib.send(
         msg,
-        hostname="smtp.yandex.ru",
+        hostname=EMAIL_HOSTNAME,
         port=465,
         username=email_address,
         password=email_password,

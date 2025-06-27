@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
@@ -23,7 +23,8 @@ class UserCreatorService(BaseService[User]):
 
     async def _create_user(self) -> User:
         user_dal = AsyncUserDAL(self.db_session)
-        new_user = User(username=self.email.split("@")[0], email=self.email)
+        username = self._get_username_by_email(self.email)
+        new_user = User(username=username, email=self.email)
         try:
             user = await user_dal.create(object=new_user)
         except IntegrityError:
@@ -40,3 +41,9 @@ class UserCreatorService(BaseService[User]):
         )
         settings_dal = AsyncUserSettingsDAL(self.db_session)
         return await settings_dal.create(settings)
+
+    def _get_username_by_email(self, email: str) -> str:
+        now = datetime.now()
+        date_str = now.strftime("%Y%m%d")
+        username = email.split("@")[0] + "_" + date_str
+        return username
