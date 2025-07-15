@@ -60,7 +60,7 @@ class ChoreConfirmationDataService:
     db_session: AsyncSession
 
     async def get_user_chore_confirmations(
-        self, user_id: UUID, status: StatusConfirmENUM | None
+        self, user_id: UUID, status: StatusConfirmENUM | None, offset: int, limit: int
     ) -> list[ChoreConfirmationResponseSchema]:
         """
         Fetches the list of chore confirmations for a specific user.
@@ -128,6 +128,8 @@ class ChoreConfirmationDataService:
             .join(Chore, ChoreCompletion.chore_id == Chore.id)
             .join(User, ChoreCompletion.completed_by_id == User.id)
             .where(*conditions)
+            .limit(limit)
+            .offset(offset)
         )
 
         query_result = await self.db_session.execute(query)

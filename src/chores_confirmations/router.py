@@ -15,6 +15,7 @@ from core.enums import StatusConfirmENUM
 from core.exceptions.base_exceptions import CanNotBeChangedError
 from core.get_avatars import update_user_avatars
 from core.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission
+from core.query_depends import get_pagination_params
 from database_connection import get_db
 from users.models import User
 
@@ -29,17 +30,19 @@ router = APIRouter()
     tags=["Chores confiramtions"],
 )
 async def get_my_chores_confirmations(
+    pagination: tuple[int, int] = Depends(get_pagination_params),
     status: StatusConfirmENUM | None = None,  # by default we return all confirmations
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> list[ChoreConfirmationResponseSchema]:
+    offset, limit = pagination
     async with async_session.begin():
         data_service = ChoreConfirmationDataService(db_session=async_session)
         result = await data_service.get_user_chore_confirmations(
-            current_user.id, status
+            current_user.id, status, offset, limit
         )
         await update_user_avatars(result)
-        return result
+    return result
 
 
 @router.patch(
