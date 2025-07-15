@@ -14,7 +14,6 @@ S3_ACCESS_KEY=myS3AccessKey
 S3_SECRET_KEY=myS3SecretKey
 S3_ENDPOINT_URL=https://mys3.endpoint.url
 S3_BUCKET_NAME=household-storage
-METRICS_BACKEND_URL=http://household-metrics.com
 EMAIL_ADDRESS=email@example.ru
 EMAIL_PASSWORD=password
 EMAIL_HOSTNAME=smtp.email.ru

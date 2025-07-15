@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from logging import getLogger
 from uuid import UUID
 
@@ -10,13 +9,10 @@ from core.enums import StorageFolderEnum
 from core.exceptions.base_exceptions import ImageError
 from core.get_avatars import AvatarService, update_user_avatars, upload_object_image
 from core.permissions import (
-    FamilyMemberPermission,
     FamilyUserAccessPermission,
     IsAuthenicatedPermission,
 )
 from database_connection import get_db
-from metrics.metrics_client import get_user_activity, get_user_counts_chores_completions
-from metrics.schemas import ActivitiesResponse, DateRangeSchema
 from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
 from users.repository import AsyncUserDAL, UserDataService
@@ -32,19 +28,6 @@ logger = getLogger(__name__)
 
 
 router = APIRouter()
-
-
-def get_16_week_range_to_upcoming_sunday() -> DateRangeSchema:
-    today = datetime.now()
-
-    days_until_sunday = (6 - today.weekday()) % 7
-    upcoming_sunday = (today + timedelta(days=days_until_sunday)).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-
-    start_sunday = upcoming_sunday - timedelta(weeks=16)
-
-    return DateRangeSchema(start=start_sunday, end=upcoming_sunday)
 
 
 @router.get(path="/me", summary="Get user's full profile information", tags=["Users"])
@@ -147,33 +130,6 @@ async def user_get_avatar(
 
 
 @router.get(
-    path="/me/activity",
-    summary="Get user's activity statistics",
-    tags=["Users statistics"],
-)
-async def me_user_get_activity(
-    current_user: User = Depends(FamilyMemberPermission()),
-) -> ActivitiesResponse | None:
-    interval = get_16_week_range_to_upcoming_sunday()
-    result = await get_user_activity(user_id=current_user.id, interval=interval)
-    return result
-
-
-@router.get(
-    path="/activity/{user_id}",
-    summary="Get user's activity statistics",
-    tags=["Users statistics"],
-)
-async def user_get_activity(
-    user_id: UUID,
-    current_user: User = Depends(FamilyUserAccessPermission()),
-) -> ActivitiesResponse | None:
-    interval = get_16_week_range_to_upcoming_sunday()
-    result = await get_user_activity(user_id=user_id, interval=interval)
-    return result
-
-
-@router.get(
     path="/{user_id}",
     summary="Get user's profile information by user ID",
     tags=["Users"],
@@ -185,10 +141,6 @@ async def get_user_profile(
 ) -> UserProfileSchema:
     async with async_session.begin():
         user = await AsyncUserDAL(async_session).get_by_id(user_id)
-    interval = DateRangeSchema(start=None, end=None)
-    user_chore_completion_count = await get_user_counts_chores_completions(
-        user_id, interval
-    )
     result = UserProfileSchema(
         user=UserResponseSchema(
             id=user.id,
@@ -196,7 +148,6 @@ async def get_user_profile(
             name=user.name,
             surname=user.surname,
         ),
-        chore_completion_count=user_chore_completion_count,
     )
     await update_user_avatars(result)
     return result

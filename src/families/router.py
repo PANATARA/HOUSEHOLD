@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from logging import getLogger
 from uuid import UUID
 
@@ -30,7 +30,6 @@ from families.schemas import (
     FamilyCreateSchema,
     FamilyDetailSchema,
     FamilyInviteSchema,
-    FamilyMetrics,
     FamilyResponseSchema,
     InviteTokenSchema,
 )
@@ -39,8 +38,6 @@ from families.services import (
     FamilyCreatorService,
     LogoutUserFromFamilyService,
 )
-from metrics.metrics_client import get_family_members_ids_by_total_completions
-from metrics.schemas import DateRangeSchema
 from users.models import User
 from users.repository import AsyncUserDAL
 from users.schemas import UserFamilyPermissionModelSchema
@@ -96,20 +93,6 @@ async def get_my_family(
         family = await family_data_service.get_family_with_members(family_id)
         await update_family_avatars(family)
         await update_user_avatars(family)
-
-        interval = DateRangeSchema(
-            start=datetime.now() - timedelta(days=30),
-            end=datetime.now(),
-        )
-        members_metrics = await get_family_members_ids_by_total_completions(
-            family_id=family_id, interval=interval
-        )
-        family.metrics = FamilyMetrics(members=members_metrics)
-        if members_metrics:
-            family.sort_members_by_id(
-                [sorted_members.user_id for sorted_members in members_metrics]
-            )
-
         return family
 
 

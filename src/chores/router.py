@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from logging import getLogger
 from uuid import UUID
 
@@ -18,8 +17,6 @@ from core.permissions import (
 )
 from database_connection import get_db
 from families.repository import AsyncFamilyDAL
-from metrics.metrics_client import get_family_chores_ids_by_total_completions
-from metrics.schemas import DateRangeSchema
 from users.models import User
 
 logger = getLogger(__name__)
@@ -29,7 +26,7 @@ router = APIRouter()
 
 @router.get(
     path="",
-    summary="Get a list of chores for the user's family, optionally limited and sorted by completions in the last 7 days",
+    summary="Get a list of chores for the user's family, optionally limited",
     tags=["Chore"],
 )
 async def get_family_chores(
@@ -42,18 +39,6 @@ async def get_family_chores(
             current_user.family_id, limit=limit
         )
         result_response = ChoresListResponseSchema(chores=family_chores)
-
-        interval = DateRangeSchema(
-            start=datetime.now() - timedelta(days=7),
-            end=datetime.now(),
-        )
-        sorted_chores = await get_family_chores_ids_by_total_completions(
-            current_user.family_id, interval=interval
-        )
-        if sorted_chores:
-            result_response.sort_chores_by_id(
-                [chore.chore_id for chore in sorted_chores]
-            )
         return result_response
 
 
