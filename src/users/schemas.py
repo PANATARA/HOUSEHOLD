@@ -34,3 +34,9 @@ class UserSettingsResponseSchema(BaseModel):
     app_theme: str
     language: str
     date_of_birth: date
+
+
+class UserSettingsUpdateSchema(BaseModel):
+    app_theme: str | None = None
+    language: str | None = None
+    date_of_birth: date | None = None

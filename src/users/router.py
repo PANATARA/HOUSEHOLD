@@ -15,10 +15,11 @@ from core.permissions import (
 from database_connection import get_db
 from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
-from users.repository import AsyncUserDAL, UserDataService
+from users.repository import AsyncUserDAL, AsyncUserSettingsDAL, UserDataService
 from users.schemas import (
     UserResponseSchema,
     UserSettingsResponseSchema,
+    UserSettingsUpdateSchema,
     UserUpdateSchema,
 )
 from wallets.repository import AsyncWalletDAL
@@ -30,7 +31,11 @@ logger = getLogger(__name__)
 router = APIRouter()
 
 
-@router.get(path="/me", summary="Get user's full profile information", tags=["Users"])
+@router.get(
+    path="/me/profile",
+    summary="Get user's full profile information",
+    tags=["Users Profile"],
+)
 async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -63,8 +68,11 @@ async def me_get_user_profile(
     return result_response
 
 
-# Update user
-@router.patch(path="/me", summary="Update user information", tags=["Users"])
+@router.patch(
+    path="/me/profile",
+    summary="Update user's profile information",
+    tags=["Users Profile"],
+)
 async def me_user_partial_update(
     body: UserUpdateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
@@ -95,6 +103,32 @@ async def me_user_get_settings(
     async with async_session.begin():
         data_service = UserDataService(async_session)
         return await data_service.get_user_settings(user_id=current_user.id)
+
+
+@router.patch(
+    path="/me/settings",
+    summary="Update user's settings",
+    tags=["Users settings"],
+)
+async def me_user_settings_partial_update(
+    body: UserSettingsUpdateSchema,
+    current_user: User = Depends(IsAuthenicatedPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> UserSettingsResponseSchema:
+    async with async_session.begin():
+        UserSettingsDal = AsyncUserSettingsDAL(async_session)
+        user_settings = await UserSettingsDal.get_by_user_id(current_user.id)
+        for field, value in body.model_dump(exclude_unset=True).items():
+            setattr(user_settings, field, value)
+
+        user_settings = await UserSettingsDal.update(user_settings)
+
+    result_response = UserSettingsResponseSchema(
+        app_theme=user_settings.app_theme,
+        language=user_settings.language,
+        date_of_birth=user_settings.date_of_birth,
+    )
+    return result_response
 
 
 @router.post(
