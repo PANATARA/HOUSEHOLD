@@ -7,6 +7,7 @@ from wallets.schemas import WalletBalanceSchema
 class MeProfileSchema(BaseModel):
     user: UserResponseSchema
     is_family_member: bool
+    is_profile_complete: bool
     wallet: WalletBalanceSchema | None
 
 

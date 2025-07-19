@@ -62,6 +62,7 @@ async def me_get_user_profile(
     result_response = MeProfileSchema(
         user=user_response,
         is_family_member=bool(current_user.family_id),
+        is_profile_complete=bool(current_user.username) and bool(current_user.surname),
         wallet=wallet_response,
     )
 

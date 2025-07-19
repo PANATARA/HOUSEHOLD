@@ -1,7 +1,7 @@
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from core.enums import StorageFolderEnum
 from core.get_avatars import AvatarService
@@ -10,7 +10,7 @@ from core.get_avatars import AvatarService
 class UserResponseSchema(BaseModel):
     id: UUID
     username: str
-    name: str
+    name: str | None
     surname: str | None
     avatar_url: str | None = None
 
@@ -24,6 +24,13 @@ class UserUpdateSchema(BaseModel):
     username: str | None = None
     name: str | None = None
     surname: str | None = None
+
+    @field_validator("username", "name", "surname", mode="before")
+    @classmethod
+    def field_not_none(cls, value, info):
+        if value is None:
+            raise ValueError(f"{info.field_name} cannot be null")
+        return value
 
 
 class UserFamilyPermissionModelSchema(BaseModel):
