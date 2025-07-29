@@ -13,7 +13,12 @@ from auth.schemas import (
     AuthEmail,
     RefreshToken,
 )
-from config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_MINUTES
+from config import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    MAX_VERIFY_CODE,
+    MIN_VERIFY_CODE,
+    REFRESH_TOKEN_EXPIRE_MINUTES,
+)
 from core.exceptions.users import UserNotFoundError
 from core.security import create_jwt_token, get_payload_from_jwt_token
 from database_connection import get_db
@@ -61,7 +66,7 @@ async def refresh_access_token(
 
 @router.post("/request-code", tags=["Auth"])
 async def send_email_code(body: AuthEmail) -> JSONResponse:
-    secret_code = random.randint(100_000, 999_999)
+    secret_code = random.randint(MIN_VERIFY_CODE, MAX_VERIFY_CODE)
 
     redis = redis_client.get_client()
     await redis.set(body.email, secret_code, ex=300)
@@ -80,6 +85,11 @@ async def post_email_code(
     redis = redis_client.get_client()
     code_from_redis = await redis.get(body.email)
 
+    if code_from_redis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Verify code was not found",
+        )
     if int(code_from_redis) != body.code:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

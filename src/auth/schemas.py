@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+from config import MAX_VERIFY_CODE, MIN_VERIFY_CODE
 
 
 class AccessRefreshTokens(BaseModel):
@@ -24,3 +26,9 @@ class AuthEmail(BaseModel):
 class AuthCodeEmail(BaseModel):
     email: str
     code: int
+
+    @field_validator("code")
+    def validate_code(cls, v):
+        if v < MIN_VERIFY_CODE or v > MAX_VERIFY_CODE:
+            raise ValueError("Code must be exactly 6 digits")
+        return v
