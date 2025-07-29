@@ -103,11 +103,11 @@ async def upload_object_image(object: User | Family, file: UploadFile) -> Presig
 
     if content_type not in ALLOWED_CONTENT_TYPES:
         raise NotAllowdedContentTypes(
-            message=f"Format Error: {file.content_type}. Allowed content types: JPEG, PNG, WebP."
+            message=f"Format Error: {file.content_type}. Allowed content types: JPEG, PNG, WebP, GIF."
         )
 
     object_image = await file.read()
-    if len(object_image) > 1_048_576:  # TODO: increase file size
+    if len(object_image) > 15_728_640:
         raise ImageSizeTooLargeError(
             message=f"Image size too large: {len(object_image)} bytes"
         )

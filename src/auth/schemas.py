@@ -8,6 +8,7 @@ class AccessRefreshTokens(BaseModel):
     refresh_token: str
     token_type: str
     is_new_user: bool
+    is_family_member: bool
 
 
 class RefreshToken(BaseModel):

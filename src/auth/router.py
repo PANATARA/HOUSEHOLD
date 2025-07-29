@@ -130,6 +130,7 @@ async def post_email_code(
         refresh_token=refresh_token,
         token_type="bearer",
         is_new_user=is_new_user,
+        is_family_member=bool(user.family_id)
     )
 
 
@@ -175,4 +176,5 @@ async def debug_auth_by_email(
         refresh_token=refresh_token,
         token_type="bearer",
         is_new_user=False,
+        is_family_member=bool(user.family_id)
     )
