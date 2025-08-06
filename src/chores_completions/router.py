@@ -15,7 +15,6 @@ from chores_completions.schemas import (
 from chores_completions.services import CreateChoreCompletion
 from core.enums import StatusConfirmENUM
 from core.exceptions.chores import ChoreNotFoundError
-from core.get_avatars import update_user_avatars
 from core.permissions import (
     ChoreCompletionPermission,
     ChorePermission,
@@ -81,7 +80,6 @@ async def get_family_chores_completions(
         result_response = await data_service.get_family_chore_completion(
             current_user.family_id, offset, limit, status, chore_id, user_id
         )
-        await update_user_avatars(result_response)
         return result_response
 
 
@@ -101,5 +99,4 @@ async def get_family_chore_completion_detail(
         result_response = await data_service.get_family_chore_completion_detail(
             chore_completion_id
         )
-        await update_user_avatars(result_response)
         return result_response

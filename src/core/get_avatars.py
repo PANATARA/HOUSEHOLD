@@ -22,19 +22,6 @@ from families.models import Family
 from users.models import User
 
 
-async def update_user_avatars(data):
-    from users.schemas import UserResponseSchema
-
-    if isinstance(data, UserResponseSchema):
-        await data.set_avatar_url()
-    if isinstance(data, list):
-        await asyncio.gather(*(update_user_avatars(item) for item in data))
-    elif isinstance(data, BaseModel):
-        await asyncio.gather(
-            *(update_user_avatars(getattr(data, field)) for field in data.model_fields)
-        )
-
-
 async def update_family_avatars(data):
     from families.schemas import FamilyResponseSchema
 
@@ -63,7 +50,6 @@ class AvatarService(BaseService[str | None]):
         if url == "no_avatar":
             return None
         if url is None:
-
             url = await self.get_url_from_s3_storage()
 
             if url is None:

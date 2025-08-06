@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions.base_exceptions import ObjectNotFoundError
 from core.exceptions.wallets import NotEnoughCoins
-from core.get_avatars import update_user_avatars
 from core.permissions import FamilyMemberPermission
 from core.query_depends import get_pagination_params
 from database_connection import get_db
@@ -91,5 +90,4 @@ async def get_user_wallet_transaction(
             offset=offset,
             limit=limit,
         )
-        await update_user_avatars(user_transactions)
         return user_transactions

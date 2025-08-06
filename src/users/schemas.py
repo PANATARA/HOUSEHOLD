@@ -3,21 +3,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
-from core.enums import StorageFolderEnum
-from core.get_avatars import AvatarService
-
 
 class UserResponseSchema(BaseModel):
     id: UUID
     username: str
     name: str | None
     surname: str | None
-    avatar_url: str | None = None
-
-    async def set_avatar_url(self) -> None:
-        self.avatar_url = await AvatarService(
-            self.id, StorageFolderEnum.users_avatars
-        ).run_process()
 
 
 class UserUpdateSchema(BaseModel):

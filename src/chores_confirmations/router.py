@@ -13,7 +13,6 @@ from chores_confirmations.schemas import (
 from chores_confirmations.services import set_status_chore_confirmation
 from core.enums import StatusConfirmENUM
 from core.exceptions.base_exceptions import CanNotBeChangedError
-from core.get_avatars import update_user_avatars
 from core.permissions import ChoreConfirmationPermission, IsAuthenicatedPermission
 from core.query_depends import get_pagination_params
 from database_connection import get_db
@@ -41,7 +40,6 @@ async def get_my_chores_confirmations(
         result = await data_service.get_user_chore_confirmations(
             current_user.id, status, offset, limit
         )
-        await update_user_avatars(result)
     return result
 
 

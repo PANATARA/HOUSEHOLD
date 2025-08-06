@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.enums import StorageFolderEnum
 from core.exceptions.base_exceptions import ImageError
-from core.get_avatars import AvatarService, update_user_avatars, upload_object_image
+from core.get_avatars import AvatarService, upload_object_image
 from core.permissions import (
     FamilyUserAccessPermission,
     IsAuthenicatedPermission,
@@ -49,7 +49,6 @@ async def me_get_user_profile(
         name=current_user.name,
         surname=current_user.surname,
     )
-    await update_user_avatars(user_response)
 
     wallet_response = (
         WalletBalanceSchema(
@@ -92,7 +91,6 @@ async def me_user_partial_update(
         name=user.name,
         surname=user.surname,
     )
-    await update_user_avatars(result_response)
     return result_response
 
 
@@ -184,5 +182,4 @@ async def get_user_profile(
             surname=user.surname,
         ),
     )
-    await update_user_avatars(result)
     return result
