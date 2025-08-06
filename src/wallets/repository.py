@@ -194,7 +194,9 @@ class TransactionDataService:
             .where(RewardTransaction.to_user_id == user_id)
         )
 
-        union_query = peer_transactions_query.union_all(reward_transactions_query).subquery()
+        union_query = peer_transactions_query.union_all(
+            reward_transactions_query
+        ).subquery()
         final_query = (
             select(union_query)
             .order_by(union_query.c.created_at.desc())

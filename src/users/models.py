@@ -4,8 +4,7 @@ from datetime import date
 from sqlalchemy import Boolean, Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from core.models import BaseIdTimeStampModel, OneToOneUserModel
-from core.models import Base
+from core.models import Base, BaseIdTimeStampModel, OneToOneUserModel
 
 
 class User(Base, BaseIdTimeStampModel):

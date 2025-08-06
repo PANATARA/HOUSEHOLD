@@ -3,9 +3,8 @@ import uuid
 from sqlalchemy import Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.models import BaseUserModel
 from core.enums import StatusConfirmENUM
-from core.models import Base
+from core.models import Base, BaseUserModel
 
 
 class ChoreConfirmation(Base, BaseUserModel):

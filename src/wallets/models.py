@@ -3,12 +3,11 @@ import uuid
 from sqlalchemy import DECIMAL, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.models import BaseIdTimeStampModel, OneToOneUserModel
 from core.enums import (
     PeerTransactionENUM,
     RewardTransactionENUM,
 )
-from core.models import Base
+from core.models import Base, BaseIdTimeStampModel, OneToOneUserModel
 
 
 class Wallet(Base, OneToOneUserModel):

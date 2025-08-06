@@ -4,9 +4,8 @@ from pydantic import BaseModel
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.models import BaseIdTimeStampModel
 from core.enums import StatusConfirmENUM
-from core.models import Base
+from core.models import Base, BaseIdTimeStampModel
 
 
 class ChoreCompletion(Base, BaseIdTimeStampModel):

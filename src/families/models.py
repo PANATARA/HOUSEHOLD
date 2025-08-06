@@ -3,8 +3,7 @@ import uuid
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.models import BaseIdTimeStampModel
-from core.models import Base
+from core.models import Base, BaseIdTimeStampModel
 
 
 class Family(Base, BaseIdTimeStampModel):

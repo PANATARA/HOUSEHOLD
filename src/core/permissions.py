@@ -1,6 +1,7 @@
 from typing import Any
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
@@ -9,14 +10,11 @@ from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from chores_confirmations.models import ChoreConfirmation
 from core.exceptions.http_exceptions import permission_denided
+from core.security import get_payload_from_jwt_token
+from database_connection import get_db
 from products.models import Product
 from users.models import User, UserFamilyPermissions
 from users.repository import AsyncUserDAL
-from core.security import get_payload_from_jwt_token
-from database_connection import get_db
-
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from fastapi import Security
 
 security = HTTPBearer()
 

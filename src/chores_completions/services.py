@@ -49,9 +49,7 @@ class CreateChoreCompletion(BaseService[ChoreCompletion]):
             chore_id=self.chore.id,
             status=status,
         )
-        chore_completion = await chore_completion_dal.create(
-            chore_completion
-        )
+        chore_completion = await chore_completion_dal.create(chore_completion)
         return chore_completion
 
     async def _get_users_should_confirm_chore_completion(self) -> list[UUID] | None:

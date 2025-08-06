@@ -38,7 +38,7 @@ class ChoreCompletionDataService:
         limit: int,
         status: StatusConfirmENUM | None,
         chore_id: UUID | None,
-        user_id: UUID | None
+        user_id: UUID | None,
     ) -> list[ChoreCompletionResponseSchema]:
         """
         Retrieves a list of chore completion records for a specific family,

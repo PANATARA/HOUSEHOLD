@@ -1,6 +1,6 @@
 import asyncio
-from datetime import timedelta
 import random
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -13,6 +13,7 @@ from auth.schemas import (
     AuthEmail,
     RefreshToken,
 )
+from auth.services import send_email_secret_code
 from config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     MAX_VERIFY_CODE,
@@ -20,12 +21,11 @@ from config import (
     REFRESH_TOKEN_EXPIRE_MINUTES,
 )
 from core.exceptions.users import UserNotFoundError
+from core.redis_connection import redis_client
 from core.security import create_jwt_token, get_payload_from_jwt_token
 from database_connection import get_db
 from families.repository import AsyncFamilyDAL
 from users.repository import AsyncUserDAL
-from core.redis_connection import redis_client
-from auth.services import send_email_secret_code
 from users.services import UserCreatorService
 
 router = APIRouter()
@@ -130,7 +130,7 @@ async def post_email_code(
         refresh_token=refresh_token,
         token_type="bearer",
         is_new_user=is_new_user,
-        is_family_member=bool(user.family_id)
+        is_family_member=bool(user.family_id),
     )
 
 
@@ -176,5 +176,5 @@ async def debug_auth_by_email(
         refresh_token=refresh_token,
         token_type="bearer",
         is_new_user=False,
-        is_family_member=bool(user.family_id)
+        is_family_member=bool(user.family_id),
     )

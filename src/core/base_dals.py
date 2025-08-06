@@ -2,8 +2,8 @@ from typing import Generic, Type, TypeVar
 from uuid import UUID
 
 from sqlalchemy import delete, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions.base_exceptions import ObjectNotFoundError
 from core.models import BaseIdTimeStampModel, BaseUserModel

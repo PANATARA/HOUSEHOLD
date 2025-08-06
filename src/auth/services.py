@@ -1,10 +1,11 @@
 import os
-import aiosmtplib
-import aiofiles
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
-from config import EMAIL_ADDRESS, EMAIL_PASSWORD, EMAIL_HOSTNAME
+import aiofiles
+import aiosmtplib
+
+from config import EMAIL_ADDRESS, EMAIL_HOSTNAME, EMAIL_PASSWORD
 
 current_dir = os.path.dirname(__file__)
 template_path = os.path.join(current_dir, "email_template.html")

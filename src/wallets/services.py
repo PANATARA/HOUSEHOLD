@@ -104,7 +104,7 @@ class CoinsRewardService(BaseService[RewardTransaction]):
             coins=amount,
             to_user_id=user_id,
             chore_completion_id=self.chore_completion.id,
-            transaction_type = RewardTransactionENUM.reward_for_chore
+            transaction_type=RewardTransactionENUM.reward_for_chore,
         )
         transaction_log_dal = RewardTransactionDAL(self.db_session)
         return await transaction_log_dal.create(transaction)
