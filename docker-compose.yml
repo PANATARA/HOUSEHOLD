@@ -9,6 +9,7 @@ services:
             - ./migrations:/usr/src/app/migrations:cached
             - ./requirements.txt:/usr/src/app/requirements.txt:cached
             - ./alembic.ini:/usr/src/app/alembic.ini:cached
+            - ./uploads:/usr/src/app/uploads  
         env_file:
             - .env
         depends_on:

@@ -3,8 +3,6 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from core.enums import StorageFolderEnum
-from core.get_avatars import AvatarService
 from users.schemas import UserResponseSchema
 
 
@@ -20,11 +18,6 @@ class FamilyResponseSchema(BaseModel):
     name: str
     icon: str
     avatar_url: str | None = None
-
-    async def set_avatar_url(self) -> None:
-        self.avatar_url = await AvatarService(
-            self.id, StorageFolderEnum.family_avatars
-        ).run_process()
 
 
 class FamilyDetailSchema(BaseModel):

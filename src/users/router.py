@@ -1,13 +1,21 @@
 from logging import getLogger
+import mimetypes
+import os
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import UPLOAD_DIR
 from core.enums import StorageFolderEnum
 from core.exceptions.base_exceptions import ImageError
-from core.get_avatars import AvatarService, upload_object_image
+from core.get_avatars import (
+    GetAvatarService,
+    OldGetAvatarService,
+    UploadAvatarService,
+    upload_object_image,
+)
 from core.permissions import (
     FamilyUserAccessPermission,
     IsAuthenicatedPermission,
@@ -130,38 +138,6 @@ async def me_user_settings_partial_update(
     return result_response
 
 
-@router.post(
-    path="me/avatar/file", summary="Upload a new user avatar", tags=["Users avatars"]
-)
-async def me_user_upload_avatar(
-    file: UploadFile = File(...),
-    current_user: User = Depends(IsAuthenicatedPermission()),
-) -> UserResponseSchema:
-    try:
-        avatar_url = await upload_object_image(current_user, file)
-    except ImageError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    return UserResponseSchema(
-        id=current_user.id,
-        username=current_user.username,
-        name=current_user.name,
-        surname=current_user.surname,
-        avatar_url=avatar_url,
-    )
-
-
-@router.get(
-    path="/{user_id}/avatar", summary="Get user's avatar", tags=["Users avatars"]
-)
-async def user_get_avatar(
-    user_id: UUID,
-    current_user: User = Depends(FamilyUserAccessPermission()),
-) -> JSONResponse:
-    service = AvatarService(user_id, StorageFolderEnum.users_avatars)
-    avatar_url = await service.run_process()
-    return JSONResponse(content={"avatar_url": avatar_url}, status_code=200)
-
-
 @router.get(
     path="/{user_id}",
     summary="Get user's profile information by user ID",
@@ -183,3 +159,39 @@ async def get_user_profile(
         ),
     )
     return result
+
+
+@router.post(
+    path="me/avatar/file", summary="Upload a new user avatar", tags=["Users avatars"]
+)
+async def me_user_upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(IsAuthenicatedPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+    async with async_session.begin():
+        service = UploadAvatarService(
+            object=current_user, file=file, db_session=async_session
+        )
+        try:
+            new_avatar_url = await service.run_process()
+        except ImageError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    return JSONResponse(content={"avatar_url": new_avatar_url}, status_code=201)
+
+
+@router.get(
+    path="/{user_id}/avatar",
+    summary="Get user's avatar by user_id",
+    tags=["Users avatars"],
+)
+async def user_get_avatar(
+    user_id: UUID,
+    current_user: User = Depends(FamilyUserAccessPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+    async with async_session.begin():
+        target_user = await AsyncUserDAL(async_session).get_by_id(user_id)
+        service = GetAvatarService(target_user, async_session)
+        avatar_url = await service.run_process()
+    return JSONResponse({"avatar_url": avatar_url})

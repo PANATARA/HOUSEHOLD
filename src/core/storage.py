@@ -1,7 +1,11 @@
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
+import mimetypes
+import os
 from typing import NewType
 
 import aioboto3
+import aiofiles
 from botocore.exceptions import ClientError
 
 from config import (
@@ -40,7 +44,7 @@ class S3Client:
             endpoint_url=self.endpoint_url,
             aws_secret_access_key=self.secret_key,
             aws_access_key_id=self.access_key,
-        ) as client:
+        ) as client:  # type: ignore
             yield client
 
     async def upload_file(
@@ -50,7 +54,6 @@ class S3Client:
         object_key: str,
         folder: StorageFolderEnum,
     ) -> None:
-
         key = f"{folder.value}/{object_key}"
         async with self.get_client() as client:
             await client.put_object(
@@ -65,7 +68,7 @@ class S3Client:
         object_key: str,
         folder: StorageFolderEnum,
         expires_in: int = USER_URL_AVATAR_EXPIRE,
-    ) -> PresignedUrl | None:
+    ) -> PresignedUrl:
         key = f"{folder.value}/{object_key}"
         async with self.get_client() as client:
             try:
@@ -76,11 +79,12 @@ class S3Client:
                     ExpiresIn=expires_in,
                 )
                 return url
-            except ClientError as e:
-                if e.response["Error"]["Code"] == "404":
-                    return None
-                print(f"Error during generation presigned URL: {e}")
-                return None
+            except ClientError:
+                # if e.response["Error"]["Code"] == "404":
+                #     return None
+                # print(f"Error during generation presigned URL: {e}")
+                # return None
+                raise
 
 
 def get_s3_client() -> S3Client:
@@ -90,3 +94,27 @@ def get_s3_client() -> S3Client:
         endpoint_url=S3_ENDPOINT_URL,
         bucket_name=S3_BUCKET_NAME,
     )
+
+
+@dataclass
+class LocalStorageService:
+    file_bytes: bytes
+    filename: str
+    folder_enum: StorageFolderEnum
+    content_type: str
+
+    upload_dir: str = "uploads"
+
+    async def save(self) -> str:
+        extension = mimetypes.guess_extension(self.content_type) or ""
+
+        folder_path = os.path.join(self.upload_dir, self.folder_enum.value)
+        os.makedirs(folder_path, exist_ok=True)
+
+        filename_with_ext = f"{self.filename}{extension}"
+        file_path = os.path.join(folder_path, filename_with_ext)
+
+        async with aiofiles.open(file_path, "wb") as f:
+            await f.write(self.file_bytes)
+
+        return file_path

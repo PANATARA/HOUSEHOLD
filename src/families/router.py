@@ -13,8 +13,8 @@ from core.exceptions.families import (
     UserIsAlreadyFamilyMember,
 )
 from core.get_avatars import (
-    update_family_avatars,
-    upload_object_image,
+    GetAvatarService,
+    UploadAvatarService,
 )
 from core.permissions import (
     FamilyInvitePermission,
@@ -72,7 +72,6 @@ async def create_family(
         else:
             family_data_service = FamilyDataService(async_session)
             family_detail = await family_data_service.get_family_with_members(family.id)
-            await update_family_avatars(family_detail)
             return family_detail
 
 
@@ -90,7 +89,6 @@ async def get_my_family(
 
         family_data_service = FamilyDataService(async_session)
         family = await family_data_service.get_family_with_members(family_id)
-        await update_family_avatars(family)
         return family
 
 
@@ -224,18 +222,36 @@ async def join_to_family(
 @router.post(
     path="/avatar/file/", summary="Upload new family's avatar", tags=["Family avatar"]
 )
-async def upload_user_avatar(
+async def upload_family_avatar(
     file: UploadFile = File(...),
-    current_user: User = Depends(FamilyMemberPermission()),
+    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyResponseSchema:
+) -> JSONResponse:
     async with async_session.begin():
         family = await AsyncFamilyDAL(async_session).get_by_id(current_user.family_id)
+        service = UploadAvatarService(
+            object=family, file=file, db_session=async_session
+        )
+        try:
+            new_avatar_url = await service.run_process()
+        except ImageError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    return JSONResponse({"avatar_url": new_avatar_url})
 
-    try:
-        family_avatar_url = await upload_object_image(family, file)
-    except ImageError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    return FamilyResponseSchema(
-        id=family.id, name=family.name, icon=family.icon, avatar_url=family_avatar_url
-    )
+
+@router.get(
+    path="/avatar",
+    summary="Get family's avatar",
+    tags=["Family avatar"],
+)
+async def get_family_avatar(
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+    async with async_session.begin():
+        target_family = await AsyncFamilyDAL(async_session).get_by_id(
+            current_user.family_id
+        )
+        service = GetAvatarService(target_family, async_session)
+        avatar_url = await service.run_process()
+    return JSONResponse({"avatar_url": avatar_url})

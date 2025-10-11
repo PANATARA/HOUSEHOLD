@@ -1,3 +1,4 @@
+from redis import Redis
 import redis.asyncio as aioredis
 
 from config import REDIS_URL
@@ -40,7 +41,9 @@ class RedisClient(metaclass=Singleton):
         if self.client:
             await self.client.aclose()
 
-    def get_client(self):
+    def get_client(self) -> aioredis.Redis:
+        if self.client is None:
+            raise ConnectionError()
         return self.client
 
 

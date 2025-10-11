@@ -14,11 +14,17 @@ REFRESH_TOKEN_EXPIRE_MINUTES: int = int(
 MIN_VERIFY_CODE = 100_000
 MAX_VERIFY_CODE = 999_999
 
-""" S3 SETTINGS """
+""" S3 AND LOCAL STORAGE SETTINGS """
+USE_S3_STORAGE = False
+
 S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", default="S3_ACCESS_KEY")
 S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", default="S3_SECRET_KEY")
 S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", default="S3_ENDPOINT_URL")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", default="S3_BUCKET_NAME")
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(os.path.dirname(BASE_DIR), "uploads")
+BASE_URL = os.getenv("BASE_URL", default="localhost:8000")
 
 
 """ DATABASE SETTINGS """
@@ -55,8 +61,8 @@ PURCHASE_RATE = Decimal(0.8)
 
 """ MEDIA SETTINGS """
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-USER_URL_AVATAR_EXPIRE = 60 * 60 * 24
-FAMILY_URL_AVATAR_EXPIRE = 60 * 60 * 24
+USER_URL_AVATAR_EXPIRE: int = 60 * 60 * 24
+FAMILY_URL_AVATAR_EXPIRE: int = 60 * 60 * 24
 
 
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS", "example@ex.com")
