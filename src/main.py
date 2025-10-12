@@ -1,8 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-import os
 
-from fastapi.staticfiles import StaticFiles
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -14,7 +12,7 @@ from auth.router import router as auth_router
 from chores.router import router as chores_router
 from chores_completions.router import router as chores_completions_router
 from chores_confirmations.router import router as chores_confirmations_router
-from config import UPLOAD_DIR, swagger_ui_settings
+from config import swagger_ui_settings
 from core.enums import PostgreSQLEnum
 from core.exceptions.base_exceptions import BaseAPIException
 from core.redis_connection import redis_client
@@ -73,9 +71,6 @@ app = FastAPI(
     swagger_ui_parameters=swagger_ui_settings,
     lifespan=lifespan,
 )
-
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
 @app.exception_handler(BaseAPIException)

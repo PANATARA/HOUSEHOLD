@@ -1,7 +1,9 @@
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, computed_field, field_validator
+
+from config import BASE_URL
 
 
 class UserResponseSchema(BaseModel):
@@ -9,6 +11,11 @@ class UserResponseSchema(BaseModel):
     username: str
     name: str | None
     surname: str | None
+
+    @computed_field
+    @property
+    def avatar_url(self) -> str:
+        return f"{BASE_URL}/api/users/{self.id}/avatar"
 
 
 class UserUpdateSchema(BaseModel):

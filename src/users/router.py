@@ -1,20 +1,15 @@
 from logging import getLogger
-import mimetypes
-import os
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import UPLOAD_DIR
-from core.enums import StorageFolderEnum
+from config import USE_S3_STORAGE
 from core.exceptions.base_exceptions import ImageError
 from core.get_avatars import (
     GetAvatarService,
-    OldGetAvatarService,
     UploadAvatarService,
-    upload_object_image,
 )
 from core.permissions import (
     FamilyUserAccessPermission,
@@ -184,14 +179,22 @@ async def me_user_upload_avatar(
     path="/{user_id}/avatar",
     summary="Get user's avatar by user_id",
     tags=["Users avatars"],
+    response_model=None,
 )
 async def user_get_avatar(
     user_id: UUID,
     current_user: User = Depends(FamilyUserAccessPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> JSONResponse:
+) -> FileResponse | RedirectResponse:
     async with async_session.begin():
-        target_user = await AsyncUserDAL(async_session).get_by_id(user_id)
-        service = GetAvatarService(target_user, async_session)
-        avatar_url = await service.run_process()
-    return JSONResponse({"avatar_url": avatar_url})
+        service = GetAvatarService(
+            target_kind="User", target_object_id=user_id, db_session=async_session
+        )
+        avatar = await service.run_process()
+
+    if avatar is None:
+        raise HTTPException(status_code=404, detail="User has no avatar")
+    elif USE_S3_STORAGE:
+        return RedirectResponse(url=avatar)
+    else:
+        return FileResponse(avatar)

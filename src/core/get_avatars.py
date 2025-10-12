@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import (
     ALLOWED_CONTENT_TYPES,
-    BASE_URL,
     FAMILY_URL_AVATAR_EXPIRE,
     UPLOAD_DIR,
     USE_S3_STORAGE,
@@ -27,7 +26,9 @@ from core.redis_connection import redis_client
 from core.services import BaseService
 from core.storage import LocalStorageService, PresignedUrl, get_s3_client
 from families.models import Family
+from families.repository import AsyncFamilyDAL
 from users.models import User
+from users.repository import AsyncUserDAL
 
 
 @dataclass
@@ -67,38 +68,51 @@ class OldGetAvatarService(BaseService[str | None]):
 
 @dataclass
 class GetAvatarService(BaseService[str | None]):
-    target_object: User | Family
+    target_kind: str
+    target_object_id: UUID
     db_session: AsyncSession
 
     async def process(self) -> str | None:
-        avatar_key = self.target_object.avatar_key
-        if avatar_key is None:
-            return None
         folder = self.get_folder()
         if USE_S3_STORAGE:
             return await self.get_avatar_from_s3_storage(folder)
         else:
-            return await self.get_avatar_from_local_storage(avatar_key, folder)
+            avatar_key = await self.get_avatar_key()
+            if avatar_key is None:
+                return None
+            return self.get_avatar_from_local_storage(avatar_key, folder)
 
-    async def get_avatar_from_local_storage(
+    async def get_avatar_key(self):
+        if self.target_kind == "User":
+            target_object = await AsyncUserDAL(self.db_session).get_by_id(
+                self.target_object_id
+            )
+        elif self.target_kind == "Family":
+            target_object = await AsyncFamilyDAL(self.db_session).get_by_id(
+                self.target_object_id
+            )
+        else:
+            raise ValueError("Unknown target kind")
+        return target_object.avatar_key
+
+    def get_avatar_from_local_storage(
         self, avatar_key: str, folder: StorageFolderEnum
     ) -> str | None:
         file_path = os.path.join(UPLOAD_DIR, folder.value, avatar_key)
-        print(file_path)
         if not os.path.isfile(file_path):
             return None
-        return f"{BASE_URL}/uploads/{folder.value}/{avatar_key}"
+        return file_path
 
     def get_folder(self) -> StorageFolderEnum:
-        if isinstance(self.target_object, User):
+        if self.target_kind == "User":
             return StorageFolderEnum.users_avatars
-        elif isinstance(self.target_object, Family):
+        elif self.target_kind == "Family":
             return StorageFolderEnum.family_avatars
         else:
-            raise ValueError()
+            raise ValueError("Unknown target kind")
 
     async def get_avatar_from_s3_storage(self, folder: StorageFolderEnum) -> str | None:
-        service = OldGetAvatarService(self.target_object.id, folder)
+        service = OldGetAvatarService(self.target_object_id, folder)
         return await service.run_process()
 
 
@@ -191,39 +205,3 @@ class UploadAvatarService(BaseService[str]):
         self,
     ) -> list[Callable[[], None] | Callable[[], Awaitable[None]]]:
         return [self.validate_content_type, self.validate_size]
-
-
-async def upload_object_image(object: User | Family, file: UploadFile) -> PresignedUrl:
-    key = str(object.id)
-
-    if isinstance(object, User):
-        folder = StorageFolderEnum.users_avatars
-        expire = USER_URL_AVATAR_EXPIRE
-    elif isinstance(object, Family):
-        folder = StorageFolderEnum.family_avatars
-        expire = FAMILY_URL_AVATAR_EXPIRE
-    else:
-        raise ValueError()  # TODO make a suitable exception
-
-    content_type = file.content_type
-
-    if content_type not in ALLOWED_CONTENT_TYPES:
-        raise NotAllowdedContentTypes(
-            message=f"Format Error: {file.content_type}. Allowed content types: JPEG, PNG, WebP, GIF."
-        )
-
-    object_image = await file.read()
-    if len(object_image) > 15_728_640:
-        raise ImageSizeTooLargeError(
-            message=f"Image size too large: {len(object_image)} bytes"
-        )
-
-    s3_client = get_s3_client()
-
-    await s3_client.upload_file(object_image, content_type, key, folder)
-    presigned_url = await s3_client.generate_presigned_url(key, folder)
-
-    redis = redis_client.get_client()
-    await redis.set(key, presigned_url, ex=expire)
-
-    return presigned_url

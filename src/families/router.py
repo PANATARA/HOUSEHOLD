@@ -3,10 +3,11 @@ from logging import getLogger
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from config import USE_S3_STORAGE
 from core.exceptions.base_exceptions import ImageError
 from core.exceptions.families import (
     UserCannotLeaveFamily,
@@ -29,7 +30,6 @@ from families.schemas import (
     FamilyCreateSchema,
     FamilyDetailSchema,
     FamilyInviteSchema,
-    FamilyResponseSchema,
     InviteTokenSchema,
 )
 from families.services import (
@@ -243,15 +243,23 @@ async def upload_family_avatar(
     path="/avatar",
     summary="Get family's avatar",
     tags=["Family avatar"],
+    response_model=None,
 )
-async def get_family_avatar(
+async def family_get_avatar(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> JSONResponse:
+) -> FileResponse | RedirectResponse:
     async with async_session.begin():
-        target_family = await AsyncFamilyDAL(async_session).get_by_id(
-            current_user.family_id
+        service = GetAvatarService(
+            target_kind="Family",
+            target_object_id=current_user.family_id,
+            db_session=async_session,
         )
-        service = GetAvatarService(target_family, async_session)
-        avatar_url = await service.run_process()
-    return JSONResponse({"avatar_url": avatar_url})
+        avatar = await service.run_process()
+
+    if avatar is None:
+        raise HTTPException(status_code=404, detail="no avatar")
+    elif USE_S3_STORAGE:
+        return RedirectResponse(url=avatar)
+    else:
+        return FileResponse(avatar)
