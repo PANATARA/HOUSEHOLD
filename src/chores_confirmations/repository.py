@@ -110,6 +110,8 @@ class ChoreConfirmationDataService:
                         User.name,
                         "surname",
                         User.surname,
+                        "avatar_version",
+                        User.avatar_version,
                     ),
                     "completed_at",
                     ChoreCompletion.created_at,

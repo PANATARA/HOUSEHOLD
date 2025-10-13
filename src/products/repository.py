@@ -60,6 +60,8 @@ class ProductDataService:
                     User.name,
                     "surname",
                     User.surname,
+                    "avatar_version",
+                    User.avatar_version,
                 ).label("seller"),
             )
             .where(

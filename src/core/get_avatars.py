@@ -1,9 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-import hashlib
 import mimetypes
 import os
-import secrets
 from typing import Awaitable
 from uuid import UUID
 
@@ -77,12 +75,12 @@ class GetAvatarService(BaseService[str | None]):
         if USE_S3_STORAGE:
             return await self.get_avatar_from_s3_storage(folder)
         else:
-            avatar_key = await self.get_avatar_key()
-            if avatar_key is None:
+            target_object = await self.get_target_object()
+            if target_object.avatar_version is None:
                 return None
-            return self.get_avatar_from_local_storage(avatar_key, folder)
+            return self.get_avatar_from_local_storage(target_object, folder)
 
-    async def get_avatar_key(self):
+    async def get_target_object(self) -> User | Family:
         if self.target_kind == "User":
             target_object = await AsyncUserDAL(self.db_session).get_by_id(
                 self.target_object_id
@@ -93,12 +91,14 @@ class GetAvatarService(BaseService[str | None]):
             )
         else:
             raise ValueError("Unknown target kind")
-        return target_object.avatar_key
+        return target_object
 
     def get_avatar_from_local_storage(
-        self, avatar_key: str, folder: StorageFolderEnum
+        self, target_object: User | Family, folder: StorageFolderEnum
     ) -> str | None:
-        file_path = os.path.join(UPLOAD_DIR, folder.value, avatar_key)
+        file_path = os.path.join(
+            UPLOAD_DIR, folder.value, f"{str(target_object.id)}{target_object.avatar_extension}"
+        )
         if not os.path.isfile(file_path):
             return None
         return file_path
@@ -118,27 +118,28 @@ class GetAvatarService(BaseService[str | None]):
 
 @dataclass
 class UploadAvatarService(BaseService[str]):
-    object: User | Family
+    target_object: User | Family
     file: UploadFile
     db_session: AsyncSession
 
     async def process(self) -> str:
         folder, expire = self.get_folder_expire()
-        avatar_key = self.generate_avatar_key(self.object.id)
 
         if USE_S3_STORAGE:
             url = await self.upload_to_s3_storage(folder, expire)
         else:
-            url = await self.upload_to_local_storage(avatar_key, folder)
+            url = await self.upload_to_local_storage(folder)
 
-        await self.save_avatar_key_db(avatar_key)
+        await self.save_avatar_version_content_type()
+
         return url
 
     async def upload_to_s3_storage(
         self, folder: StorageFolderEnum, expire: int
     ) -> PresignedUrl:
         s3_client = get_s3_client()
-        object_key = str(self.object.id)
+        object_key = str(self.target_object.id)
+
         await s3_client.upload_file(
             file_obj=self.object_image,
             content_type=self.content_type,  # type: ignore
@@ -150,22 +151,20 @@ class UploadAvatarService(BaseService[str]):
         await redis.set(object_key, presigned_url, ex=expire)
         return presigned_url
 
-    async def upload_to_local_storage(
-        self, filename: str, folder: StorageFolderEnum
-    ) -> str:
+    async def upload_to_local_storage(self, folder: StorageFolderEnum) -> str:
         service = LocalStorageService(
             file_bytes=self.object_image,
-            filename=filename,
+            filename=str(self.target_object.id),
             folder_enum=folder,
             content_type=self.content_type,  # type: ignore
         )
         return await service.save()
 
     def get_folder_expire(self) -> tuple[StorageFolderEnum, int]:
-        if isinstance(self.object, User):
+        if isinstance(self.target_object, User):
             folder = StorageFolderEnum.users_avatars
             expire = USER_URL_AVATAR_EXPIRE
-        elif isinstance(self.object, Family):
+        elif isinstance(self.target_object, Family):
             folder = StorageFolderEnum.family_avatars
             expire = FAMILY_URL_AVATAR_EXPIRE
         else:
@@ -174,16 +173,14 @@ class UploadAvatarService(BaseService[str]):
             )  # TODO make a suitable exception
         return folder, expire
 
-    def generate_avatar_key(self, id: UUID) -> str:
-        salt = secrets.token_bytes(16)
-        data = id.bytes + salt
-        avatar_key = hashlib.sha256(data).hexdigest()
-        return avatar_key
-
-    async def save_avatar_key_db(self, avatar_key: str):
+    async def save_avatar_version_content_type(self):
         extension = mimetypes.guess_extension(self.content_type) or ""  # type: ignore
-        self.object.avatar_key = f"{avatar_key}{extension}"
-        self.db_session.add(self.object)
+        self.target_object.avatar_extension = extension
+        if self.target_object.avatar_version is None:
+            self.target_object.avatar_version = 1
+        else:
+            self.target_object.avatar_version += 1
+        self.db_session.add(self.target_object)
         await self.db_session.commit()
 
     def validate_content_type(self):

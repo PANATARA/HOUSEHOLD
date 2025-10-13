@@ -12,7 +12,6 @@ from users.models import User, UserFamilyPermissions
 
 
 class AsyncFamilyDAL(BaseDals[Family]):
-
     model = Family
     not_found_exception = FamilyNotFoundError
 
@@ -81,6 +80,8 @@ class FamilyDataService:
                         User.name,
                         "surname",
                         User.surname,
+                        "avatar_version",
+                        User.avatar_version,
                     )
                 ).label("members"),
             )

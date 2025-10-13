@@ -1,7 +1,7 @@
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,6 +51,7 @@ async def me_get_user_profile(
         username=current_user.username,
         name=current_user.name,
         surname=current_user.surname,
+        avatar_version=current_user.avatar_version,
     )
 
     wallet_response = (
@@ -93,6 +94,7 @@ async def me_user_partial_update(
         username=user.username,
         name=user.name,
         surname=user.surname,
+        avatar_version=user.avatar_version,
     )
     return result_response
 
@@ -151,6 +153,7 @@ async def get_user_profile(
             username=user.username,
             name=user.name,
             surname=user.surname,
+            avatar_version=user.avatar_version,
         ),
     )
     return result
@@ -166,7 +169,7 @@ async def me_user_upload_avatar(
 ) -> JSONResponse:
     async with async_session.begin():
         service = UploadAvatarService(
-            object=current_user, file=file, db_session=async_session
+            target_object=current_user, file=file, db_session=async_session
         )
         try:
             new_avatar_url = await service.run_process()
@@ -176,13 +179,14 @@ async def me_user_upload_avatar(
 
 
 @router.get(
-    path="/{user_id}/avatar",
+    path="/{user_id}/avatar/{avatar_key}",
     summary="Get user's avatar by user_id",
     tags=["Users avatars"],
     response_model=None,
 )
 async def user_get_avatar(
     user_id: UUID,
+    avatar_version: str | None = Query(None, description="Avatar version"),
     current_user: User = Depends(FamilyUserAccessPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> FileResponse | RedirectResponse:

@@ -230,7 +230,7 @@ async def upload_family_avatar(
     async with async_session.begin():
         family = await AsyncFamilyDAL(async_session).get_by_id(current_user.family_id)
         service = UploadAvatarService(
-            object=family, file=file, db_session=async_session
+            target_object=family, file=file, db_session=async_session
         )
         try:
             new_avatar_url = await service.run_process()

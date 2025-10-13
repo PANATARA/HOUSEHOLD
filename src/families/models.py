@@ -17,7 +17,8 @@ class Family(Base, BaseIdTimeStampModel):
             ondelete="SET NULL",
         )
     )
-    avatar_key: Mapped[str | None] = mapped_column(default=None)
+    avatar_version: Mapped[int | None] = mapped_column(default=None)
+    avatar_extension: Mapped[str | None] = mapped_column(default=None)
 
     def __repr__(self):
         return super().__repr__()

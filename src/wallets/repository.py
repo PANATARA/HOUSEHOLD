@@ -117,6 +117,8 @@ class TransactionDataService:
                     u.name,
                     "surname",
                     u.surname,
+                    "avatar_version",
+                    u.avatar_version,
                 ).label("other_user"),
                 case(
                     (
