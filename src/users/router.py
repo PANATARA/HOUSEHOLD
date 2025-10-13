@@ -179,7 +179,7 @@ async def me_user_upload_avatar(
 
 
 @router.get(
-    path="/{user_id}/avatar/{avatar_version}",
+    path="/{user_id}/avatar",
     summary="Get user's avatar by user_id",
     tags=["Users avatars"],
     response_model=None,
