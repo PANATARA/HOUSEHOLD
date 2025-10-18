@@ -17,6 +17,7 @@ class FamilyResponseSchema(BaseModel):
     id: UUID
     name: str
     icon: str
+    avatar_version: int | None
 
 
 class FamilyDetailSchema(BaseModel):

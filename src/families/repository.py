@@ -69,6 +69,8 @@ class FamilyDataService:
                     Family.name,
                     "icon",
                     Family.icon,
+                    "avatar_version",
+                    Family.avatar_version,
                 ).label("family"),
                 func.json_agg(
                     func.json_build_object(
