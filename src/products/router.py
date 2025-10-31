@@ -61,6 +61,7 @@ async def create_product(
             price=Decimal(new_product.price),
             is_active=new_product.is_active,
             created_at=new_product.created_at,
+            avatar_version=new_product.avatar_version,
         )
 
 
