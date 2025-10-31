@@ -12,6 +12,7 @@ class ProductBaseSchema(BaseModel):
     description: str
     icon: str
     price: Decimal
+    avatar_version: int | None
 
 
 class CreateNewProductSchema(ProductBaseSchema):

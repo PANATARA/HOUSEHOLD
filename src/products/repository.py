@@ -12,7 +12,6 @@ from users.models import User
 
 
 class AsyncProductDAL(BaseDals[Product]):
-
     model = Product
     not_found_exception = ProductNotFoundError
 
@@ -33,6 +32,7 @@ class ProductDataService:
             Product.price,
             Product.is_active,
             Product.created_at,
+            Product.avatar_version,
         ).where(and_(Product.seller_id == user_id, Product.is_active))
         query_result = await self.db_session.execute(query)
         raw_data = query_result.mappings().all()
@@ -51,6 +51,7 @@ class ProductDataService:
                 Product.price,
                 Product.is_active,
                 Product.created_at,
+                Product.avatar_version,
                 func.json_build_object(
                     "id",
                     User.id,
