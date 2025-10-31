@@ -5,6 +5,7 @@ from abc import abstractmethod
 class StorageFolderEnum(enum.Enum):
     users_avatars = "user_avatars"
     family_avatars = "family_avatars"
+    product_avatars = "products_avatars"
 
 
 class PostgreSQLEnum(enum.Enum):

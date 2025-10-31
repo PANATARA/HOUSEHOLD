@@ -2,11 +2,24 @@ from decimal import Decimal
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import USE_S3_STORAGE
+from core.exceptions.base_exceptions import ImageError
 from core.exceptions.products import ProductNotFoundError
 from core.exceptions.wallets import NotEnoughCoins
+from core.get_avatars import GetAvatarService, UploadAvatarService
 from core.permissions import IsAuthenicatedPermission, ProductPermission
 from core.query_depends import get_pagination_params
 from database_connection import get_db
@@ -49,6 +62,55 @@ async def create_product(
             is_active=new_product.is_active,
             created_at=new_product.created_at,
         )
+
+
+@router.post(
+    path="{product_id}/upload/avatar",
+    summary="Upload a new avatar for product",
+    tags=["Products"],
+)
+async def upload_avatar_product(
+    product_id: UUID,
+    file: UploadFile = File(...),
+    current_user: User = Depends((ProductPermission)),
+    async_session: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+    async with async_session.begin():
+        product = await AsyncProductDAL(async_session).get_by_id(product_id)
+        service = UploadAvatarService(
+            target_object=product, file=file, db_session=async_session
+        )
+        try:
+            new_avatar_url = await service.run_process()
+        except ImageError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    return JSONResponse(content={"avatar_url": new_avatar_url}, status_code=201)
+
+
+@router.get(
+    path="/{product_id}/avatar",
+    summary="Get user's avatar by user_id",
+    tags=["Products"],
+    response_model=None,
+)
+async def user_get_avatar(
+    product_id: UUID,
+    avatar_version: str | None = Query(None, description="Avatar version"),
+    current_user: User = Depends(ProductPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> FileResponse | RedirectResponse:
+    async with async_session.begin():
+        service = GetAvatarService(
+            target_kind="Product", target_object_id=product_id, db_session=async_session
+        )
+        avatar = await service.run_process()
+
+    if avatar is None:
+        raise HTTPException(status_code=404, detail="Product has no avatar")
+    elif USE_S3_STORAGE:
+        return RedirectResponse(url=avatar)
+    else:
+        return FileResponse(avatar)
 
 
 # Get a list of user's products

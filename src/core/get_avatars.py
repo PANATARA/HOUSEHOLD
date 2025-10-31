@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import (
     ALLOWED_CONTENT_TYPES,
     FAMILY_URL_AVATAR_EXPIRE,
+    PRODUCT_AVATAR_EXPIRE,
     UPLOAD_DIR,
     USE_S3_STORAGE,
     USER_URL_AVATAR_EXPIRE,
@@ -25,8 +26,27 @@ from core.services import BaseService
 from core.storage import LocalStorageService, PresignedUrl, get_s3_client
 from families.models import Family
 from families.repository import AsyncFamilyDAL
+from products.models import Product
+from products.repository import AsyncProductDAL
 from users.models import User
 from users.repository import AsyncUserDAL
+
+
+def get_folder_expire(
+    target_object: str | User | Family | Product,
+) -> tuple[StorageFolderEnum, int]:
+    if isinstance(target_object, User) or target_object == "User":
+        folder = StorageFolderEnum.users_avatars
+        expire = USER_URL_AVATAR_EXPIRE
+    elif isinstance(target_object, Family) or target_object == "Family":
+        folder = StorageFolderEnum.family_avatars
+        expire = FAMILY_URL_AVATAR_EXPIRE
+    elif isinstance(target_object, Product) or target_object == "Product":
+        folder = StorageFolderEnum.product_avatars
+        expire = PRODUCT_AVATAR_EXPIRE
+    else:
+        raise ValueError("Unsupported object type")  # TODO make a suitable exception
+    return folder, expire
 
 
 @dataclass
@@ -71,7 +91,8 @@ class GetAvatarService(BaseService[str | None]):
     db_session: AsyncSession
 
     async def process(self) -> str | None:
-        folder = self.get_folder()
+        folder, _ = get_folder_expire(self.target_kind)
+
         if USE_S3_STORAGE:
             return await self.get_avatar_from_s3_storage(folder)
         else:
@@ -80,7 +101,7 @@ class GetAvatarService(BaseService[str | None]):
                 return None
             return self.get_avatar_from_local_storage(target_object, folder)
 
-    async def get_target_object(self) -> User | Family:
+    async def get_target_object(self) -> User | Family | Product:
         if self.target_kind == "User":
             target_object = await AsyncUserDAL(self.db_session).get_by_id(
                 self.target_object_id
@@ -89,27 +110,25 @@ class GetAvatarService(BaseService[str | None]):
             target_object = await AsyncFamilyDAL(self.db_session).get_by_id(
                 self.target_object_id
             )
+        elif self.target_kind == "Product":
+            target_object = await AsyncProductDAL(self.db_session).get_by_id(
+                self.target_object_id
+            )
         else:
             raise ValueError("Unknown target kind")
         return target_object
 
     def get_avatar_from_local_storage(
-        self, target_object: User | Family, folder: StorageFolderEnum
+        self, target_object: User | Family | Product, folder: StorageFolderEnum
     ) -> str | None:
         file_path = os.path.join(
-            UPLOAD_DIR, folder.value, f"{str(target_object.id)}{target_object.avatar_extension}"
+            UPLOAD_DIR,
+            folder.value,
+            f"{str(target_object.id)}{target_object.avatar_extension}",
         )
         if not os.path.isfile(file_path):
             return None
         return file_path
-
-    def get_folder(self) -> StorageFolderEnum:
-        if self.target_kind == "User":
-            return StorageFolderEnum.users_avatars
-        elif self.target_kind == "Family":
-            return StorageFolderEnum.family_avatars
-        else:
-            raise ValueError("Unknown target kind")
 
     async def get_avatar_from_s3_storage(self, folder: StorageFolderEnum) -> str | None:
         service = OldGetAvatarService(self.target_object_id, folder)
@@ -118,12 +137,12 @@ class GetAvatarService(BaseService[str | None]):
 
 @dataclass
 class UploadAvatarService(BaseService[str]):
-    target_object: User | Family
+    target_object: User | Family | Product
     file: UploadFile
     db_session: AsyncSession
 
     async def process(self) -> str:
-        folder, expire = self.get_folder_expire()
+        folder, expire = get_folder_expire(self.target_object)
 
         if USE_S3_STORAGE:
             url = await self.upload_to_s3_storage(folder, expire)
@@ -159,19 +178,6 @@ class UploadAvatarService(BaseService[str]):
             content_type=self.content_type,  # type: ignore
         )
         return await service.save()
-
-    def get_folder_expire(self) -> tuple[StorageFolderEnum, int]:
-        if isinstance(self.target_object, User):
-            folder = StorageFolderEnum.users_avatars
-            expire = USER_URL_AVATAR_EXPIRE
-        elif isinstance(self.target_object, Family):
-            folder = StorageFolderEnum.family_avatars
-            expire = FAMILY_URL_AVATAR_EXPIRE
-        else:
-            raise ValueError(
-                "Unsupported object type"
-            )  # TODO make a suitable exception
-        return folder, expire
 
     async def save_avatar_version_content_type(self):
         extension = mimetypes.guess_extension(self.content_type) or ""  # type: ignore

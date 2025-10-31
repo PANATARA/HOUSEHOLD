@@ -63,8 +63,16 @@ PURCHASE_RATE = Decimal(0.8)
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 USER_URL_AVATAR_EXPIRE: int = 60 * 60 * 24
 FAMILY_URL_AVATAR_EXPIRE: int = 60 * 60 * 24
+PRODUCT_AVATAR_EXPIRE: int = 60 * 60 * 24
 
 
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS", "example@ex.com")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "password")
 EMAIL_HOSTNAME = os.getenv("EMAIL_HOSTNAME", "smtp.hostname.ru")
+
+
+""" STATISTICS SETTINGS """
+CLICKHOUSE_HOST: str = os.getenv("CLICKHOUSE_HOST", default="localhost")
+CLICKHOUSE_PORT: int = int(os.getenv("CLICKHOUSE_PORT", default="8123"))
+CLICKHOUSE_USER: str = os.getenv("CLICKHOUSE_USER", default="default")
+CLICKHOUSE_PASSWORD: str = os.getenv("CLICKHOUSE_PASSWORD", default="clickhouse")
