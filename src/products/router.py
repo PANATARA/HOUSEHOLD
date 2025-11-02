@@ -66,7 +66,7 @@ async def create_product(
 
 
 @router.post(
-    path="{product_id}/upload/avatar",
+    path="/{product_id}/upload/avatar",
     summary="Upload a new avatar for product",
     tags=["Products"],
 )
