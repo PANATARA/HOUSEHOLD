@@ -21,6 +21,7 @@ from families.router import router as families_router
 from products.router import router as product_router
 from users.router import router as user_router
 from wallets.router import router as wallet_router
+from statistics.router import router as stats_router
 
 logger = logging.getLogger(__name__)
 
@@ -91,9 +92,8 @@ main_api_router.include_router(
 )
 main_api_router.include_router(chores_router, prefix="/chores")
 main_api_router.include_router(wallet_router, prefix="/wallets")
-
-
 main_api_router.include_router(product_router, prefix="/products")
+main_api_router.include_router(stats_router, prefix="/stats")
 
 app.include_router(main_api_router)
 

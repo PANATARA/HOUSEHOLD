@@ -15,6 +15,9 @@ services:
         depends_on:
             - postgres_db
             - redis
+            - kafka
+            - clickhouse
+            - debezium
         stdin_open: true
         tty: true
         networks:
@@ -47,8 +50,60 @@ services:
             - "6379:6379"
         networks:
             - shared_network
+    kafka:
+        image: bitnami/kafka:latest
+        container_name: kafka
+        environment:
+            - KAFKA_CFG_NODE_ID=1
+            - KAFKA_KRAFT_CLUSTER_ID=PVjHlx7ESeesq55jeB6Efw
+            - KAFKA_CFG_PROCESS_ROLES=controller,broker
+            - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9091
+            - KAFKA_CFG_LISTENERS=PLAINTEXT://:9090,CONTROLLER://:9091,EXTERNAL://:9092
+            - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9090,EXTERNAL://kafka:9092
+            - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+            - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+            - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+        ports:
+            - "9092:9092"
+            - "9090:9090"
+        volumes:
+            - kafka-data-analysis:/bitnami/kafka
+        networks:
+            - shared_network
+    debezium:
+        image: debezium/connect:3.0.0.Final
+        container_name: debezium
+        environment:
+            - BOOTSTRAP_SERVERS=kafka:9092
+            - GROUP_ID=debezium_group
+            - CONFIG_STORAGE_TOPIC=debezium-configs
+            - OFFSET_STORAGE_TOPIC=debezium-offsets
+            - STATUS_STORAGE_TOPIC=debezium-status
+        ports:
+            - "8083:8083"
+        networks:
+            - shared_network
+        depends_on:
+            - kafka
+    clickhouse:
+        image: clickhouse/clickhouse-server:latest
+        container_name: clickhouse-analysis
+        environment:
+            - CLICKHOUSE_DB=${CLICKHOUSE_DB}
+            - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+            - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+        volumes:
+            - clickhouse-data-analysis:/var/lib/clickhouse
+        ports:
+            - "8123:8123"
+        networks:
+            - shared_network
+        depends_on:
+            - kafka
 volumes:
     pgdata:
+    kafka-data-analysis:
+    clickhouse-data-analysis:
 
 networks:
   shared_network:
