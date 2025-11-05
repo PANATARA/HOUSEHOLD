@@ -18,3 +18,4 @@ aioboto3==14.1.0
 gunicorn==23.0.0
 aiosmtplib==4.0.1
 clickhouse-connect==0.8.17
+aio-pika==9.5.7

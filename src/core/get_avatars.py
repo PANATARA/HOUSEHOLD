@@ -21,7 +21,7 @@ from core.exceptions.image_exceptions import (
     ImageSizeTooLargeError,
     NotAllowdedContentTypes,
 )
-from core.redis_connection import redis_client
+from database_connection import redis_client
 from core.services import BaseService
 from core.storage import LocalStorageService, PresignedUrl, get_s3_client
 from families.models import Family
@@ -55,7 +55,7 @@ class OldGetAvatarService(BaseService[str | None]):
     folder: StorageFolderEnum
 
     async def process(self) -> str | None:
-        self.redis = redis_client.get_client()
+        self.redis = await redis_client.get_client()
         url = await self.get_url_from_redis()
 
         if url == "no_avatar":
@@ -166,7 +166,7 @@ class UploadAvatarService(BaseService[str]):
             folder=folder,
         )
         presigned_url = await s3_client.generate_presigned_url(object_key, folder)
-        redis = redis_client.get_client()
+        redis = await redis_client.get_client()
         await redis.set(object_key, presigned_url, ex=expire)
         return presigned_url
 

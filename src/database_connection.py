@@ -1,7 +1,9 @@
+import json
 from typing import AsyncGenerator
 
+import aio_pika
 import redis.asyncio as aioredis
-import clickhouse_connect as ch
+import clickhouse_connect
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -62,40 +64,79 @@ class RedisClient(metaclass=Singleton):
         except Exception as e:
             print(f"Redis Error: {e}")
 
+    async def get_client(self) -> aioredis.Redis:
+        if self.client is None:
+            await self.connect()
+        return self.client
+
     async def close(self):
         if self.client:
             await self.client.aclose()
 
-    def get_client(self) -> aioredis.Redis:
-        if self.client is None:
-            raise ConnectionError()
-        return self.client
 
-
-redis_client = RedisClient(redis_url=config.REDIS_URL)
-
-
-class _ClickHouseClient(metaclass=Singleton):
+class ClickHouseClient(metaclass=Singleton):
     def __init__(self):
-        self.click_house_url = config.CLICKHOUSE_HOST
-        self.CLICKHOUSE_PORT = config.CLICKHOUSE_PORT
-        self.CLICKHOUSE_USER = config.CLICKHOUSE_USER
-        self.CLICKHOUSE_PASSWORD = config.CLICKHOUSE_PASSWORD
-        self._client = None
+        self.host = config.CLICKHOUSE_HOST
+        self.port = config.CLICKHOUSE_PORT
+        self.user = config.CLICKHOUSE_USER
+        self.password = config.CLICKHOUSE_PASSWORD
+        self._client: clickhouse_connect.driver.asyncclient.AsyncClient | None = None
+
+    async def connect(self):
+        if self._client is None:
+            self._client = await clickhouse_connect.get_async_client(
+                host=self.host,
+                port=self.port,
+                username=self.user,
+                password=self.password,
+            )
+            await self._client.query("SELECT 1")
+            print("ClickHouse connected")
 
     async def get_client(self):
         if self._client is None:
-            self._client = await ch.get_async_client(
-                host=self.click_house_url,
-                username=self.CLICKHOUSE_USER,
-                port=self.CLICKHOUSE_PORT,
-                password=self.CLICKHOUSE_PASSWORD,
-            )
+            await self.connect()
         return self._client
 
+    async def close(self):
+        if self._client:
+            await self._client.close()
+            self._client = None
+            print("ClickHouse connection closed")
 
-_click_house_client = _ClickHouseClient()
+
+class RabbitMQClient(metaclass=Singleton):
+    def __init__(self, url: str):
+        self.url = url
+        self.connection = None
+        self.channel = None
+
+    async def connect(self):
+        if not self.connection:
+            self.connection = await aio_pika.connect_robust(self.url)
+            self.channel = await self.connection.channel()
+
+    async def publish(self, message: dict):
+        if not self.connection:
+            await self.connect()
+
+        exchange = await self.channel.get_exchange("clickhouse_exchange")
+
+        await exchange.publish(
+            aio_pika.Message(
+                body=json.dumps(message).encode(),
+                content_type="application/json",
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            ),
+            routing_key="completions",
+        )
+
+    async def close(self):
+        if self.connection:
+            await self.connection.close()
+            print("ClickHouse connection closed")
 
 
-async def get_click_house_client():
-    return await _click_house_client.get_client()
+redis_client = RedisClient(redis_url=config.REDIS_URL)
+clickhouse_client = ClickHouseClient()
+rabbit_client = RabbitMQClient(config.RABBITMQ_URL)

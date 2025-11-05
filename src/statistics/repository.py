@@ -6,7 +6,7 @@ from statistics.schemas import (
     DateRangeSchema,
     UserChoresCountSchema,
 )
-from database_connection import get_click_house_client
+from database_connection import clickhouse_client
 
 
 class ChoreMetricRepository:
@@ -15,7 +15,7 @@ class ChoreMetricRepository:
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> list[UserChoresCountSchema]:
-        async_client = await get_click_house_client()
+        async_client = await clickhouse_client.get_client()
 
         condition, parameters = self.__family_date_condition_parameters(
             family_id, interval
@@ -44,7 +44,7 @@ class ChoreMetricRepository:
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> list[ChoresFamilyCountSchema]:
-        async_client = await get_click_house_client()
+        async_client = await clickhouse_client.get_client()
 
         condition, parameters = self.__family_date_condition_parameters(
             family_id, interval
@@ -73,7 +73,7 @@ class ChoreMetricRepository:
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> dict[date, int]:
-        async_client = await get_click_house_client()
+        async_client = await clickhouse_client.get_client()
 
         condition, parameters = self.__family_date_condition_parameters(
             family_id, interval
@@ -98,7 +98,7 @@ class ChoreMetricRepository:
         completed_by_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> dict[date, int]:
-        async_client = await get_click_house_client()
+        async_client = await clickhouse_client.get_client()
 
         condition, parameters = self.__user_date_condition_parameters(
             completed_by_id, interval
@@ -123,7 +123,7 @@ class ChoreMetricRepository:
         completed_by_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> tuple[UUID, int]:
-        async_client = await get_click_house_client()
+        async_client = await clickhouse_client.get_client()
 
         condition, parameters = self.__user_date_condition_parameters(
             completed_by_id, interval

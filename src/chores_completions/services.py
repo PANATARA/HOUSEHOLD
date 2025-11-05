@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+import json
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from database_connection import rabbit_client
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
 from chores_completions.repository import AsyncChoreCompletionDAL
@@ -81,12 +83,23 @@ class ApproveChoreCompletion(BaseService[None]):
 
     async def process(self) -> None:
         await self.change_chore_completion_status()
+        await self.rabbit_publish()
         await self.send_reward()
 
     async def change_chore_completion_status(self):
         chore_completion_dal = AsyncChoreCompletionDAL(db_session=self.db_session)
         self.chore_completion.status = StatusConfirmENUM.approved
         await chore_completion_dal.update(self.chore_completion)
+
+    async def rabbit_publish(self):
+        message = {
+            "id": str(self.chore_completion.id),
+            "family_id": str(self.chore_completion.family_id),
+            "chore_id": str(self.chore_completion.chore_id),
+            "completed_by_id": str(self.chore_completion.completed_by_id),
+            "created_at": int(self.chore_completion.created_at.timestamp() * 1_000_000),
+        }
+        await rabbit_client.publish(message=message)
 
     async def send_reward(self):
         service = CoinsRewardService(

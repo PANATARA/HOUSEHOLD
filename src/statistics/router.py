@@ -59,6 +59,7 @@ If both start and end dates are missing, the statistics are calculated for all t
 
 @router.get(
     "/families/members",
+    tags=["Statistics"],
     response_model=list[UserChoresCountSchema],
     summary="Get family members' chore completion stats",
     description=f"""
@@ -80,6 +81,7 @@ async def family_members_stats(
 
 @router.get(
     "/families/chores",
+    tags=["Statistics"],
     response_model=list[ChoresFamilyCountSchema],
     summary="Get family chores with number of completions",
     description=f"""
@@ -101,6 +103,7 @@ async def family_chores_stats(
 
 @router.get(
     "/families/heatmap",
+    tags=["Statistics"],
     response_model=UserActivitySchema,
     summary="---",
     description=f"""
@@ -140,7 +143,8 @@ async def family_heatmap(
 
 
 @router.get(
-    "/users/{completed_by_id}/heatmap",
+    "/users/{user_id}/heatmap",
+    tags=["Statistics"],
     response_model=UserActivitySchema,
     summary="Get user's daily activity",
     description=f"""
@@ -183,6 +187,7 @@ async def user_heatmap(
 
 @router.get(
     "/users/{user_id}/completions",
+    tags=["Statistics"],
     response_model=UserChoresCountSchema,
     summary="Returns the total number of completed chores by a specific user",
     description=f"""

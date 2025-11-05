@@ -21,7 +21,7 @@ from config import (
     REFRESH_TOKEN_EXPIRE_MINUTES,
 )
 from core.exceptions.users import UserNotFoundError
-from core.redis_connection import redis_client
+from database_connection import redis_client
 from core.security import create_jwt_token, get_payload_from_jwt_token
 from database_connection import get_db
 from families.repository import AsyncFamilyDAL
@@ -68,7 +68,7 @@ async def refresh_access_token(
 async def send_email_code(body: AuthEmail) -> JSONResponse:
     secret_code = random.randint(MIN_VERIFY_CODE, MAX_VERIFY_CODE)
 
-    redis = redis_client.get_client()
+    redis = await redis_client.get_client()
     await redis.set(body.email, secret_code, ex=300)
 
     asyncio.create_task(
@@ -82,7 +82,7 @@ async def send_email_code(body: AuthEmail) -> JSONResponse:
 async def post_email_code(
     body: AuthCodeEmail, db: AsyncSession = Depends(get_db)
 ) -> AccessRefreshTokens:
-    redis = redis_client.get_client()
+    redis = await redis_client.get_client()
     code_from_redis = await redis.get(body.email)
 
     if code_from_redis is None:

@@ -15,8 +15,7 @@ from chores_confirmations.router import router as chores_confirmations_router
 from config import swagger_ui_settings
 from core.enums import PostgreSQLEnum
 from core.exceptions.base_exceptions import BaseAPIException
-from core.redis_connection import redis_client
-from database_connection import engine
+from database_connection import engine, redis_client, clickhouse_client
 from families.router import router as families_router
 from products.router import router as product_router
 from users.router import router as user_router
@@ -49,13 +48,14 @@ async def create_enum_if_not_exists(engine: AsyncEngine):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        # Checking ENUMs in DB
-        logger.info("🚀 Startup: Checking ENUMs in DB...")
+        logger.info("Startup: Checking ENUMs in DB...")
         await create_enum_if_not_exists(engine)
 
-        # Redis connections
-        logger.info("🚀 Startup: Redis connections...")
+        logger.info("Startup: Redis connections...")
         await redis_client.connect()
+
+        logger.info("Startup: CLickhouse connections...")
+        await clickhouse_client.connect()
 
         yield
     except Exception as e:
@@ -64,6 +64,7 @@ async def lifespan(app: FastAPI):
     finally:
         logger.info("🛑 Shutdown: Closing resources...")
         await redis_client.close()
+        await clickhouse_client.close()
 
 
 # create instance of the app
