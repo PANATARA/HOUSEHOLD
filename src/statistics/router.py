@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 
 from core.permissions import FamilyMemberPermission, FamilyUserAccessPermission
-from statistics.repository import ChoreMetricRepository
+from statistics.repository import StatsRepository, get_statistic_repo
 from statistics.schemas import (
     ActivitySchema,
     ChoresFamilyCountSchema,
@@ -72,8 +72,9 @@ If both start and end dates are missing, the statistics are calculated for all t
 async def family_members_stats(
     current_user: User = Depends(FamilyMemberPermission()),
     interval: DateRangeSchema = Depends(get_date_range),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> list[UserChoresCountSchema]:
-    result = await ChoreMetricRepository().get_family_members_by_chores_completions(
+    result = await statsRepo.get_family_members_by_chores_completions(
         current_user.family_id, interval
     )
     return result
@@ -94,8 +95,9 @@ async def family_members_stats(
 async def family_chores_stats(
     current_user: User = Depends(FamilyMemberPermission()),
     interval: DateRangeSchema = Depends(get_date_range),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> list[ChoresFamilyCountSchema]:
-    result = await ChoreMetricRepository().get_family_chores_by_completions(
+    result = await statsRepo.get_family_chores_by_completions(
         current_user.family_id, interval
     )
     return result
@@ -130,8 +132,9 @@ Results are sorted chronologically.
 async def family_heatmap(
     interval: DateRangeSchema = Depends(get_date_range),
     current_user: User = Depends(FamilyMemberPermission()),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> UserActivitySchema:
-    activity_data = await ChoreMetricRepository().get_family_activity(
+    activity_data = await statsRepo.get_family_heatmap(
         current_user.family_id, interval
     )
     if not activity_data:
@@ -172,8 +175,9 @@ async def user_heatmap(
     user_id: UUID,
     current_user: User = Depends(FamilyUserAccessPermission()),
     interval: DateRangeSchema = Depends(get_date_range),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> UserActivitySchema:
-    activity_data = await ChoreMetricRepository().get_family_member_activity(
+    activity_data = await statsRepo.get_user_heatmap(
         user_id, interval
     )
 
@@ -201,8 +205,9 @@ async def users_chores_counts(
     user_id: UUID,
     current_user: User = Depends(FamilyUserAccessPermission()),
     interval: DateRangeSchema = Depends(get_date_range),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> UserChoresCountSchema:
-    result = await ChoreMetricRepository().get_user_chore_completion_count(
+    result = await statsRepo.get_user_chore_completion_count(
         user_id, interval
     )
     return UserChoresCountSchema(user_id=result[0], chores_completions_counts=result[1])

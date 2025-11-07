@@ -4,6 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import ENABLE_CLICKHOUSE
 from database_connection import rabbit_client
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
@@ -83,7 +84,8 @@ class ApproveChoreCompletion(BaseService[None]):
 
     async def process(self) -> None:
         await self.change_chore_completion_status()
-        await self.rabbit_publish()
+        if ENABLE_CLICKHOUSE:
+            await self.rabbit_publish()
         await self.send_reward()
 
     async def change_chore_completion_status(self):

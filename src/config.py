@@ -72,6 +72,7 @@ EMAIL_HOSTNAME = os.getenv("EMAIL_HOSTNAME", "smtp.hostname.ru")
 
 
 """ STATISTICS SETTINGS """
+ENABLE_CLICKHOUSE: bool = False
 CLICKHOUSE_HOST: str = os.getenv("CLICKHOUSE_HOST", default="localhost")
 CLICKHOUSE_PORT: int = int(os.getenv("CLICKHOUSE_PORT", default="8123"))
 CLICKHOUSE_USER: str = os.getenv("CLICKHOUSE_USER", default="default")
