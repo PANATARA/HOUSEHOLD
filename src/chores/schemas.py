@@ -1,4 +1,3 @@
-from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -8,7 +7,14 @@ class ChoreCreateSchema(BaseModel):
     name: str = Field(max_length=32)
     description: str = Field(max_length=128)
     icon: str = Field(max_length=64)
-    valuation: Decimal
+    valuation: int
+
+
+class ChoreUpdateSchema(BaseModel):
+    name: str | None = Field(default=None, max_length=32)
+    description: str | None = Field(default=None, max_length=128)
+    icon: str | None = Field(default=None, max_length=64)
+    valuation: int | None = None
 
 
 class ChoreResponseSchema(BaseModel):
@@ -16,7 +22,7 @@ class ChoreResponseSchema(BaseModel):
     name: str
     description: str
     icon: str
-    valuation: Decimal
+    valuation: int
 
 
 class ChoresListResponseSchema(BaseModel):

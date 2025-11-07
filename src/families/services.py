@@ -42,7 +42,7 @@ class FamilyCreatorService(BaseService[Family]):
             family=family,
             user=self.user,
             permissions=UserFamilyPermissionModelSchema(
-                should_confirm_chore_completion=True
+                should_confirm_chore_completion=False
             ),
             db_session=self.db_session,
         )

@@ -256,6 +256,10 @@ class ProductPermission(BasePermission):
     Permission that checks if the user has access to a product belonging to their family.
     """
 
+    def __init__(self, only_owner: bool = False):
+        self.only_owner = only_owner
+        super().__init__()
+
     async def get_user_and_check_permission(
         self,
         token_payload: dict[str, Any],
@@ -265,12 +269,17 @@ class ProductPermission(BasePermission):
     ) -> User:
         product_id = kwargs.get("product_id")
         user_id = token_payload.get("sub")
-        query = select(User).where(
-            User.id == user_id,
-            exists().where(
-                (Product.family_id == User.family_id) & (Product.id == product_id)
-            ),
+
+        exists_query = (
+            select(Product)
+            .where(Product.id == product_id)
+            .where(Product.family_id == User.family_id)
         )
+
+        if self.only_owner:
+            exists_query = exists_query.where(Product.seller_id == user_id)
+
+        query = select(User).where(User.id == user_id).where(exists(exists_query))
 
         result = await async_session.execute(query)
         user = result.scalars().first()

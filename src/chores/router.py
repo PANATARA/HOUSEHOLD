@@ -4,10 +4,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from chores.models import Chore
 from chores.repository import AsyncChoreDAL, ChoreDataService
 from chores.schemas import (
     ChoreCreateSchema,
     ChoreResponseSchema,
+    ChoreUpdateSchema,
     ChoresListResponseSchema,
 )
 from chores.services import ChoreCreatorService
@@ -89,3 +91,33 @@ async def delete_family_chore(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail={"Chore was not found"}
             )
+
+
+@router.patch(
+    path="/{chore_id}",
+    summary="Edit chore",
+    tags=["Chore"],
+)
+async def edit_family_chore(
+    chore_id: UUID,
+    body: ChoreUpdateSchema,
+    current_user: User = Depends(ChorePermission(only_admin=True)),
+    async_session: AsyncSession = Depends(get_db),
+) -> ChoreResponseSchema:
+    async with async_session.begin():
+        chore = await async_session.get(Chore, chore_id)
+        if not chore:
+            raise HTTPException(404, "Chore not found")
+
+        for field, value in body.model_dump(exclude_unset=True).items():
+            setattr(chore, field, value)
+
+        await async_session.flush()
+
+    return ChoreResponseSchema(
+        id=chore.id,
+        name=chore.name,
+        description=chore.description,
+        icon=chore.icon,
+        valuation=chore.valuation,
+    )

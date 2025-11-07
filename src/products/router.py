@@ -66,14 +66,14 @@ async def create_product(
 
 
 @router.post(
-    path="/{product_id}/upload/avatar",
+    path="/{product_id}/avatar",
     summary="Upload a new avatar for product",
     tags=["Products"],
 )
 async def upload_avatar_product(
     product_id: UUID,
     file: UploadFile = File(...),
-    current_user: User = Depends((ProductPermission)),
+    current_user: User = Depends((ProductPermission())),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():
@@ -170,3 +170,21 @@ async def buy_active_products(
         except NotEnoughCoins:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    path="/{product_id}",
+    summary="Delete product",
+    tags=["Products"],
+)
+async def delete_active_products(
+    product_id: UUID,
+    current_user: User = Depends(ProductPermission(only_owner=True)),
+    async_session: AsyncSession = Depends(get_db),
+) -> Response:
+    async with async_session.begin():
+        result = await AsyncProductDAL(async_session).soft_delete(product_id)
+    if result:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    else:
+        raise HTTPException(400, "Something web wrong")
