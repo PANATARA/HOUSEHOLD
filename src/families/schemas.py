@@ -26,6 +26,7 @@ class FamilyResponseSchema(BaseModel):
 
 class FamilyStatisticsSchema(BaseModel):
     weekly_completed_chores: int
+    monthly_completed_chores: int
 
 
 class FamilyDetailSchema(BaseModel):

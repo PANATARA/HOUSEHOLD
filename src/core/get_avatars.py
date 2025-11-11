@@ -25,11 +25,11 @@ from database_connection import redis_client
 from core.services import BaseService
 from core.storage import LocalStorageService, PresignedUrl, get_s3_client
 from families.models import Family
-from families.repository import AsyncFamilyDAL
+from families.repository import FamilyRepository
 from products.models import Product
-from products.repository import AsyncProductDAL
+from products.repository import ProductRepository
 from users.models import User
-from users.repository import AsyncUserDAL
+from users.repository import UserRepository
 
 
 def get_folder_expire(
@@ -103,15 +103,15 @@ class GetAvatarService(BaseService[str | None]):
 
     async def get_target_object(self) -> User | Family | Product:
         if self.target_kind == "User":
-            target_object = await AsyncUserDAL(self.db_session).get_by_id(
+            target_object = await UserRepository(self.db_session).get_by_id(
                 self.target_object_id
             )
         elif self.target_kind == "Family":
-            target_object = await AsyncFamilyDAL(self.db_session).get_by_id(
+            target_object = await FamilyRepository(self.db_session).get_by_id(
                 self.target_object_id
             )
         elif self.target_kind == "Product":
-            target_object = await AsyncProductDAL(self.db_session).get_by_id(
+            target_object = await ProductRepository(self.db_session).get_by_id(
                 self.target_object_id
             )
         else:

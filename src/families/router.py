@@ -1,7 +1,5 @@
 from datetime import timedelta
 from logging import getLogger
-from os import name
-from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
@@ -25,10 +23,9 @@ from core.permissions import (
     FamilyUserAccessPermission,
     IsAuthenicatedPermission,
 )
-from core.query_depends import get_pagination_params
 from core.security import create_jwt_token, get_payload_from_jwt_token
 from database_connection import get_db
-from families.repository import AsyncFamilyDAL, FamilyDataService
+from families.repository import FamilyRepository
 from families.schemas import (
     FamilyCreateSchema,
     FamilyDetailSchema,
@@ -44,10 +41,11 @@ from families.services import (
     LogoutUserFromFamilyService,
 )
 from statistics.repository import StatsRepository, get_statistic_repo
+from statistics.schemas import UserChoresCountSchema
 from users.models import User
-from users.repository import AsyncUserDAL, UserDataService
-from users.schemas import UserFamilyPermissionModelSchema
-from utils import get_current_week_range
+from users.repository import UserRepository
+from users.schemas import UserFamilyPermissionModelSchema, UserResponseSchema
+from utils import get_current_month_range, get_current_week_range
 
 logger = getLogger(__name__)
 
@@ -78,7 +76,7 @@ async def create_family(
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
         else:
-            family_data_service = FamilyDataService(async_session)
+            family_data_service = FamilyRepository(async_session)
             family_detail = await family_data_service.get_family_members(family.id)
             return family_detail
 
@@ -95,13 +93,19 @@ async def get_my_family(
 ) -> FamilyDetailSchema:
     async with async_session.begin():
         family_id = current_user.family_id
-        family = await AsyncFamilyDAL(async_session).get_by_id(family_id)
-        stats = await statsRepo.get_family_chore_completion_count(
+        family = await FamilyRepository(async_session).get_by_id(family_id)
+        weekly_stats = await statsRepo.get_family_chore_completion_count(
             family_id=family_id, interval=get_current_week_range()
+        )
+        monthly_stats = await statsRepo.get_family_chore_completion_count(
+            family_id=family_id, interval=get_current_month_range()
         )
     return FamilyDetailSchema(
         family=FamilyResponseSchema.model_validate(family),
-        statistics=FamilyStatisticsSchema(weekly_completed_chores=stats),
+        statistics=FamilyStatisticsSchema(
+            weekly_completed_chores=weekly_stats,
+            monthly_completed_chores=monthly_stats
+        ),
     )
 
 
@@ -118,20 +122,24 @@ async def get_family_members(
 ) -> FamilyMembersSchema:
     async with async_session.begin():
         family_id: UUID = current_user.family_id  # type: ignore
+        family_repo = FamilyRepository(async_session)
+        family_members = await family_repo.get_family_members(family_id)
 
-        members_count_stats = await statsRepo.get_family_members_by_chores_completions(
-            family_id, get_current_week_range()
+        member_ids = [m.id for m in family_members]
+        members_stats = await statsRepo.get_users_chore_completion_count(
+            users_ids=member_ids, interval=get_current_week_range()
         )
+
         if limit is not None:
-            members_count_stats = members_count_stats[:limit:]
+            members_stats = members_stats[:limit]
 
-        member_ids = [m.user_id for m in members_count_stats]
-        if not member_ids:
-            return FamilyMembersSchema(members=[], statistics=[])
+        users_map = {u.id: u for u in family_members}
+        members_schemas = [
+            UserResponseSchema.model_validate(users_map[s.user_id])
+            for s in members_stats
+        ]
 
-        users_repo = UserDataService(async_session)
-        members = await users_repo.get_users_by_ids(member_ids)
-        return FamilyMembersSchema(members=members, statistics=members_count_stats)
+        return FamilyMembersSchema(members=members_schemas, statistics=members_stats)
 
 
 @router.patch(
@@ -174,7 +182,7 @@ async def kick_user_from_family(
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():
-        user = await AsyncUserDAL(async_session).get_by_id(user_id)
+        user = await UserRepository(async_session).get_by_id(user_id)
         await LogoutUserFromFamilyService(
             user=user, db_session=async_session
         ).run_process()
@@ -196,7 +204,7 @@ async def change_family_admin(
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():
-        family_dal = AsyncFamilyDAL(async_session)
+        family_dal = FamilyRepository(async_session)
         family = await family_dal.get_by_id(current_user.family_id)
         family.family_admin_id = user_id
         await family_dal.update(family)
@@ -242,7 +250,7 @@ async def join_to_family(
             **{key: payload[key] for key in allowed_fields if key in payload}
         )
         try:
-            family = await AsyncFamilyDAL(async_session).get_by_id(family_id)
+            family = await FamilyRepository(async_session).get_by_id(family_id)
             service = AddUserToFamilyService(
                 family=family,
                 user=current_user,
@@ -270,7 +278,7 @@ async def upload_family_avatar(
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():
-        family = await AsyncFamilyDAL(async_session).get_by_id(current_user.family_id)
+        family = await FamilyRepository(async_session).get_by_id(current_user.family_id)
         service = UploadAvatarService(
             target_object=family, file=file, db_session=async_session
         )

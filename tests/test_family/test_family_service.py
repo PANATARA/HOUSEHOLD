@@ -4,7 +4,7 @@ from chores.repository import ChoreDataService
 from chores.services import get_default_chore_data
 from core.exceptions.families import UserCannotLeaveFamily, UserIsAlreadyFamilyMember
 from families.services import FamilyCreatorService, LogoutUserFromFamilyService
-from wallets.repository import AsyncWalletDAL
+from wallets.repository import WalletRepository
 
 
 @pytest.mark.asyncio
@@ -59,7 +59,7 @@ async def test_permissions_are_created_for_added_user(
 @pytest.mark.asyncio
 async def test_wallet_is_created_for_added_user(member_family, async_session_test):
     user, _ = member_family
-    user_wallet = await AsyncWalletDAL(async_session_test).get_by_user_id(user.id)
+    user_wallet = await WalletRepository(async_session_test).get_by_user_id(user.id)
     assert user_wallet is not None
 
 

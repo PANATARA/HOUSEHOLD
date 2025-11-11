@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from chores.repository import AsyncChoreDAL
-from chores_completions.repository import ChoreCompletionDataService
+from chores.repository import ChoreRepository
+from chores_completions.repository import ChoreCompletionRepository
 from chores_completions.schemas import (
     ChoreCompletionCreateSchema,
     ChoreCompletionDetailSchema,
@@ -43,7 +43,7 @@ async def create_chore_completion(
 ) -> Response:
     async with async_session.begin():
         try:
-            chore = await AsyncChoreDAL(async_session).get_by_id(chore_id)
+            chore = await ChoreRepository(async_session).get_by_id(chore_id)
             creator_service = CreateChoreCompletion(
                 user=current_user,
                 chore=chore,
@@ -76,7 +76,7 @@ async def get_family_chores_completions(
 ) -> list[ChoreCompletionResponseSchema]:
     async with async_session.begin():
         offset, limit = pagination
-        data_service = ChoreCompletionDataService(async_session)
+        data_service = ChoreCompletionRepository(async_session)
         result_response = await data_service.get_family_chore_completion(
             current_user.family_id, offset, limit, status, chore_id, user_id
         )
@@ -95,7 +95,7 @@ async def get_family_chore_completion_detail(
     async_session: AsyncSession = Depends(get_db),
 ) -> ChoreCompletionDetailSchema | None:
     async with async_session.begin():
-        data_service = ChoreCompletionDataService(async_session)
+        data_service = ChoreCompletionRepository(async_session)
         result_response = await data_service.get_family_chore_completion_detail(
             chore_completion_id
         )

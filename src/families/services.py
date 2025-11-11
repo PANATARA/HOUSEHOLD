@@ -7,12 +7,12 @@ from core.exceptions.families import UserCannotLeaveFamily
 from core.services import BaseService
 from core.validators import validate_user_not_in_family
 from families.models import Family
-from families.repository import AsyncFamilyDAL
+from families.repository import FamilyRepository
 from users.models import User, UserFamilyPermissions
-from users.repository import AsyncUserDAL, AsyncUserFamilyPermissionsDAL
+from users.repository import UserRepository, UserPermissionsRepository
 from users.schemas import UserFamilyPermissionModelSchema
 from wallets.models import Wallet
-from wallets.repository import AsyncWalletDAL
+from wallets.repository import WalletRepository
 from wallets.services import WalletCreatorService
 
 
@@ -31,7 +31,7 @@ class FamilyCreatorService(BaseService[Family]):
         return family
 
     async def _create_family(self) -> Family:
-        family_dal = AsyncFamilyDAL(self.db_session)
+        family_dal = FamilyRepository(self.db_session)
         new_family = await family_dal.create(
             Family(name=self.name, family_admin_id=self.user.id)
         )
@@ -70,12 +70,12 @@ class AddUserToFamilyService(BaseService[Family]):
         return self.family
 
     async def _add_user_to_family(self) -> None:
-        user_dal = AsyncUserDAL(self.db_session)
+        user_dal = UserRepository(self.db_session)
         self.user.family_id = self.family.id
         await user_dal.update(self.user)
 
     async def _create_permissions(self, fields: dict) -> UserFamilyPermissions:
-        perm_dal = AsyncUserFamilyPermissionsDAL(self.db_session)
+        perm_dal = UserPermissionsRepository(self.db_session)
         fields = self.permissions.model_dump()
         fields["user_id"] = self.user.id
         return await perm_dal.create(UserFamilyPermissions(**fields))
@@ -101,17 +101,17 @@ class LogoutUserFromFamilyService(BaseService[None]):
         await self._delete_user_wallet()
 
     async def _update_user_field(self) -> None:
-        user_dal = AsyncUserDAL(self.db_session)
+        user_dal = UserRepository(self.db_session)
         self.user.family_id = None
         await user_dal.update(self.user)
 
     async def _delete_user_permissions(self) -> None:
-        permissions_repo = AsyncUserFamilyPermissionsDAL(self.db_session)
+        permissions_repo = UserPermissionsRepository(self.db_session)
         user_permission = await permissions_repo.get_by_user_id(self.user.id)
         await permissions_repo.hard_delete(user_permission.id)
 
     async def _delete_user_wallet(self) -> None:
-        wallet_repo = AsyncWalletDAL(self.db_session)
+        wallet_repo = WalletRepository(self.db_session)
         wallet = await wallet_repo.get_by_user_id(self.user.id)
         await wallet_repo.hard_delete(wallet.id)
 
@@ -119,6 +119,6 @@ class LogoutUserFromFamilyService(BaseService[None]):
         pass
 
     async def validate(self):
-        family_dal = AsyncFamilyDAL(self.db_session)
+        family_dal = FamilyRepository(self.db_session)
         if await family_dal.user_is_family_admin(self.user.id, self.user.family_id):
             raise UserCannotLeaveFamily()

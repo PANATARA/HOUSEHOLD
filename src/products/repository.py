@@ -11,16 +11,9 @@ from products.schemas import ProductFullSchema, ProductWithSellerSchema
 from users.models import User
 
 
-class AsyncProductDAL(BaseDals[Product], DeleteDALMixin):
+class ProductRepository(BaseDals[Product], DeleteDALMixin):
     model = Product
     not_found_exception = ProductNotFoundError
-
-
-@dataclass
-class ProductDataService:
-    """Return product's pydantic models"""
-
-    db_session: AsyncSession
 
     async def get_user_active_products(self, user_id: UUID) -> list[ProductFullSchema]:
         """Returns a pydantic model of the product"""

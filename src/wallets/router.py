@@ -10,8 +10,8 @@ from core.permissions import FamilyMemberPermission
 from core.query_depends import get_pagination_params
 from database_connection import get_db
 from users.models import User
-from users.repository import AsyncUserDAL
-from wallets.repository import TransactionDataService, WalletDataService
+from users.repository import UserRepository
+from wallets.repository import TransactionDataService, WalletRepository
 from wallets.schemas import (
     MoneyTransferSchema,
     UnionTransactionsSchema,
@@ -30,10 +30,10 @@ async def get_user_wallet(
     async_session: AsyncSession = Depends(get_db),
 ) -> WalletBalanceSchema:
     async with async_session.begin():
-        wallet_data = await WalletDataService(async_session).get_user_wallet(
+        wallet_data = await WalletRepository(async_session).get_by_user_id(
             user_id=current_user.id
         )
-        return wallet_data
+        return WalletBalanceSchema(balance=wallet_data.balance)
 
 
 @router.post(
@@ -48,7 +48,7 @@ async def money_transfer_wallet(
 ) -> JSONResponse:
     async with async_session.begin():
         try:
-            user_dal = AsyncUserDAL(async_session)
+            user_dal = UserRepository(async_session)
             to_user = await user_dal.get_by_id(body.to_user_id)
 
             transfer_service = CoinsTransferService(
@@ -80,7 +80,6 @@ async def get_user_wallet_transaction(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> UnionTransactionsSchema:
-
     async with async_session.begin():
         transactions_data = TransactionDataService(async_session)
         offset, limit = pagination

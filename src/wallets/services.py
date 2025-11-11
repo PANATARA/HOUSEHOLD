@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from chores.repository import AsyncChoreDAL
+from chores.repository import ChoreRepository
 from chores_completions.models import ChoreCompletion
 from config import TRANSFER_RATE
 from core.enums import PeerTransactionENUM, RewardTransactionENUM
@@ -15,13 +15,21 @@ from core.validators import (
 )
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
-from wallets.repository import AsyncWalletDAL, PeerTransactionDAL, RewardTransactionDAL
+from wallets.repository import (
+    WalletRepository,
+    PeerTransactionDAL,
+    RewardTransactionDAL,
+)
 
 
 async def coin_exchange(
-    to_user_id: UUID, from_user_id: UUID, coins: int, rate: Decimal, db_session: AsyncSession
+    to_user_id: UUID,
+    from_user_id: UUID,
+    coins: int,
+    rate: Decimal,
+    db_session: AsyncSession,
 ):
-    wallet_dal = AsyncWalletDAL(db_session)
+    wallet_dal = WalletRepository(db_session)
     from_wallet = await wallet_dal.get_by_user_id(from_user_id)
     if not from_wallet:
         raise ValueError(f"Wallet for user {from_user_id} not found")
@@ -52,14 +60,9 @@ class WalletCreatorService(BaseService[Wallet]):
         return wallet
 
     async def _create_wallet(self) -> Wallet:
-        wallet_dal = AsyncWalletDAL(self.db_session)
+        wallet_dal = WalletRepository(self.db_session)
         wallet = await wallet_dal.create(Wallet(user_id=self.user.id))
         return wallet
-
-    async def validate(self):
-        wallet_dal = AsyncWalletDAL(self.db_session)
-        if await wallet_dal.exist_wallet_user(self.user.id):
-            await wallet_dal.delete_wallet_user(self.user.id)
 
 
 @dataclass
@@ -110,7 +113,7 @@ class CoinsRewardService(BaseService[RewardTransaction]):
 
     async def process(self) -> RewardTransaction:
         user_id = self.chore_completion.completed_by_id
-        chore = await AsyncChoreDAL(self.db_session).get_by_id(
+        chore = await ChoreRepository(self.db_session).get_by_id(
             self.chore_completion.chore_id
         )
         await self._add_coins(user_id, chore.valuation)
@@ -118,7 +121,7 @@ class CoinsRewardService(BaseService[RewardTransaction]):
         return transaction
 
     async def _add_coins(self, user_id: UUID, amount: int):
-        wallet_dal = AsyncWalletDAL(self.db_session)
+        wallet_dal = WalletRepository(self.db_session)
         await wallet_dal.add_balance(user_id=user_id, amount=amount)
 
     async def _create_transaction_log(self, user_id: UUID, amount: int):

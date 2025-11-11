@@ -18,18 +18,12 @@ from wallets.schemas import (
     RewardTransactionSchema,
     TransferTransactionSchema,
     UnionTransactionsSchema,
-    WalletBalanceSchema,
 )
 
 
-class AsyncWalletDAL(BaseDals[Wallet], BaseUserPkDals[Wallet], DeleteDALMixin):
+class WalletRepository(BaseDals[Wallet], BaseUserPkDals[Wallet], DeleteDALMixin):
     model = Wallet
     not_found_exception = WalletNotFoundError
-
-    async def exist_wallet_user(self, user: UUID) -> bool:
-        query = select(exists().where(Wallet.user_id == user))
-        result = await self.db_session.execute(query)
-        return bool(result.scalar() or False)
 
     async def add_balance(self, user_id: UUID, amount: int) -> int | None:
         query = (
@@ -43,35 +37,6 @@ class AsyncWalletDAL(BaseDals[Wallet], BaseUserPkDals[Wallet], DeleteDALMixin):
         await self.db_session.flush()
 
         return result.scalar()
-
-    async def delete_wallet_user(self, user: UUID) -> None:
-        return
-
-
-@dataclass
-class WalletDataService:
-    """Return  pydantic models"""
-
-    db_session: AsyncSession
-
-    async def get_user_wallet(self, user_id: UUID) -> WalletBalanceSchema | None:
-        """Returns a pydantic model of the user wallet"""
-        result = await self.db_session.execute(
-            select(
-                Wallet.id.label("wallet_id"),
-                Wallet.balance.label("wallet_balance"),
-            ).where(Wallet.user_id == user_id)
-        )
-
-        rows = result.mappings().first()
-
-        if not rows:
-            return None
-
-        wallet = WalletBalanceSchema(
-            balance=rows["wallet_balance"],
-        )
-        return wallet
 
 
 @dataclass

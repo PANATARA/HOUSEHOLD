@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
-from chores.repository import AsyncChoreDAL, ChoreDataService
+from chores.repository import ChoreRepository
 from chores.schemas import (
     ChoreCreateSchema,
     ChoreResponseSchema,
@@ -18,7 +18,7 @@ from core.permissions import (
     FamilyMemberPermission,
 )
 from database_connection import get_db
-from families.repository import AsyncFamilyDAL
+from families.repository import FamilyRepository
 from users.models import User
 
 logger = getLogger(__name__)
@@ -35,9 +35,9 @@ async def get_family_chores(
     limit: int | None = Query(None, ge=1),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> ChoresListResponseSchema | None:
+) -> ChoresListResponseSchema:
     async with async_session.begin():
-        family_chores = await ChoreDataService(async_session).get_family_chores(
+        family_chores = await ChoreRepository(async_session).get_family_chores(
             current_user.family_id, limit=limit
         )
         result_response = ChoresListResponseSchema(chores=family_chores)
@@ -55,7 +55,7 @@ async def create_family_chore(
     async_session: AsyncSession = Depends(get_db),
 ) -> ChoreResponseSchema:
     async with async_session.begin():
-        family = await AsyncFamilyDAL(async_session).get_by_id(current_user.family_id)
+        family = await FamilyRepository(async_session).get_by_id(current_user.family_id)
         creator_service = ChoreCreatorService(
             family=family,
             db_session=async_session,
@@ -82,7 +82,7 @@ async def delete_family_chore(
     async_session: AsyncSession = Depends(get_db),
 ) -> Response:
     async with async_session.begin():
-        chore_dal = AsyncChoreDAL(async_session)
+        chore_dal = ChoreRepository(async_session)
         result = await chore_dal.soft_delete(chore_id)
 
         if result:

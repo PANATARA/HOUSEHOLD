@@ -1,8 +1,7 @@
-from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import case
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from sqlalchemy.future import select
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
@@ -20,16 +19,9 @@ from core.exceptions.chores_completion import ChoreCompletionNotFoundError
 from users.models import User
 
 
-class AsyncChoreCompletionDAL(BaseDals[ChoreCompletion]):
+class ChoreCompletionRepository(BaseDals[ChoreCompletion]):
     model = ChoreCompletion
     not_found_exception = ChoreCompletionNotFoundError
-
-
-@dataclass
-class ChoreCompletionDataService:
-    """Return family pydantic models"""
-
-    db_session: AsyncSession
 
     async def get_family_chore_completion(
         self,

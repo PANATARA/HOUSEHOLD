@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from chores_confirmations.repository import ChoreConfirmationDataService
+from chores_confirmations.repository import ChoreConfirmationRepository
 from chores_confirmations.schemas import (
     ChoreConfirmationResponseSchema,
     ChoreConfirmationSetStatusSchema,
@@ -36,7 +36,7 @@ async def get_my_chores_confirmations(
 ) -> list[ChoreConfirmationResponseSchema]:
     offset, limit = pagination
     async with async_session.begin():
-        data_service = ChoreConfirmationDataService(db_session=async_session)
+        data_service = ChoreConfirmationRepository(db_session=async_session)
         result = await data_service.get_user_chore_confirmations(
             current_user.id, status, offset, limit
         )

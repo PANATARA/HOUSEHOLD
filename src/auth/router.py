@@ -24,8 +24,8 @@ from core.exceptions.users import UserNotFoundError
 from database_connection import redis_client
 from core.security import create_jwt_token, get_payload_from_jwt_token
 from database_connection import get_db
-from families.repository import AsyncFamilyDAL
-from users.repository import AsyncUserDAL
+from families.repository import FamilyRepository
+from users.repository import UserRepository
 from users.services import UserCreatorService
 
 router = APIRouter()
@@ -45,8 +45,8 @@ async def refresh_access_token(
 
     async with db.begin():
         try:
-            user = await AsyncUserDAL(db).get_by_id(object_id=user_id)
-            family_dal = AsyncFamilyDAL(db_session=db)
+            user = await UserRepository(db).get_by_id(object_id=user_id)
+            family_dal = FamilyRepository(db_session=db)
             user_is_family_admin = await family_dal.user_is_family_admin(
                 user_id=user.id, family_id=user.family_id
             )
@@ -99,7 +99,7 @@ async def post_email_code(
 
     async with db.begin():
         try:
-            user = await AsyncUserDAL(db).get_user_by_email(email=body.email)
+            user = await UserRepository(db).get_user_by_email(email=body.email)
         except UserNotFoundError:
             user = await UserCreatorService(
                 email=body.email, db_session=db
@@ -109,7 +109,7 @@ async def post_email_code(
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
         if user.family_id is not None:
-            family_dal = AsyncFamilyDAL(db_session=db)
+            family_dal = FamilyRepository(db_session=db)
             user_is_family_admin = await family_dal.user_is_family_admin(
                 user_id=user.id, family_id=user.family_id
             )
@@ -147,14 +147,14 @@ async def debug_auth_by_email(
 ) -> AccessRefreshTokens:
     async with db.begin():
         try:
-            user = await AsyncUserDAL(db).get_user_by_email(email=body.email)
+            user = await UserRepository(db).get_user_by_email(email=body.email)
         except UserNotFoundError:
             raise HTTPException(status_code=404, detail="User was not found")
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
         if user.family_id is not None:
-            family_dal = AsyncFamilyDAL(db_session=db)
+            family_dal = FamilyRepository(db_session=db)
             user_is_family_admin = await family_dal.user_is_family_admin(
                 user_id=user.id, family_id=user.family_id
             )

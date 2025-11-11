@@ -1,8 +1,6 @@
-from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
 from chores_completions.models import ChoreCompletion
@@ -14,15 +12,13 @@ from core.exceptions.chores_confirmations import ChoreConfiramtionNotFound
 from users.models import User
 
 
-class AsyncChoreConfirmationDAL(BaseDals[ChoreConfirmation]):
-
+class ChoreConfirmationRepository(BaseDals[ChoreConfirmation]):
     model = ChoreConfirmation
     not_found_exception = ChoreConfiramtionNotFound
 
     async def create_many_chore_confirmation(
         self, users_ids: list[UUID], chore_completion_id: UUID
     ) -> None:
-
         chores_confirmations = [
             ChoreConfirmation(
                 chore_completion_id=chore_completion_id,
@@ -39,7 +35,6 @@ class AsyncChoreConfirmationDAL(BaseDals[ChoreConfirmation]):
     async def count_status_chore_confirmation(
         self, chore_completion_id: UUID, status: StatusConfirmENUM
     ) -> int | None:
-
         query = (
             select(func.count())
             .select_from(ChoreConfirmation)
@@ -51,13 +46,6 @@ class AsyncChoreConfirmationDAL(BaseDals[ChoreConfirmation]):
         query_result = await self.db_session.execute(query)
         count = query_result.scalar()
         return count
-
-
-@dataclass
-class ChoreConfirmationDataService:
-    """Return family pydantic models"""
-
-    db_session: AsyncSession
 
     async def get_user_chore_confirmations(
         self, user_id: UUID, status: StatusConfirmENUM | None, offset: int, limit: int

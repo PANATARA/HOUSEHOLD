@@ -23,7 +23,7 @@ from core.permissions import IsAuthenicatedPermission, ProductPermission
 from core.query_depends import get_pagination_params
 from database_connection import get_db
 from products.models import Product
-from products.repository import AsyncProductDAL, ProductDataService
+from products.repository import ProductRepository
 from products.schemas import (
     CreateNewProductSchema,
     ProductFullSchema,
@@ -45,7 +45,7 @@ async def create_product(
     async_session: AsyncSession = Depends(get_db),
 ) -> ProductFullSchema:
     async with async_session.begin():
-        product_dal = AsyncProductDAL(async_session)
+        product_dal = ProductRepository(async_session)
         fields = body.model_dump()
         fields.update(
             {"seller_id": current_user.id, "family_id": current_user.family_id}
@@ -76,7 +76,7 @@ async def upload_avatar_product(
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():
-        product = await AsyncProductDAL(async_session).get_by_id(product_id)
+        product = await ProductRepository(async_session).get_by_id(product_id)
         service = UploadAvatarService(
             target_object=product, file=file, db_session=async_session
         )
@@ -122,7 +122,7 @@ async def get_user_products(
     async_session: AsyncSession = Depends(get_db),
 ) -> list[ProductFullSchema]:
     async with async_session.begin():
-        product_data = ProductDataService(async_session)
+        product_data = ProductRepository(async_session)
         result_response = await product_data.get_user_active_products(current_user.id)
     return result_response
 
@@ -139,7 +139,7 @@ async def get_family_active_products(
 ) -> list[ProductWithSellerSchema]:
     async with async_session.begin():
         offset, limit = pagination
-        product_data = ProductDataService(async_session)
+        product_data = ProductRepository(async_session)
         family_id = current_user.family_id
         if family_id is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -159,7 +159,7 @@ async def buy_active_products(
 ) -> Response:
     async with async_session.begin():
         try:
-            product = await AsyncProductDAL(async_session).get_by_id(product_id)
+            product = await ProductRepository(async_session).get_by_id(product_id)
             service = PurchaseService(
                 product=product, user=current_user, db_session=async_session
             )
@@ -182,7 +182,7 @@ async def delete_active_products(
     async_session: AsyncSession = Depends(get_db),
 ) -> Response:
     async with async_session.begin():
-        result = await AsyncProductDAL(async_session).soft_delete(product_id)
+        result = await ProductRepository(async_session).soft_delete(product_id)
     if result:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     else:

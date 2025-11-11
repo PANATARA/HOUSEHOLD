@@ -1,16 +1,14 @@
-from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.base_dals import BaseDals, BaseUserPkDals, DeleteDALMixin
 from core.exceptions.users import UserNotFoundError
 from users.models import User, UserFamilyPermissions, UserSettings
-from users.schemas import UserResponseSchema, UserSettingsResponseSchema
+from users.schemas import UserResponseSchema
 
 
-class AsyncUserDAL(BaseDals[User]):
+class UserRepository(BaseDals[User]):
     model = User
     not_found_exception = UserNotFoundError
 
@@ -22,46 +20,6 @@ class AsyncUserDAL(BaseDals[User]):
             return user[0]
         else:
             raise self.not_found_exception
-
-
-class AsyncUserSettingsDAL(BaseDals[UserSettings], BaseUserPkDals[UserSettings]):
-    model = UserSettings
-
-
-class AsyncUserFamilyPermissionsDAL(
-    BaseDals[UserFamilyPermissions],
-    BaseUserPkDals[UserFamilyPermissions],
-    DeleteDALMixin,
-):
-    model = UserFamilyPermissions
-
-
-@dataclass
-class UserDataService:
-    """Return User pydantic models"""
-
-    db_session: AsyncSession
-
-    async def get_user_settings(
-        self, user_id: UUID
-    ) -> UserSettingsResponseSchema | None:
-        """Returns a pydantic model of the user settings"""
-        result = await self.db_session.execute(
-            select(
-                UserSettings.user_id.label("user_id"),
-                UserSettings.app_theme,
-                UserSettings.language,
-                UserSettings.date_of_birth,
-            ).where(UserSettings.user_id == user_id)
-        )
-
-        rows = result.mappings().first()
-
-        if not rows:
-            return None
-
-        settings = UserSettingsResponseSchema.model_validate(rows)
-        return settings
 
     async def get_users_by_ids(
         self,
@@ -76,3 +34,30 @@ class UserDataService:
         )
         rows = result.mappings().all()
         return [UserResponseSchema.model_validate(member) for member in rows]
+
+
+class UserSettingsRepository(BaseDals[UserSettings], BaseUserPkDals[UserSettings]):
+    model = UserSettings
+
+
+class UserPermissionsRepository(
+    BaseDals[UserFamilyPermissions],
+    BaseUserPkDals[UserFamilyPermissions],
+    DeleteDALMixin,
+):
+    model = UserFamilyPermissions
+
+    async def get_users_should_confirm_chore_completion(
+        self, family_id: UUID, excluded_user_ids: list[UUID]
+    ) -> list[UUID] | None:
+        query = (
+            select(User.id)
+            .join(UserFamilyPermissions, UserFamilyPermissions.user_id == User.id)
+            .where(UserFamilyPermissions.should_confirm_chore_completion)
+            .where(User.family_id == family_id)
+            .where(User.id.notin_(excluded_user_ids))
+        )
+        query_result = await self.db_session.execute(query)
+        users_ids = list(query_result.scalars().all())
+
+        return users_ids if users_ids else None

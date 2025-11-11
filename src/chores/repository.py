@@ -1,8 +1,6 @@
-from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
 from chores.schemas import ChoreCreateSchema, ChoreResponseSchema
@@ -10,7 +8,7 @@ from core.base_dals import BaseDals, DeleteDALMixin
 from core.exceptions.chores import ChoreNotFoundError
 
 
-class AsyncChoreDAL(BaseDals[Chore], DeleteDALMixin):
+class ChoreRepository(BaseDals[Chore], DeleteDALMixin):
     model = Chore
     not_found_exception = ChoreNotFoundError
 
@@ -33,14 +31,9 @@ class AsyncChoreDAL(BaseDals[Chore], DeleteDALMixin):
 
         return chores
 
-
-@dataclass
-class ChoreDataService:
-    db_session: AsyncSession
-
     async def get_family_chores(
         self, family_id: UUID, limit: int | None = None
-    ) -> list[ChoreResponseSchema] | None:
+    ) -> list[ChoreResponseSchema]:
         """
         Retrieves a list of chores associated with a specific family.
 
@@ -65,6 +58,6 @@ class ChoreDataService:
         raw_data = query_result.mappings().all()
 
         if not raw_data:
-            return None
+            return []
 
         return [ChoreResponseSchema.model_validate(item) for item in raw_data]

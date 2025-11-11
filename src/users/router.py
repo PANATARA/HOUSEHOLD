@@ -18,14 +18,14 @@ from core.permissions import (
 from database_connection import get_db
 from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
-from users.repository import AsyncUserDAL, AsyncUserSettingsDAL, UserDataService
+from users.repository import UserRepository, UserSettingsRepository
 from users.schemas import (
     UserResponseSchema,
     UserSettingsResponseSchema,
     UserSettingsUpdateSchema,
     UserUpdateSchema,
 )
-from wallets.repository import AsyncWalletDAL
+from wallets.repository import WalletRepository
 from wallets.schemas import WalletBalanceSchema
 
 logger = getLogger(__name__)
@@ -41,11 +41,7 @@ router = APIRouter()
 )
 async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
-    async_session: AsyncSession = Depends(get_db),
 ) -> MeProfileSchema:
-    async with async_session.begin():
-        wallet = await AsyncWalletDAL(async_session).get_by_user_id(current_user.id)
-
     user_response = UserResponseSchema(
         id=current_user.id,
         username=current_user.username,
@@ -54,19 +50,8 @@ async def me_get_user_profile(
         avatar_version=current_user.avatar_version,
     )
 
-    wallet_response = (
-        WalletBalanceSchema(
-            balance=wallet.balance,
-        )
-        if wallet
-        else None
-    )
-
     result_response = MeProfileSchema(
         user=user_response,
-        is_family_member=bool(current_user.family_id),
-        is_profile_complete=bool(current_user.username) and bool(current_user.surname),
-        wallet=wallet_response,
     )
 
     return result_response
@@ -83,7 +68,7 @@ async def me_user_partial_update(
     async_session: AsyncSession = Depends(get_db),
 ) -> UserResponseSchema:
     async with async_session.begin():
-        user_dal = AsyncUserDAL(async_session)
+        user_dal = UserRepository(async_session)
         for field, value in body.model_dump(exclude_unset=True).items():
             setattr(current_user, field, value)
 
@@ -105,8 +90,16 @@ async def me_user_get_settings(
     async_session: AsyncSession = Depends(get_db),
 ) -> UserSettingsResponseSchema:
     async with async_session.begin():
-        data_service = UserDataService(async_session)
-        return await data_service.get_user_settings(user_id=current_user.id)
+        user_settings = await UserSettingsRepository(async_session).get_by_user_id(
+            current_user.id
+        )
+        if user_settings is None:
+            raise HTTPException(status_code=404)
+        return UserSettingsResponseSchema(
+            app_theme=user_settings.app_theme,
+            language=user_settings.language,
+            date_of_birth=user_settings.date_of_birth,
+        )
 
 
 @router.patch(
@@ -120,7 +113,7 @@ async def me_user_settings_partial_update(
     async_session: AsyncSession = Depends(get_db),
 ) -> UserSettingsResponseSchema:
     async with async_session.begin():
-        UserSettingsDal = AsyncUserSettingsDAL(async_session)
+        UserSettingsDal = UserSettingsRepository(async_session)
         user_settings = await UserSettingsDal.get_by_user_id(current_user.id)
         for field, value in body.model_dump(exclude_unset=True).items():
             setattr(user_settings, field, value)
@@ -146,7 +139,7 @@ async def get_user_profile(
     async_session: AsyncSession = Depends(get_db),
 ) -> UserProfileSchema:
     async with async_session.begin():
-        user = await AsyncUserDAL(async_session).get_by_id(user_id)
+        user = await UserRepository(async_session).get_by_id(user_id)
     result = UserProfileSchema(
         user=UserResponseSchema(
             id=user.id,

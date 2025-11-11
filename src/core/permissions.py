@@ -14,7 +14,7 @@ from core.security import get_payload_from_jwt_token
 from database_connection import get_db
 from products.models import Product
 from users.models import User, UserFamilyPermissions
-from users.repository import AsyncUserDAL
+from users.repository import UserRepository
 
 security = HTTPBearer()
 
@@ -67,7 +67,7 @@ class IsAuthenicatedPermission(BasePermission):
         user_id = token_payload.get("sub")
         if user_id is None:
             raise permission_denided
-        user_dal = AsyncUserDAL(async_session)
+        user_dal = UserRepository(async_session)
         user = await user_dal.get_by_id(user_id)
 
         return user

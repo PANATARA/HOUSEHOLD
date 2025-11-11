@@ -12,7 +12,7 @@ from users.schemas import UserResponseSchema
 
 
 class WalletBalanceSchema(BaseModel):
-    balance: Decimal
+    balance: int
 
 
 class MoneyTransferSchema(BaseModel):

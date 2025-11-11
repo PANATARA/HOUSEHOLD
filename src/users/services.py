@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.exceptions.users import UserAlreadyExistsError
 from core.services import BaseService
 from users.models import User, UserSettings
-from users.repository import AsyncUserDAL, AsyncUserSettingsDAL
+from users.repository import UserRepository, UserSettingsRepository
 
 
 @dataclass
@@ -22,7 +22,7 @@ class UserCreatorService(BaseService[User]):
         return user
 
     async def _create_user(self) -> User:
-        user_dal = AsyncUserDAL(self.db_session)
+        user_dal = UserRepository(self.db_session)
         username = self._get_username_by_email(self.email)
         new_user = User(username=username, email=self.email)
         try:
@@ -39,7 +39,7 @@ class UserCreatorService(BaseService[User]):
             language="ru",
             date_of_birth=date(2001, 1, 1),
         )
-        settings_dal = AsyncUserSettingsDAL(self.db_session)
+        settings_dal = UserSettingsRepository(self.db_session)
         return await settings_dal.create(settings)
 
     def _get_username_by_email(self, email: str) -> str:

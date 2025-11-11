@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import select, update
 
 from chores.models import Chore
-from chores.repository import AsyncChoreDAL
+from chores.repository import ChoreRepository
 from chores_completions.models import ChoreCompletion
 from chores_completions.services import CreateChoreCompletion
 from config import TRANSFER_RATE
@@ -15,9 +15,9 @@ from core.exceptions.families import UserNotFoundInFamily
 from core.exceptions.wallets import NotEnoughCoins
 from families.models import Family
 from users.models import User
-from users.repository import AsyncUserDAL
+from users.repository import UserRepository
 from wallets.models import Wallet
-from wallets.repository import AsyncWalletDAL
+from wallets.repository import WalletRepository
 from wallets.schemas import CreatePeerTransactionSchema
 from wallets.services import (
     CoinsRewardService,
@@ -65,7 +65,7 @@ async def test_wallet_creator_service(user_factory, async_session_test):
 @pytest.mark.asyncio
 async def test_coin_transfer_service(member_family, async_session_test):
     member, family = member_family
-    admin = await AsyncUserDAL(async_session_test).get_by_id(family.family_admin_id)
+    admin = await UserRepository(async_session_test).get_by_id(family.family_admin_id)
     with patch(
         "wallets.services.PeerTransactionService.run_process", new_callable=AsyncMock
     ) as mock_approve:
@@ -82,7 +82,7 @@ async def test_coin_transfer_service(member_family, async_session_test):
 @pytest.mark.asyncio
 async def test_coin_transfer_service_exception(member_family, async_session_test):
     member, family = member_family
-    admin = await AsyncUserDAL(async_session_test).get_by_id(family.family_admin_id)
+    admin = await UserRepository(async_session_test).get_by_id(family.family_admin_id)
     member.family_id = None
     with pytest.raises(UserNotFoundInFamily):
         await CoinsTransferService(
@@ -106,7 +106,7 @@ async def test_peer_transaction_service(
     user_from_balance, should_raise_exception, member_family, async_session_test
 ):
     user_from, family = member_family
-    user_to = await AsyncUserDAL(async_session_test).get_by_id(family.family_admin_id)
+    user_to = await UserRepository(async_session_test).get_by_id(family.family_admin_id)
 
     await set_user_balance(user_from, user_from_balance, async_session_test)
 
@@ -131,12 +131,12 @@ async def test_peer_transaction_service(
         expected_user_from_balance = user_from_balance - data.coins
         expected_user_to_balance = data.coins * TRANSFER_RATE
 
-        actual_user_from_balance = await AsyncWalletDAL(
+        actual_user_from_balance = await WalletRepository(
             async_session_test
         ).get_user_balance(user_from.id)
         assert actual_user_from_balance == expected_user_from_balance
 
-        actual_user_to_balance = await AsyncWalletDAL(
+        actual_user_to_balance = await WalletRepository(
             async_session_test
         ).get_user_balance(user_to.id)
         assert actual_user_to_balance == expected_user_to_balance.quantize(
@@ -172,10 +172,10 @@ async def test_coin_reward_service(
         assert transaction_log.chore_completion_id == chore_completion.id
         assert transaction_log.to_user_id == member.id
 
-        actual_user_balance = await AsyncWalletDAL(async_session_test).get_user_balance(
+        actual_user_balance = await WalletRepository(async_session_test).get_user_balance(
             member.id
         )
-        chore_valuation = await AsyncChoreDAL(async_session_test).get_chore_valutation(
+        chore_valuation = await ChoreRepository(async_session_test).get_chore_valutation(
             chore_completion.chore_id
         )
 

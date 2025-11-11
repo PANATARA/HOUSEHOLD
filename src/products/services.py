@@ -7,7 +7,7 @@ from core.enums import PeerTransactionENUM
 from core.services import BaseService
 from core.validators import validate_product_is_active, validate_user_can_buy_product
 from products.models import Product
-from products.repository import AsyncProductDAL
+from products.repository import ProductRepository
 from users.models import User
 from wallets.models import PeerTransaction
 from wallets.repository import PeerTransactionDAL
@@ -33,7 +33,7 @@ class PurchaseService(BaseService[PeerTransaction]):
         return transaction
 
     async def _change_product_activity(self) -> None:
-        product_dal = AsyncProductDAL(self.db_session)
+        product_dal = ProductRepository(self.db_session)
         self.product.is_active = False
         await product_dal.update(self.product)
 
