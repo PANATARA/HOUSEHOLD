@@ -28,7 +28,7 @@ class MoneyTransferSchema(BaseModel):
 
 class CreatePeerTransactionSchema(BaseModel):
     detail: str
-    coins: Decimal
+    coins: int
     transaction_type: PeerTransactionENUM
 
 

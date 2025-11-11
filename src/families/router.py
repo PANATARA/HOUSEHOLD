@@ -1,8 +1,10 @@
 from datetime import timedelta
 from logging import getLogger
+from os import name
+from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -23,6 +25,7 @@ from core.permissions import (
     FamilyUserAccessPermission,
     IsAuthenicatedPermission,
 )
+from core.query_depends import get_pagination_params
 from core.security import create_jwt_token, get_payload_from_jwt_token
 from database_connection import get_db
 from families.repository import AsyncFamilyDAL, FamilyDataService
@@ -30,6 +33,9 @@ from families.schemas import (
     FamilyCreateSchema,
     FamilyDetailSchema,
     FamilyInviteSchema,
+    FamilyMembersSchema,
+    FamilyResponseSchema,
+    FamilyStatisticsSchema,
     InviteTokenSchema,
 )
 from families.services import (
@@ -37,9 +43,11 @@ from families.services import (
     FamilyCreatorService,
     LogoutUserFromFamilyService,
 )
+from statistics.repository import StatsRepository, get_statistic_repo
 from users.models import User
-from users.repository import AsyncUserDAL
+from users.repository import AsyncUserDAL, UserDataService
 from users.schemas import UserFamilyPermissionModelSchema
+from utils import get_current_week_range
 
 logger = getLogger(__name__)
 
@@ -71,25 +79,59 @@ async def create_family(
             raise HTTPException(status_code=400, detail=str(e))
         else:
             family_data_service = FamilyDataService(async_session)
-            family_detail = await family_data_service.get_family_with_members(family.id)
+            family_detail = await family_data_service.get_family_members(family.id)
             return family_detail
 
 
 @router.get(
     path="",
-    summary="Get basic information about the user's family, including members and completion statistics",
+    summary="Get information about the user's family",
     tags=["Family"],
 )
 async def get_my_family(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> FamilyDetailSchema:
     async with async_session.begin():
         family_id = current_user.family_id
+        family = await AsyncFamilyDAL(async_session).get_by_id(family_id)
+        stats = await statsRepo.get_family_chore_completion_count(
+            family_id=family_id, interval=get_current_week_range()
+        )
+    return FamilyDetailSchema(
+        family=FamilyResponseSchema.model_validate(family),
+        statistics=FamilyStatisticsSchema(weekly_completed_chores=stats),
+    )
 
-        family_data_service = FamilyDataService(async_session)
-        family = await family_data_service.get_family_with_members(family_id)
-        return family
+
+@router.get(
+    path="/members",
+    summary="",
+    tags=["Family"],
+)
+async def get_family_members(
+    limit: int | None = Query(None, ge=0),
+    current_user: User = Depends(FamilyMemberPermission()),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
+    async_session: AsyncSession = Depends(get_db),
+) -> FamilyMembersSchema:
+    async with async_session.begin():
+        family_id: UUID = current_user.family_id  # type: ignore
+
+        members_count_stats = await statsRepo.get_family_members_by_chores_completions(
+            family_id, get_current_week_range()
+        )
+        if limit is not None:
+            members_count_stats = members_count_stats[:limit:]
+
+        member_ids = [m.user_id for m in members_count_stats]
+        if not member_ids:
+            return FamilyMembersSchema(members=[], statistics=[])
+
+        users_repo = UserDataService(async_session)
+        members = await users_repo.get_users_by_ids(member_ids)
+        return FamilyMembersSchema(members=members, statistics=members_count_stats)
 
 
 @router.patch(

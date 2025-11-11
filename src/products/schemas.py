@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -11,7 +10,7 @@ class ProductBaseSchema(BaseModel):
     name: str
     description: str
     icon: str
-    price: Decimal
+    price: int
 
 
 class CreateNewProductSchema(ProductBaseSchema):

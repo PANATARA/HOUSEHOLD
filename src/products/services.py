@@ -2,47 +2,52 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import PURCHASE_RATE
 from core.enums import PeerTransactionENUM
 from core.services import BaseService
 from core.validators import validate_product_is_active, validate_user_can_buy_product
 from products.models import Product
 from products.repository import AsyncProductDAL
 from users.models import User
-from users.repository import AsyncUserDAL
 from wallets.models import PeerTransaction
-from wallets.schemas import CreatePeerTransactionSchema
-from wallets.services import PeerTransactionService
+from wallets.repository import PeerTransactionDAL
+from wallets.services import coin_exchange
 
 
 @dataclass
-class PurchaseService(BaseService[PeerTransaction | None]):
+class PurchaseService(BaseService[PeerTransaction]):
     product: Product
     user: User
     db_session: AsyncSession
 
     async def process(self):
-        data = CreatePeerTransactionSchema(
-            detail="message",
-            coins=self.product.price,
-            transaction_type=PeerTransactionENUM.purchase,
-        )
-        to_user = await AsyncUserDAL(self.db_session).get_by_id(self.product.seller_id)
-        peer_transaction_service = PeerTransactionService(
-            to_user=to_user,
-            from_user=self.user,
-            data=data,
-            db_session=self.db_session,
-            product=self.product,
-        )
-        transaction_log = await peer_transaction_service.run_process()
+        transaction = await self._create_transaction_log()
         await self._change_product_activity()
-
-        return transaction_log
+        await coin_exchange(
+            to_user_id=self.product.seller_id,
+            from_user_id=self.user.id,
+            coins=self.product.price,
+            rate=PURCHASE_RATE,
+            db_session=self.db_session,
+        )
+        return transaction
 
     async def _change_product_activity(self) -> None:
         product_dal = AsyncProductDAL(self.db_session)
         self.product.is_active = False
         await product_dal.update(self.product)
+
+    async def _create_transaction_log(self):
+        transaction = PeerTransaction(
+            detail="detail",
+            coins=self.product.price,
+            to_user_id=self.product.seller_id,
+            from_user_id=self.user.id,
+            product_id=self.product.id,
+            transaction_type=PeerTransactionENUM.purchase,
+        )
+        transaction_log_dal = PeerTransactionDAL(self.db_session)
+        return await transaction_log_dal.create(transaction)
 
     def get_validators(self):
         return [

@@ -1,4 +1,3 @@
-from decimal import Decimal
 from logging import getLogger
 from uuid import UUID
 
@@ -58,7 +57,7 @@ async def create_product(
             name=new_product.name,
             description=new_product.description,
             icon=new_product.icon,
-            price=Decimal(new_product.price),
+            price=new_product.price,
             is_active=new_product.is_active,
             created_at=new_product.created_at,
             avatar_version=new_product.avatar_version,

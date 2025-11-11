@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import DECIMAL, Enum, ForeignKey
+from sqlalchemy import Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.enums import (
@@ -16,9 +16,7 @@ class Wallet(Base, OneToOneUserModel):
     User wallet model
     """
 
-    balance: Mapped[DECIMAL] = mapped_column(
-        DECIMAL(10, 2), default=0.00, nullable=False
-    )
+    balance: Mapped[int] = mapped_column(default=0, nullable=False)
 
     def __repr__(self):
         return super().__repr__()
@@ -32,7 +30,7 @@ class BaseTransaction(Base, BaseIdTimeStampModel):
     __abstract__ = True
 
     detail: Mapped[str]
-    coins: Mapped[DECIMAL] = mapped_column(DECIMAL(10, 2), nullable=False)
+    coins: Mapped[int] = mapped_column(nullable=False)
     to_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), index=True
     )

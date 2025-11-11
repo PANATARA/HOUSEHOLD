@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import String, case, cast, exists, func, literal, select, update
@@ -32,13 +31,7 @@ class AsyncWalletDAL(BaseDals[Wallet], BaseUserPkDals[Wallet], DeleteDALMixin):
         result = await self.db_session.execute(query)
         return bool(result.scalar() or False)
 
-    async def get_user_balance(self, user_id: UUID) -> Decimal | None:
-        query = select(Wallet.balance).where(Wallet.user_id == user_id)
-        result = await self.db_session.execute(query)
-        balance = result.scalar()
-        return Decimal(balance) if balance is not None else None
-
-    async def add_balance(self, user_id: UUID, amount: Decimal) -> Decimal | None:
+    async def add_balance(self, user_id: UUID, amount: int) -> int | None:
         query = (
             update(Wallet)
             .where(Wallet.user_id == user_id)

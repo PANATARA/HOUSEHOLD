@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.base_dals import BaseDals
 from core.exceptions.families import FamilyNotFoundError
 from families.models import Family
-from families.schemas import FamilyDetailSchema
 from users.models import User, UserFamilyPermissions
+from users.schemas import UserResponseSchema
 
 
 class AsyncFamilyDAL(BaseDals[Family]):
@@ -56,46 +56,14 @@ class FamilyDataService:
 
     db_session: AsyncSession
 
-    async def get_family_with_members(
-        self, family_id: UUID
-    ) -> FamilyDetailSchema | None:
+    async def get_family_members(self, family_id: UUID) -> list[UserResponseSchema]:
         """Returns a pydantic model of the family and its members"""
         result = await self.db_session.execute(
             select(
-                func.json_build_object(
-                    "id",
-                    Family.id,
-                    "name",
-                    Family.name,
-                    "icon",
-                    Family.icon,
-                    "avatar_version",
-                    Family.avatar_version,
-                ).label("family"),
-                func.json_agg(
-                    func.json_build_object(
-                        "id",
-                        User.id,
-                        "username",
-                        User.username,
-                        "name",
-                        User.name,
-                        "surname",
-                        User.surname,
-                        "avatar_version",
-                        User.avatar_version,
-                    )
-                ).label("members"),
-            )
-            .join(User, Family.id == User.family_id)
-            .where(Family.id == family_id)
-            .group_by(Family.id)
+                User.id, User.username, User.name, User.surname, User.avatar_version
+            ).where(User.family_id == family_id)
         )
-
         rows = result.mappings().all()
-
         if rows is None:
-            return None
-        family = FamilyDetailSchema.model_validate(rows[0])
-
-        return family
+            raise FamilyNotFoundError
+        return [UserResponseSchema.model_validate(member) for member in rows]

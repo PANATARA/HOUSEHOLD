@@ -7,18 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.base_dals import BaseDals, BaseUserPkDals, DeleteDALMixin
 from core.exceptions.users import UserNotFoundError
 from users.models import User, UserFamilyPermissions, UserSettings
-from users.schemas import UserSettingsResponseSchema
+from users.schemas import UserResponseSchema, UserSettingsResponseSchema
 
 
 class AsyncUserDAL(BaseDals[User]):
     model = User
     not_found_exception = UserNotFoundError
-
-    async def get_user_by_username(self, username: str) -> User | None:
-        query = select(User).where(User.username == username)
-        result = await self.db_session.execute(query)
-        user = result.fetchone()
-        return user[0] if user is not None else None
 
     async def get_user_by_email(self, email: str) -> User:
         query = select(User).where(User.email == email)
@@ -28,9 +22,6 @@ class AsyncUserDAL(BaseDals[User]):
             return user[0]
         else:
             raise self.not_found_exception
-
-    async def get_users_where_permission(self, family_id: UUID):
-        pass
 
 
 class AsyncUserSettingsDAL(BaseDals[UserSettings], BaseUserPkDals[UserSettings]):
@@ -71,3 +62,17 @@ class UserDataService:
 
         settings = UserSettingsResponseSchema.model_validate(rows)
         return settings
+
+    async def get_users_by_ids(
+        self,
+        user_ids: list[UUID],
+    ) -> list[UserResponseSchema]:
+        if not user_ids:
+            return []
+        result = await self.db_session.execute(
+            select(
+                User.id, User.username, User.name, User.surname, User.avatar_version
+            ).where(User.id.in_(user_ids))
+        )
+        rows = result.mappings().all()
+        return [UserResponseSchema.model_validate(member) for member in rows]

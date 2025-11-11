@@ -97,9 +97,7 @@ async def family_chores_stats(
     interval: DateRangeSchema = Depends(get_date_range),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> list[ChoresFamilyCountSchema]:
-    result = await statsRepo.get_family_chores_by_completions(
-        current_user.family_id, interval
-    )
+    result = await statsRepo.get_chores_by_completions(current_user.family_id, interval)
     return result
 
 
@@ -134,9 +132,7 @@ async def family_heatmap(
     current_user: User = Depends(FamilyMemberPermission()),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> UserActivitySchema:
-    activity_data = await statsRepo.get_family_heatmap(
-        current_user.family_id, interval
-    )
+    activity_data = await statsRepo.get_family_heatmap(current_user.family_id, interval)
     if not activity_data:
         return UserActivitySchema(activities=[])
 
@@ -177,9 +173,7 @@ async def user_heatmap(
     interval: DateRangeSchema = Depends(get_date_range),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> UserActivitySchema:
-    activity_data = await statsRepo.get_user_heatmap(
-        user_id, interval
-    )
+    activity_data = await statsRepo.get_user_heatmap(user_id, interval)
 
     if not activity_data:
         return UserActivitySchema(activities=[])
@@ -207,7 +201,5 @@ async def users_chores_counts(
     interval: DateRangeSchema = Depends(get_date_range),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> UserChoresCountSchema:
-    result = await statsRepo.get_user_chore_completion_count(
-        user_id, interval
-    )
-    return UserChoresCountSchema(user_id=result[0], chores_completions_counts=result[1])
+    result = await statsRepo.get_users_chore_completion_count([user_id], interval)
+    return result[0]

@@ -33,14 +33,6 @@ class AsyncChoreDAL(BaseDals[Chore], DeleteDALMixin):
 
         return chores
 
-    async def get_chore_valutation(self, chore_id: UUID) -> int | None:
-        query = select(Chore.valuation).where(Chore.id == chore_id)
-        query_result = await self.db_session.execute(query)
-        valutation = query_result.fetchone()
-        if valutation is not None:
-            return valutation[0]
-        return None
-
 
 @dataclass
 class ChoreDataService:

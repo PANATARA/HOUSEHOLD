@@ -23,7 +23,7 @@ class StatsRepository(ABC):
     ) -> list[UserChoresCountSchema]: ...
 
     @abstractmethod
-    async def get_family_chores_by_completions(
+    async def get_chores_by_completions(
         self, family_id: UUID, interval: DateRangeSchema | None = None
     ) -> list[ChoresFamilyCountSchema]: ...
 
@@ -38,9 +38,14 @@ class StatsRepository(ABC):
     ) -> dict[date, int]: ...
 
     @abstractmethod
-    async def get_user_chore_completion_count(
-        self, completed_by_id: UUID, interval: DateRangeSchema | None = None
-    ) -> tuple[UUID, int]: ...
+    async def get_users_chore_completion_count(
+        self, users_ids: list[UUID], interval: DateRangeSchema | None = None
+    ) -> list[UserChoresCountSchema]: ...
+
+    @abstractmethod
+    async def get_family_chore_completion_count(
+        self, family_id: UUID, interval: DateRangeSchema | None = None
+    ) -> int: ...
 
 
 class StatsClickhouseRepository(StatsRepository):
@@ -73,7 +78,7 @@ class StatsClickhouseRepository(StatsRepository):
             for row in query_result.result_rows
         ]
 
-    async def get_family_chores_by_completions(
+    async def get_chores_by_completions(
         self,
         family_id: UUID,
         interval: DateRangeSchema | None = None,
@@ -152,15 +157,20 @@ class StatsClickhouseRepository(StatsRepository):
         )
         return {row[0]: row[1] for row in query_result.result_rows}
 
-    async def get_user_chore_completion_count(
+    async def get_users_chore_completion_count(
         self,
-        completed_by_id: UUID,
+        users_ids: list[UUID],
         interval: DateRangeSchema | None = None,
-    ) -> tuple[UUID, int]:
-        async_client = await clickhouse_client.get_client()
+    ) -> list[UserChoresCountSchema]:
+        if not users_ids:
+            return []
 
-        condition, parameters = self.__user_date_condition_parameters(
-            completed_by_id, interval
+        async_client = await clickhouse_client.get_client()
+        condition = "completed_by_id IN %(users_ids)s"
+        parameters = {"users_ids": [str(uid) for uid in users_ids]}
+
+        condition, parameters = self.__date_condition_parameters(
+            condition, parameters, interval
         )
 
         query_result = await async_client.query(
@@ -174,10 +184,33 @@ class StatsClickhouseRepository(StatsRepository):
             """,
             parameters=parameters,
         )
+        return [
+            UserChoresCountSchema(user_id=row[0], chores_completions_counts=row[1])
+            for row in query_result.result_rows
+        ]
+
+    async def get_family_chore_completion_count(
+        self, family_id: UUID, interval: DateRangeSchema | None = None
+    ) -> int:
+        async_client = await clickhouse_client.get_client()
+
+        condition, parameters = self.__family_date_condition_parameters(
+            family_id, interval
+        )
+
+        query_result = await async_client.query(
+            query=f"""
+                SELECT count(*) AS completion_count
+                FROM chore_completion_stats
+                WHERE {condition}
+                GROUP BY family_id
+            """,
+            parameters=parameters,
+        )
         rows = query_result.result_rows
         if rows:
-            return (rows[0][0], rows[0][1])
-        return (completed_by_id, 0)
+            return rows[0][0]
+        return 0
 
     def __family_date_condition_parameters(
         self, family_id: UUID, interval: DateRangeSchema | None = None
@@ -203,14 +236,14 @@ class StatsClickhouseRepository(StatsRepository):
                 condition += (
                     " AND toDate(created_at) BETWEEN %(start_date)s AND %(end_date)s"
                 )
-                parameters["start_date"] = interval.start.date()
-                parameters["end_date"] = interval.end.date()
+                parameters["start_date"] = interval.start
+                parameters["end_date"] = interval.end
             elif interval.start:
                 condition += " AND toDate(created_at) >= %(start_date)s"
-                parameters["start_date"] = interval.start.date()
+                parameters["start_date"] = interval.start
             elif interval.end:
                 condition += " AND toDate(created_at) <= %(end_date)s"
-                parameters["end_date"] = interval.end.date()
+                parameters["end_date"] = interval.end
         return condition, parameters
 
 
@@ -243,7 +276,7 @@ class StatsPostgresRepository(StatsRepository):
             for row in result
         ]
 
-    async def get_family_chores_by_completions(
+    async def get_chores_by_completions(
         self,
         family_id: UUID,
         interval: DateRangeSchema | None = None,
@@ -310,41 +343,67 @@ class StatsPostgresRepository(StatsRepository):
         rows = (await self.db_session.execute(query, params)).all()
         return {row[0]: row[1] for row in rows}
 
-    async def get_user_chore_completion_count(
+    async def get_users_chore_completion_count(
         self,
-        completed_by_id: UUID,
+        users_ids: list[UUID],
         interval: DateRangeSchema | None = None,
-    ) -> tuple[UUID, int]:
-        condition = "completed_by_id = :completed_by_id"
-        params = {"completed_by_id": str(completed_by_id)}
+    ) -> list[UserChoresCountSchema]:
+        if not users_ids:
+            return []
 
+        condition = "completed_by_id = ANY(:user_ids)"
+        params = {"user_ids": list(map(str, users_ids))}
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
-            SELECT completed_by_id, COUNT(*)
+            SELECT completed_by_id, COUNT(*) AS completion_count
             FROM chore_completion
             WHERE {condition}
             GROUP BY completed_by_id
         """)
 
         rows = (await self.db_session.execute(query, params)).all()
+        result = {row[0]: row[1] for row in rows}
+        for uid in users_ids:
+            result.setdefault(uid, 0)
+        return [
+            UserChoresCountSchema(user_id=uid, chores_completions_counts=counts)
+            for uid, counts in result.items()
+        ]
+
+    async def get_family_chore_completion_count(
+        self, family_id: UUID, interval: DateRangeSchema | None = None
+    ) -> int:
+        condition = "family_id = :family_id"
+        params = {"family_id": str(family_id)}
+
+        condition, params = self._add_date_interval(condition, params, interval)
+
+        query = text(f"""
+            SELECT COUNT(*)
+            FROM chore_completion
+            WHERE {condition}
+            GROUP BY family_id
+        """)
+
+        rows = (await self.db_session.execute(query, params)).all()
 
         if rows:
-            return (rows[0][0], rows[0][1])
-        return (completed_by_id, 0)
+            return rows[0][0]
+        return 0
 
     def _add_date_interval(self, condition, params, interval):
         if interval:
             if interval.start and interval.end:
                 condition += " AND DATE(created_at) BETWEEN :start AND :end"
-                params["start"] = interval.start.date()
-                params["end"] = interval.end.date()
+                params["start"] = interval.start
+                params["end"] = interval.end
             elif interval.start:
                 condition += " AND DATE(created_at) >= :start"
-                params["start"] = interval.start.date()
+                params["start"] = interval.start
             elif interval.end:
                 condition += " AND DATE(created_at) <= :end"
-                params["end"] = interval.end.date()
+                params["end"] = interval.end
 
         return condition, params
 

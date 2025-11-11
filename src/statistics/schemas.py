@@ -1,14 +1,14 @@
-from datetime import date, datetime
+from datetime import date
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
 class DateRangeSchema(BaseModel):
-    start: datetime | None = Field(
+    start: date | None = Field(
         None, description="Start date of the interval (inclusive)"
     )
-    end: datetime | None = Field(
+    end: date | None = Field(
         None, description="End date of the interval (inclusive)"
     )
 
