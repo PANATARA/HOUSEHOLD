@@ -16,6 +16,7 @@ from core.permissions import (
     IsAuthenicatedPermission,
 )
 from database_connection import get_db
+from families.repository import FamilyRepository
 from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
 from users.repository import UserRepository, UserSettingsRepository
@@ -25,8 +26,6 @@ from users.schemas import (
     UserSettingsUpdateSchema,
     UserUpdateSchema,
 )
-from wallets.repository import WalletRepository
-from wallets.schemas import WalletBalanceSchema
 
 logger = getLogger(__name__)
 
@@ -41,6 +40,7 @@ router = APIRouter()
 )
 async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
+    async_session: AsyncSession = Depends(get_db),
 ) -> MeProfileSchema:
     user_response = UserResponseSchema(
         id=current_user.id,
@@ -49,9 +49,19 @@ async def me_get_user_profile(
         surname=current_user.surname,
         avatar_version=current_user.avatar_version,
     )
+    is_family_member = False
+    is_family_admin = False
+    if current_user.family_id is not None:
+        is_family_member = True
+        async with async_session.begin():
+            is_family_admin = await FamilyRepository(
+                async_session
+            ).user_is_family_admin(current_user.id, current_user.family_id)
 
     result_response = MeProfileSchema(
         user=user_response,
+        is_family_member=is_family_member,
+        is_family_admin=is_family_admin,
     )
 
     return result_response
