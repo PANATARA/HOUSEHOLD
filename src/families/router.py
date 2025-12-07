@@ -126,7 +126,7 @@ async def get_family_members(
 
 
 @router.get(
-    path="/members",
+    path="/members/leader",
     summary="",
     tags=["Family"],
 )
