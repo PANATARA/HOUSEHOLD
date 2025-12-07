@@ -30,6 +30,7 @@ from families.schemas import (
     FamilyCreateSchema,
     FamilyDetailSchema,
     FamilyInviteSchema,
+    FamilyMemberStatsSchema,
     FamilyMembersSchema,
     FamilyResponseSchema,
     FamilyStatisticsSchema,
@@ -103,8 +104,7 @@ async def get_my_family(
     return FamilyDetailSchema(
         family=FamilyResponseSchema.model_validate(family),
         statistics=FamilyStatisticsSchema(
-            weekly_completed_chores=weekly_stats,
-            monthly_completed_chores=monthly_stats
+            weekly_completed_chores=weekly_stats, monthly_completed_chores=monthly_stats
         ),
     )
 
@@ -115,31 +115,37 @@ async def get_my_family(
     tags=["Family"],
 )
 async def get_family_members(
-    limit: int | None = Query(None, ge=0),
     current_user: User = Depends(FamilyMemberPermission()),
-    statsRepo: StatsRepository = Depends(get_statistic_repo),
     async_session: AsyncSession = Depends(get_db),
 ) -> FamilyMembersSchema:
     async with async_session.begin():
         family_id: UUID = current_user.family_id  # type: ignore
         family_repo = FamilyRepository(async_session)
         family_members = await family_repo.get_family_members(family_id)
+        return FamilyMembersSchema(members=family_members)
 
-        member_ids = [m.id for m in family_members]
-        members_stats = await statsRepo.get_users_chore_completion_count(
-            users_ids=member_ids, interval=get_current_week_range()
+
+@router.get(
+    path="/members",
+    summary="",
+    tags=["Family"],
+)
+async def get_family_leader(
+    current_user: User = Depends(FamilyMemberPermission()),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
+    async_session: AsyncSession = Depends(get_db),
+) -> FamilyMemberStatsSchema:
+    async with async_session.begin():
+        family_id: UUID = current_user.family_id  # type: ignore
+        members = await statsRepo.get_family_members_by_chores_completions(
+            family_id, interval=get_current_week_range()
         )
-
-        if limit is not None:
-            members_stats = members_stats[:limit]
-
-        users_map = {u.id: u for u in family_members}
-        members_schemas = [
-            UserResponseSchema.model_validate(users_map[s.user_id])
-            for s in members_stats
-        ]
-
-        return FamilyMembersSchema(members=members_schemas, statistics=members_stats)
+        leader = members[0]
+        user = await UserRepository(async_session).get_by_id(leader.user_id)
+        return FamilyMemberStatsSchema(
+            member=UserResponseSchema.model_validate(user),
+            chore_completion_count=leader.chores_completions_counts,
+        )
 
 
 @router.patch(

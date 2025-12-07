@@ -3,7 +3,6 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from statistics.schemas import UserChoresCountSchema
 from users.schemas import UserResponseSchema
 
 
@@ -36,7 +35,11 @@ class FamilyDetailSchema(BaseModel):
 
 class FamilyMembersSchema(BaseModel):
     members: list[UserResponseSchema]
-    statistics: list[UserChoresCountSchema]
+
+
+class FamilyMemberStatsSchema(BaseModel):
+    member: UserResponseSchema
+    chore_completion_count: int
 
 
 class FamilyInviteSchema(BaseModel):
