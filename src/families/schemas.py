@@ -38,8 +38,8 @@ class FamilyMembersSchema(BaseModel):
 
 
 class FamilyMemberStatsSchema(BaseModel):
-    member: UserResponseSchema
-    chore_completion_count: int
+    member: UserResponseSchema | None
+    chore_completion_count: int | None
 
 
 class FamilyInviteSchema(BaseModel):

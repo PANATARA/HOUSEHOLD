@@ -140,11 +140,15 @@ async def get_family_leader(
         members = await statsRepo.get_family_members_by_chores_completions(
             family_id, interval=get_current_week_range()
         )
-        leader = members[0]
-        user = await UserRepository(async_session).get_by_id(leader.user_id)
+        if len(members) == 0:
+            return FamilyMemberStatsSchema(
+                member=None,
+                chore_completion_count=None,
+            )
+        user = await UserRepository(async_session).get_by_id(members[0].user_id)
         return FamilyMemberStatsSchema(
             member=UserResponseSchema.model_validate(user),
-            chore_completion_count=leader.chores_completions_counts,
+            chore_completion_count=members[0].chores_completions_counts,
         )
 
 

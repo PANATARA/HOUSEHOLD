@@ -1,7 +1,7 @@
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class UserResponseSchema(BaseModel):
@@ -10,6 +10,8 @@ class UserResponseSchema(BaseModel):
     name: str | None
     surname: str | None
     avatar_version: int | None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdateSchema(BaseModel):
