@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, date
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
@@ -26,27 +26,6 @@ def get_date_range(
     ),
 ):
     return DateRangeSchema(start=start, end=end)
-
-
-def get_list_activities(
-    activity_data: dict[date, int], interval: DateRangeSchema
-) -> list[ActivitySchema]:
-    data_keys = list(activity_data.keys())
-    first_key, last_key = data_keys[0], data_keys[-1]
-
-    start = interval.start.date() if interval.start else first_key
-    end = interval.end.date() if interval.end else last_key
-
-    all_dates = {start + timedelta(days=i): 0 for i in range((end - start).days + 1)}
-
-    for key, value in activity_data.items():
-        all_dates[key] = value
-
-    activities = [
-        ActivitySchema(activity_date=day, activity=count)
-        for day, count in sorted(all_dates.items())
-    ]
-    return activities
 
 
 date_range_docs = """
@@ -136,8 +115,9 @@ async def family_heatmap(
     if not activity_data:
         return UserActivitySchema(activities=[])
 
-    list_activities = get_list_activities(activity_data, interval)
-
+    list_activities = []
+    for i in activity_data.items():
+        list_activities.append(ActivitySchema(activity_date=i[0], activity=i[1]))
     return UserActivitySchema(activities=list_activities)
 
 
@@ -178,8 +158,9 @@ async def user_heatmap(
     if not activity_data:
         return UserActivitySchema(activities=[])
 
-    list_activities = get_list_activities(activity_data, interval)
-
+    list_activities = []
+    for i in activity_data.items():
+        list_activities.append(ActivitySchema(activity_date=i[0], activity=i[1]))
     return UserActivitySchema(activities=list_activities)
 
 
