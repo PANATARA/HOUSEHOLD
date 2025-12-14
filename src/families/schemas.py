@@ -23,14 +23,8 @@ class FamilyResponseSchema(BaseModel):
         from_attributes = True
 
 
-class FamilyStatisticsSchema(BaseModel):
-    weekly_completed_chores: int
-    monthly_completed_chores: int
-
-
 class FamilyDetailSchema(BaseModel):
     family: FamilyResponseSchema
-    statistics: FamilyStatisticsSchema
 
 
 class FamilyMembersSchema(BaseModel):

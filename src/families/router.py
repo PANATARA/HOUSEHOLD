@@ -33,7 +33,6 @@ from families.schemas import (
     FamilyMemberStatsSchema,
     FamilyMembersSchema,
     FamilyResponseSchema,
-    FamilyStatisticsSchema,
     InviteTokenSchema,
 )
 from families.services import (
@@ -42,11 +41,10 @@ from families.services import (
     LogoutUserFromFamilyService,
 )
 from statistics.repository import StatsRepository, get_statistic_repo
-from statistics.schemas import UserChoresCountSchema
 from users.models import User
 from users.repository import UserRepository
 from users.schemas import UserFamilyPermissionModelSchema, UserResponseSchema
-from utils import get_current_month_range, get_current_week_range
+from utils import get_current_week_range
 
 logger = getLogger(__name__)
 
@@ -90,22 +88,12 @@ async def create_family(
 async def get_my_family(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-    statsRepo: StatsRepository = Depends(get_statistic_repo),
 ) -> FamilyDetailSchema:
     async with async_session.begin():
         family_id = current_user.family_id
         family = await FamilyRepository(async_session).get_by_id(family_id)
-        weekly_stats = await statsRepo.get_family_chore_completion_count(
-            family_id=family_id, interval=get_current_week_range()
-        )
-        monthly_stats = await statsRepo.get_family_chore_completion_count(
-            family_id=family_id, interval=get_current_month_range()
-        )
     return FamilyDetailSchema(
         family=FamilyResponseSchema.model_validate(family),
-        statistics=FamilyStatisticsSchema(
-            weekly_completed_chores=weekly_stats, monthly_completed_chores=monthly_stats
-        ),
     )
 
 

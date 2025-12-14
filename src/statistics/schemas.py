@@ -8,14 +8,23 @@ class DateRangeSchema(BaseModel):
     start: date | None = Field(
         None, description="Start date of the interval (inclusive)"
     )
-    end: date | None = Field(
-        None, description="End date of the interval (inclusive)"
-    )
+    end: date | None = Field(None, description="End date of the interval (inclusive)")
 
 
 class UserChoresCountSchema(BaseModel):
     user_id: UUID
     chores_completions_counts: int
+
+
+class UserProfileStats(BaseModel):
+    user_id: UUID
+    completed_this_week: int
+    completed_this_month: int
+
+
+class FamilyProfileStats(BaseModel):
+    completed_this_week: int
+    completed_this_month: int
 
 
 class ActivitySchema(BaseModel):

@@ -9,10 +9,13 @@ from statistics.schemas import (
     ActivitySchema,
     ChoresFamilyCountSchema,
     DateRangeSchema,
+    FamilyProfileStats,
     UserActivitySchema,
     UserChoresCountSchema,
+    UserProfileStats,
 )
 from users.models import User
+from utils import get_current_month_range, get_current_week_range
 
 router = APIRouter()
 
@@ -184,3 +187,65 @@ async def users_chores_counts(
 ) -> UserChoresCountSchema:
     result = await statsRepo.get_users_chore_completion_count([user_id], interval)
     return result[0]
+
+
+@router.get(
+    "/users/{user_id}/profile/stats",
+    tags=["Statistics"],
+    response_model=UserProfileStats,
+    summary="Get user's chore completion stats",
+    description="""
+        Returns the number of chores completed by a specific user 
+        for the current week and current month.
+        Requires permission to access the user's profile.
+    """,
+)
+async def users_profile_stats(
+    user_id: UUID,
+    current_user: User = Depends(FamilyUserAccessPermission()),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
+) -> UserProfileStats:
+    week_interval = get_current_week_range()
+    month_interval = get_current_month_range()
+
+    week_result = await statsRepo.get_users_chore_completion_count(
+        [user_id], week_interval
+    )
+    month_result = await statsRepo.get_users_chore_completion_count(
+        [user_id], month_interval
+    )
+    return UserProfileStats(
+        user_id=user_id,
+        completed_this_week=week_result[0].chores_completions_counts,
+        completed_this_month=month_result[0].chores_completions_counts,
+    )
+
+
+@router.get(
+    "/families/profile/stats",
+    tags=["Statistics"],
+    response_model=FamilyProfileStats,
+    summary="Get family chore completion stats",
+    description="""
+        Returns the total number of chores completed by all members of the
+        authenticated user's family for the current week and current month.
+        Requires that the user is a member of a family.
+    """,
+)
+async def family_profile_stats(
+    current_user: User = Depends(FamilyMemberPermission()),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
+) -> FamilyProfileStats:
+    week_interval = get_current_week_range()
+    month_interval = get_current_month_range()
+
+    week_result = await statsRepo.get_family_chore_completion_count(
+        current_user.family_id, week_interval
+    )
+    month_result = await statsRepo.get_family_chore_completion_count(
+        current_user.family_id, month_interval
+    )
+    return FamilyProfileStats(
+        completed_this_week=week_result,
+        completed_this_month=month_result,
+    )
