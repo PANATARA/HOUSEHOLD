@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import json
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +15,6 @@ from core.validators import (
     validate_chore_completion_is_changable,
     validate_chore_is_active,
 )
-from families.repository import FamilyRepository
 from users.models import User
 from users.repository import UserPermissionsRepository
 from wallets.services import CoinsRewardService

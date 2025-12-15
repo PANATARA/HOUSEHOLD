@@ -28,6 +28,7 @@ class User(Base, BaseIdTimeStampModel):
     )
     avatar_version: Mapped[int | None] = mapped_column(default=None)
     avatar_extension: Mapped[str | None] = mapped_column(default=None)
+    experience: Mapped[int] = mapped_column(default=0)
 
     def __repr__(self):
         return super().__repr__()

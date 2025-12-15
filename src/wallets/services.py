@@ -13,7 +13,9 @@ from core.services import BaseService
 from core.validators import (
     validate_chore_completion_is_approved,
 )
+from families.repository import FamilyRepository
 from users.models import User
+from users.repository import UserRepository
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
 from wallets.repository import (
     WalletRepository,
@@ -118,6 +120,9 @@ class CoinsRewardService(BaseService[RewardTransaction]):
         )
         await self._add_coins(user_id, chore.valuation)
         transaction = await self._create_transaction_log(user_id, chore.valuation)
+        await self._add_experience(
+            user_id, self.chore_completion.family_id, chore.valuation
+        )
         return transaction
 
     async def _add_coins(self, user_id: UUID, amount: int):
@@ -134,6 +139,10 @@ class CoinsRewardService(BaseService[RewardTransaction]):
         )
         transaction_log_dal = RewardTransactionDAL(self.db_session)
         return await transaction_log_dal.create(transaction)
+
+    async def _add_experience(self, user_id: UUID, family_id: UUID, amount: int):
+        await UserRepository(self.db_session).increment_experience(user_id, amount)
+        await FamilyRepository(self.db_session).increment_experience(family_id, amount)
 
     def get_validators(self):
         return [lambda: validate_chore_completion_is_approved(self.chore_completion)]

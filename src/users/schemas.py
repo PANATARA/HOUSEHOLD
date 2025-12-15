@@ -14,6 +14,10 @@ class UserResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserResponseSchemaFull(UserResponseSchema):
+    experience: int
+
+
 class UserUpdateSchema(BaseModel):
     username: str | None = None
     name: str | None = None

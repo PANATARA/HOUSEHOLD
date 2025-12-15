@@ -1,11 +1,10 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from core.base_dals import BaseDals, BaseUserPkDals, DeleteDALMixin
 from core.exceptions.users import UserNotFoundError
 from users.models import User, UserFamilyPermissions, UserSettings
-from users.schemas import UserResponseSchema
 
 
 class UserRepository(BaseDals[User]):
@@ -21,19 +20,13 @@ class UserRepository(BaseDals[User]):
         else:
             raise self.not_found_exception
 
-    async def get_users_by_ids(
-        self,
-        user_ids: list[UUID],
-    ) -> list[UserResponseSchema]:
-        if not user_ids:
-            return []
-        result = await self.db_session.execute(
-            select(
-                User.id, User.username, User.name, User.surname, User.avatar_version
-            ).where(User.id.in_(user_ids))
+    async def increment_experience(self, user_id: UUID, value: int):
+        await self.db_session.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(experience=User.experience + value)
         )
-        rows = result.mappings().all()
-        return [UserResponseSchema.model_validate(member) for member in rows]
+        await self.db_session.flush()
 
 
 class UserSettingsRepository(BaseDals[UserSettings], BaseUserPkDals[UserSettings]):

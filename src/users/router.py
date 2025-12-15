@@ -22,6 +22,7 @@ from users.models import User
 from users.repository import UserRepository, UserSettingsRepository
 from users.schemas import (
     UserResponseSchema,
+    UserResponseSchemaFull,
     UserSettingsResponseSchema,
     UserSettingsUpdateSchema,
     UserUpdateSchema,
@@ -42,12 +43,13 @@ async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> MeProfileSchema:
-    user_response = UserResponseSchema(
+    user_response = UserResponseSchemaFull(
         id=current_user.id,
         username=current_user.username,
         name=current_user.name,
         surname=current_user.surname,
         avatar_version=current_user.avatar_version,
+        experience=current_user.experience,
     )
     is_family_member = False
     is_family_admin = False
@@ -147,17 +149,16 @@ async def get_user_profile(
     user_id: UUID,
     current_user: User = Depends(FamilyUserAccessPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> UserProfileSchema:
+) -> UserResponseSchemaFull:
     async with async_session.begin():
         user = await UserRepository(async_session).get_by_id(user_id)
-    result = UserProfileSchema(
-        user=UserResponseSchema(
-            id=user.id,
-            username=user.username,
-            name=user.name,
-            surname=user.surname,
-            avatar_version=user.avatar_version,
-        ),
+    result = UserResponseSchemaFull(
+        id=user.id,
+        username=user.username,
+        name=user.name,
+        surname=user.surname,
+        avatar_version=user.avatar_version,
+        experience=user.experience,
     )
     return result
 

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import and_, exists, select
+from sqlalchemy import and_, exists, select, update
 
 from core.base_dals import BaseDals
 from core.exceptions.families import FamilyNotFoundError
@@ -33,3 +33,11 @@ class FamilyRepository(BaseDals[Family]):
         if rows is None:
             raise FamilyNotFoundError
         return [UserResponseSchema.model_validate(member) for member in rows]
+
+    async def increment_experience(self, family_id: UUID, value: int):
+        await self.db_session.execute(
+            update(Family)
+            .where(Family.id == family_id)
+            .values(experience=Family.experience + value)
+        )
+        await self.db_session.flush()
