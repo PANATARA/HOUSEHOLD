@@ -23,8 +23,8 @@ class FamilyResponseSchema(BaseModel):
         from_attributes = True
 
 
-class FamilyDetailSchema(BaseModel):
-    family: FamilyResponseSchema
+class FamilyDetailSchema(FamilyResponseSchema):
+    experience: int
 
 
 class FamilyMembersSchema(BaseModel):

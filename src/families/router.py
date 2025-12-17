@@ -32,7 +32,6 @@ from families.schemas import (
     FamilyInviteSchema,
     FamilyMemberStatsSchema,
     FamilyMembersSchema,
-    FamilyResponseSchema,
     InviteTokenSchema,
 )
 from families.services import (
@@ -60,7 +59,7 @@ async def create_family(
     body: FamilyCreateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyDetailSchema | None:
+) -> FamilyDetailSchema:
     async with async_session.begin():
         try:
             family_creator_service = FamilyCreatorService(
@@ -75,9 +74,7 @@ async def create_family(
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
         else:
-            family_data_service = FamilyRepository(async_session)
-            family_detail = await family_data_service.get_family_members(family.id)
-            return family_detail
+            return FamilyDetailSchema.model_validate(family)
 
 
 @router.get(
@@ -92,9 +89,7 @@ async def get_my_family(
     async with async_session.begin():
         family_id = current_user.family_id
         family = await FamilyRepository(async_session).get_by_id(family_id)
-    return FamilyDetailSchema(
-        family=FamilyResponseSchema.model_validate(family),
-    )
+    return FamilyDetailSchema.model_validate(family)
 
 
 @router.get(
