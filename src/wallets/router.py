@@ -39,7 +39,7 @@ async def get_user_wallet(
 @router.post(
     path="/transfer",
     summary="Transfer coins to another user",
-    tags=["Wallet transfer"],
+    tags=["Wallet"],
 )
 async def money_transfer_wallet(
     body: MoneyTransferSchema,
@@ -73,7 +73,7 @@ async def money_transfer_wallet(
 @router.get(
     path="/transactions",
     summary="Get user's wallet transactions",
-    tags=["Wallet transactions"],
+    tags=["Wallet"],
 )
 async def get_user_wallet_transaction(
     pagination: tuple[int, int] = Depends(get_pagination_params),

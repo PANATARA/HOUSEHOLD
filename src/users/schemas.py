@@ -18,6 +18,11 @@ class UserResponseSchemaFull(UserResponseSchema):
     experience: int
 
 
+class MeResponseSchemaFull(UserResponseSchemaFull):
+    is_family_member: bool
+    is_family_admin: bool
+
+
 class UserUpdateSchema(BaseModel):
     username: str | None = None
     name: str | None = None

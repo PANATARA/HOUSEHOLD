@@ -17,7 +17,6 @@ from core.permissions import (
 )
 from database_connection import get_db
 from families.repository import FamilyRepository
-from users.aggregates import MeProfileSchema, UserProfileSchema
 from users.models import User
 from users.repository import UserRepository, UserSettingsRepository
 from users.schemas import (
@@ -26,6 +25,7 @@ from users.schemas import (
     UserSettingsResponseSchema,
     UserSettingsUpdateSchema,
     UserUpdateSchema,
+    MeResponseSchemaFull,
 )
 
 logger = getLogger(__name__)
@@ -36,43 +36,39 @@ router = APIRouter()
 
 @router.get(
     path="/me/profile",
-    summary="Get user's full profile information",
-    tags=["Users Profile"],
+    summary="Get current user's profile",
+    tags=["Me"],
 )
 async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> MeProfileSchema:
-    user_response = UserResponseSchemaFull(
-        id=current_user.id,
-        username=current_user.username,
-        name=current_user.name,
-        surname=current_user.surname,
-        avatar_version=current_user.avatar_version,
-        experience=current_user.experience,
-    )
-    is_family_member = False
+) -> MeResponseSchemaFull:
+    is_family_member = current_user.family_id is not None
     is_family_admin = False
-    if current_user.family_id is not None:
+
+    if is_family_member:
         is_family_member = True
         async with async_session.begin():
             is_family_admin = await FamilyRepository(
                 async_session
             ).user_is_family_admin(current_user.id, current_user.family_id)
 
-    result_response = MeProfileSchema(
-        user=user_response,
+    return MeResponseSchemaFull(
+        id=current_user.id,
+        username=current_user.username,
+        name=current_user.name,
+        surname=current_user.surname,
+        avatar_version=current_user.avatar_version,
+        experience=current_user.experience,
         is_family_member=is_family_member,
         is_family_admin=is_family_admin,
     )
 
-    return result_response
-
 
 @router.patch(
     path="/me/profile",
-    summary="Update user's profile information",
-    tags=["Users Profile"],
+    summary="Update current user's profile",
+    tags=["Me"],
 )
 async def me_user_partial_update(
     body: UserUpdateSchema,
@@ -96,7 +92,7 @@ async def me_user_partial_update(
     return result_response
 
 
-@router.get(path="/me/settings", summary="Get user's settings", tags=["Users settings"])
+@router.get(path="/me/settings", summary="Get current user's settings", tags=["Me"])
 async def me_user_get_settings(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
@@ -116,8 +112,8 @@ async def me_user_get_settings(
 
 @router.patch(
     path="/me/settings",
-    summary="Update user's settings",
-    tags=["Users settings"],
+    summary="Update current user's settings",
+    tags=["Me"],
 )
 async def me_user_settings_partial_update(
     body: UserSettingsUpdateSchema,
@@ -142,7 +138,7 @@ async def me_user_settings_partial_update(
 
 @router.get(
     path="/{user_id}",
-    summary="Get user's profile information by user ID",
+    summary="Get user profile by ID",
     tags=["Users"],
 )
 async def get_user_profile(
@@ -152,19 +148,14 @@ async def get_user_profile(
 ) -> UserResponseSchemaFull:
     async with async_session.begin():
         user = await UserRepository(async_session).get_by_id(user_id)
-    result = UserResponseSchemaFull(
-        id=user.id,
-        username=user.username,
-        name=user.name,
-        surname=user.surname,
-        avatar_version=user.avatar_version,
-        experience=user.experience,
-    )
+    result = UserResponseSchemaFull.model_validate(user)
     return result
 
 
 @router.post(
-    path="me/avatar/file", summary="Upload a new user avatar", tags=["Users avatars"]
+    path="me/avatar/file",
+    summary="Upload a new avatar for the current user",
+    tags=["Me"],
 )
 async def me_user_upload_avatar(
     file: UploadFile = File(...),
@@ -184,8 +175,8 @@ async def me_user_upload_avatar(
 
 @router.get(
     path="/{user_id}/avatar",
-    summary="Get user's avatar by user_id",
-    tags=["Users avatars"],
+    summary="Get avatar for a user by ID",
+    tags=["Users"],
     response_model=None,
 )
 async def user_get_avatar(

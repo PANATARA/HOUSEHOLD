@@ -2,7 +2,7 @@ from datetime import timedelta
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -28,7 +28,7 @@ from database_connection import get_db
 from families.repository import FamilyRepository
 from families.schemas import (
     FamilyCreateSchema,
-    FamilyDetailSchema,
+    FamilyResponseSchema,
     FamilyInviteSchema,
     FamilyMemberStatsSchema,
     FamilyMembersSchema,
@@ -59,7 +59,7 @@ async def create_family(
     body: FamilyCreateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyDetailSchema:
+) -> FamilyResponseSchema:
     async with async_session.begin():
         try:
             family_creator_service = FamilyCreatorService(
@@ -74,7 +74,7 @@ async def create_family(
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
         else:
-            return FamilyDetailSchema.model_validate(family)
+            return FamilyResponseSchema.model_validate(family)
 
 
 @router.get(
@@ -85,17 +85,17 @@ async def create_family(
 async def get_my_family(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyDetailSchema:
+) -> FamilyResponseSchema:
     async with async_session.begin():
         family_id = current_user.family_id
         family = await FamilyRepository(async_session).get_by_id(family_id)
-    return FamilyDetailSchema.model_validate(family)
+    return FamilyResponseSchema.model_validate(family)
 
 
 @router.get(
     path="/members",
     summary="",
-    tags=["Family"],
+    tags=["Family members"],
 )
 async def get_family_members(
     current_user: User = Depends(FamilyMemberPermission()),
@@ -111,7 +111,7 @@ async def get_family_members(
 @router.get(
     path="/members/leader",
     summary="",
-    tags=["Family"],
+    tags=["Family members"],
 )
 async def get_family_leader(
     current_user: User = Depends(FamilyMemberPermission()),
@@ -263,7 +263,7 @@ async def join_to_family(
 
 
 @router.post(
-    path="/avatar/file/", summary="Upload new family's avatar", tags=["Family avatar"]
+    path="/avatar/file/", summary="Upload new family's avatar", tags=["Family"]
 )
 async def upload_family_avatar(
     file: UploadFile = File(...),
@@ -285,7 +285,7 @@ async def upload_family_avatar(
 @router.get(
     path="/avatar",
     summary="Get family's avatar",
-    tags=["Family avatar"],
+    tags=["Family"],
     response_model=None,
 )
 async def family_get_avatar(

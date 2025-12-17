@@ -1,6 +1,5 @@
 import uuid
 
-from pydantic import BaseModel
 from sqlalchemy import Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -11,14 +10,14 @@ from core.models import Base, BaseIdTimeStampModel
 class ChoreCompletion(Base, BaseIdTimeStampModel):
     __tablename__ = "chore_completion"
 
-    chore_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey(column="chores.id", ondelete="SET NULL")
+    chore_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(column="chores.id", ondelete="RESTRICT")
     )
     family_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(column="family.id", ondelete="CASCADE")
     )
-    completed_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey(column="users.id", ondelete="SET NULL")
+    completed_by_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(column="users.id", ondelete="RESTRICT")
     )
     status = mapped_column(
         Enum(
@@ -34,11 +33,3 @@ class ChoreCompletion(Base, BaseIdTimeStampModel):
 
     def __repr__(self):
         return super().__repr__()
-
-
-class ChoreCompletionModel(BaseModel):
-    family_id: uuid.UUID
-    message: str
-    completed_by_id: uuid.UUID
-    chore_id: uuid.UUID
-    status: StatusConfirmENUM

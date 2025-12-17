@@ -21,10 +21,10 @@ class Product(Base, BaseIdTimeStampModel):
             ondelete="CASCADE",
         )
     )
-    seller_id: Mapped[uuid.UUID | None] = mapped_column(
+    seller_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(
             column="users.id",
-            ondelete="SET NULL",
+            ondelete="RESTRICT",
         )
     )
     avatar_version: Mapped[int | None] = mapped_column(default=None)

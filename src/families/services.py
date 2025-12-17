@@ -50,14 +50,12 @@ class FamilyCreatorService(BaseService[Family]):
 
     async def _create_default_family_chore(self, family: Family) -> None:
         data = get_default_chore_data()
-        default_chores = ChoreCreatorService(family, self.db_session, data)
-        return await default_chores.run_process()
+        ChoresService = ChoreCreatorService(family, self.db_session, data)
+        await ChoresService.run_process()
 
 
 @dataclass
 class AddUserToFamilyService(BaseService[Family]):
-    """Create and return a new Family"""
-
     family: Family
     user: User
     permissions: UserFamilyPermissionModelSchema
