@@ -10,8 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from auth.router import router as auth_router
 from chores.router import router as chores_router
-from chores_completions.router import router as chores_completions_router
-from chores_confirmations.router import router as chores_confirmations_router
+from planned_chores.router import router as planned_chores_router
 from config import swagger_ui_settings
 from core.enums import PostgreSQLEnum
 from core.exceptions.base_exceptions import BaseAPIException
@@ -79,10 +78,7 @@ main_api_router = APIRouter(prefix="/api")
 main_api_router.include_router(user_router, prefix="/users")
 main_api_router.include_router(auth_router, prefix="/login")
 main_api_router.include_router(families_router, prefix="/families")
-main_api_router.include_router(chores_completions_router, prefix="/chores-completions")
-main_api_router.include_router(
-    chores_confirmations_router, prefix="/chores-confirmations"
-)
+main_api_router.include_router(planned_chores_router, prefix="/chores")
 main_api_router.include_router(chores_router, prefix="/chores")
 main_api_router.include_router(wallet_router, prefix="/wallets")
 main_api_router.include_router(product_router, prefix="/products")

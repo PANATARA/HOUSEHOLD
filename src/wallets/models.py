@@ -76,6 +76,6 @@ class RewardTransaction(BaseTransaction):
         ),
         nullable=False,
     )
-    chore_completion_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("chore_completion.id", ondelete="SET NULL"), index=True
+    planned_chore_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("planned_chore.id", ondelete="SET NULL"), index=True
     )

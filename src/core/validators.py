@@ -1,12 +1,12 @@
+from datetime import date
 from uuid import UUID
 
 from chores.models import Chore
-from chores_completions.models import ChoreCompletion
+from planned_chores.models import PlannedChore
 from core.enums import StatusConfirmENUM
 from core.exceptions.chores import ChoreNotFoundError
 from core.exceptions.chores_completion import (
     ChoreCompletionCanNotBeChanged,
-    ChoreCompletionIsNotApproved,
 )
 from core.exceptions.families import UserIsAlreadyFamilyMember, UserNotFoundInFamily
 from core.exceptions.products import ProductError, ProductNotFoundError
@@ -24,14 +24,16 @@ def validate_chore_is_active(chore: Chore) -> None:
         raise ChoreNotFoundError()
 
 
-def validate_chore_completion_is_changable(chore_completion: ChoreCompletion) -> None:
-    if chore_completion.status != StatusConfirmENUM.awaits:
+def validate_date_is_not_in_past(due_date: date) -> None:
+    if due_date < date.today():
+        raise ChoreCompletionCanNotBeChanged()  # fix
+
+
+def validate_planned_chore_is_changable(target: PlannedChore) -> None:
+    if target.status != StatusConfirmENUM.awaits:
         raise ChoreCompletionCanNotBeChanged()
 
-
-def validate_chore_completion_is_approved(chore_completion: ChoreCompletion) -> None:
-    if chore_completion.status != StatusConfirmENUM.approved:
-        raise ChoreCompletionIsNotApproved()
+    validate_date_is_not_in_past(target.due_date)
 
 
 def validate_user_not_in_family(user: User) -> None:

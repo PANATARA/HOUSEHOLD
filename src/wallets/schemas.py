@@ -54,13 +54,13 @@ class TransferTransactionSchema(BaseWalletTransaction):
 
 
 class RewardTransactionSchema(BaseWalletTransaction):
-    class ChoreCompletionTransactionSchema(BaseModel):
+    class PlannedChoreTransactionSchema(BaseModel):
         id: UUID
         chore: ChoreResponseSchema
-        completed_at: datetime
+        due_date: datetime
 
     transaction_type: str = RewardTransactionENUM.reward_for_chore.value
-    chore_completion: ChoreCompletionTransactionSchema
+    planned_chore: PlannedChoreTransactionSchema
 
 
 class UnionTransactionsSchema(BaseModel):

@@ -37,7 +37,7 @@ class UserUpdateSchema(BaseModel):
 
 
 class UserFamilyPermissionModelSchema(BaseModel):
-    should_confirm_chore_completion: bool
+    can_invite_users: bool
 
 
 class UserSettingsResponseSchema(BaseModel):

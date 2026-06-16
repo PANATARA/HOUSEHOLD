@@ -7,11 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from chores.models import Chore
-from chores_completions.models import ChoreCompletion
-from chores_confirmations.models import ChoreConfirmation
 from core.exceptions.http_exceptions import permission_denided
 from core.security import get_payload_from_jwt_token
 from database_connection import get_db
+from planned_chores.models import PlannedChore
 from products.models import Product
 from users.models import User, UserFamilyPermissions
 from users.repository import UserRepository
@@ -188,69 +187,6 @@ class ChorePermission(BasePermission):
         return user
 
 
-class ChoreCompletionPermission(BasePermission):
-    """
-    Permission that checks whether the user has access to a specific chore completion record
-    through shared family association.
-    """
-
-    async def get_user_and_check_permission(
-        self,
-        token_payload: dict[str, Any],
-        http_method: str,
-        async_session: AsyncSession,
-        **kwargs,
-    ) -> User:
-        chore_completion_id = kwargs.get("chore_completion_id")
-        user_id = token_payload.get("sub")
-        query = select(User).where(
-            User.id == user_id,
-            exists().where(
-                (ChoreCompletion.id == chore_completion_id)
-                & (ChoreCompletion.chore_id == Chore.id)
-                & (User.family_id == Chore.family_id)
-            ),
-        )
-
-        result = await async_session.execute(query)
-        user = result.scalars().first()
-
-        if user is None:
-            raise permission_denided
-        return user
-
-
-class ChoreConfirmationPermission(BasePermission):
-    """
-    Permission that verifies the user is related to the specified chore confirmation.
-    Only the user who created the confirmation has access.
-    """
-
-    async def get_user_and_check_permission(
-        self,
-        token_payload: dict[str, Any],
-        http_method: str,
-        async_session: AsyncSession,
-        **kwargs,
-    ) -> User:
-        chore_confirmation_id = kwargs.get("chore_confirmation_id")
-        user_id = token_payload.get("sub")
-        query = select(User).where(
-            User.id == user_id,
-            exists().where(
-                (ChoreConfirmation.user_id == User.id)
-                & (ChoreConfirmation.id == chore_confirmation_id)
-            ),
-        )
-
-        result = await async_session.execute(query)
-        user = result.scalars().first()
-
-        if user is None:
-            raise permission_denided
-        return user
-
-
 class ProductPermission(BasePermission):
     """
     Permission that checks if the user has access to a product belonging to their family.
@@ -319,4 +255,45 @@ class FamilyInvitePermission(BasePermission):
         if user is None:
             raise permission_denided
 
+        return user
+
+
+class PlannedChorePermission(BasePermission):
+    """
+    Permission that checks whether the user has access to a specific planned chore in their family.
+    If `only_admin=True`, access is granted only to family admins.
+    """
+
+    def __init__(self, only_admin: bool = False):
+        self.only_admin = only_admin
+        super().__init__()
+
+    async def get_user_and_check_permission(
+        self,
+        token_payload: dict[str, Any],
+        http_method: str,
+        async_session: AsyncSession,
+        **kwargs,
+    ) -> User:
+        if self.only_admin:
+            user_is_family_admin = token_payload.get("is_family_admin")
+            if not user_is_family_admin:
+                raise permission_denided
+
+        planned_chore_id = kwargs.get("planned_chore_id")
+        user_id = token_payload.get("sub")
+
+        query = select(User).where(
+            User.id == user_id,
+            exists().where(
+                (PlannedChore.id == planned_chore_id)
+                & (User.family_id == PlannedChore.family_id)
+            ),
+        )
+
+        result = await async_session.execute(query)
+        user = result.scalars().first()
+
+        if user is None:
+            raise permission_denided
         return user

@@ -9,7 +9,7 @@ from core.validators import validate_user_not_in_family
 from families.models import Family
 from families.repository import FamilyRepository
 from users.models import User, UserFamilyPermissions
-from users.repository import UserRepository, UserPermissionsRepository
+from users.repository import UserPermissionsRepository, UserRepository
 from users.schemas import UserFamilyPermissionModelSchema
 from wallets.models import Wallet
 from wallets.repository import WalletRepository
@@ -41,9 +41,7 @@ class FamilyCreatorService(BaseService[Family]):
         new_member = AddUserToFamilyService(
             family=family,
             user=self.user,
-            permissions=UserFamilyPermissionModelSchema(
-                should_confirm_chore_completion=False
-            ),
+            permissions=UserFamilyPermissionModelSchema(can_invite_users=True),
             db_session=self.db_session,
         )
         await new_member.run_process()
@@ -120,3 +118,12 @@ class LogoutUserFromFamilyService(BaseService[None]):
         family_dal = FamilyRepository(self.db_session)
         if await family_dal.user_is_family_admin(self.user.id, self.user.family_id):
             raise UserCannotLeaveFamily()
+
+
+@dataclass
+class GenerateFamilyInviteTokenService(BaseService[None]):
+    user: User
+    db_session: AsyncSession
+
+    async def process(self) -> None:
+        pass

@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import String, case, cast, exists, func, literal, select, update
+from sqlalchemy import String, case, cast, func, literal, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from chores.models import Chore
-from chores_completions.models import ChoreCompletion
 from core.base_dals import BaseDals, BaseUserPkDals, DeleteDALMixin
 from core.enums import PeerTransactionENUM, RewardTransactionENUM
 from core.exceptions.wallets import TransactionNotFoundError, WalletNotFoundError
+from planned_chores.models import PlannedChore
 from products.models import Product
 from users.models import User
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
@@ -50,7 +50,7 @@ class TransactionDataService:
     ) -> UnionTransactionsSchema:
         u = aliased(User)
         p = aliased(Product)
-        cc = aliased(ChoreCompletion)
+        pc = aliased(PlannedChore)
         c = aliased(Chore)
 
         peer_transactions_query = (
@@ -100,7 +100,7 @@ class TransactionDataService:
                     ),
                     else_=None,
                 ).label("product"),
-                literal(None).label("chore_completion"),
+                literal(None).label("planned_chore"),
             )
             .join(
                 u,
@@ -131,9 +131,9 @@ class TransactionDataService:
                 literal(None).label("other_user"),
                 func.json_build_object(
                     "id",
-                    RewardTransaction.chore_completion_id,
+                    RewardTransaction.planned_chore_id,
                     "completed_at",
-                    cc.created_at,
+                    pc.due_date,
                     "chore",
                     func.json_build_object(
                         "id",
@@ -147,10 +147,10 @@ class TransactionDataService:
                         "valuation",
                         c.valuation,
                     ),
-                ).label("chore_completion"),
+                ).label("planned_chore"),
             )
-            .join(cc, RewardTransaction.chore_completion_id == cc.id, isouter=True)
-            .join(c, c.id == cc.chore_id, isouter=True)
+            .join(pc, RewardTransaction.planned_chore_id == pc.id, isouter=True)
+            .join(c, c.id == pc.chore_id, isouter=True)
             .where(RewardTransaction.to_user_id == user_id)
         )
 
@@ -179,6 +179,7 @@ class TransactionDataService:
                 raise ValueError(f"Unknown transaction type: {transaction_type}")
 
         return UnionTransactionsSchema(transactions=result)
+        
 
 
 class PeerTransactionDAL(BaseDals[PeerTransaction]):

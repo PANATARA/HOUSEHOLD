@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS rabbitmq_chore_completion
+CREATE TABLE IF NOT EXISTS rabbitmq_planned_chores
 (
     payload String
 )
@@ -12,25 +12,27 @@ SETTINGS
     rabbitmq_username = 'myuser',
     rabbitmq_password = 'mypassword';
 
-CREATE TABLE IF NOT EXISTS chore_completion_stats
+CREATE TABLE IF NOT EXISTS planned_chore_stats
 (
     id UUID,
     chore_id UUID,
     family_id UUID,
     completed_by_id UUID,
-    created_at DateTime
+    assigned_to_id UUID,
+    due_date Date
 )
 ENGINE = MergeTree()
-ORDER BY (family_id, created_at);
+ORDER BY (family_id, due_date);
 
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS mv_chore_completion
-TO chore_completion_stats
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_planned_chore
+TO planned_chore_stats
 AS
 SELECT
-    JSONExtract(payload, 'id','UUID') as id,
-    JSONExtract(payload, 'family_id','UUID') as family_id,
-    JSONExtract(payload, 'chore_id','UUID') as chore_id,
-    JSONExtract(payload, 'completed_by_id','UUID') as completed_by_id,
-    toDateTime(JSONExtract(payload, 'created_at','Int64') / 1000000) as created_at
-FROM rabbitmq_chore_completion;
+    JSONExtract(payload, 'id', 'UUID') as id,
+    JSONExtract(payload, 'family_id', 'UUID') as family_id,
+    JSONExtract(payload, 'chore_id', 'UUID') as chore_id,
+    JSONExtract(payload, 'completed_by_id', 'UUID') as completed_by_id,
+    JSONExtract(payload, 'assigned_to_id', 'UUID') as assigned_to_id,
+    toDate(JSONExtractString(payload, 'due_date')) as due_date
+FROM rabbitmq_planned_chores;

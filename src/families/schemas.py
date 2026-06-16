@@ -33,7 +33,7 @@ class FamilyMemberStatsSchema(BaseModel):
 
 
 class FamilyInviteSchema(BaseModel):
-    should_confirm_chore_completion: bool
+    can_invite_users: bool
 
 
 class FamilyJoinSchema(BaseModel):

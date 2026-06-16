@@ -5,14 +5,12 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.repository import ChoreRepository
-from chores_completions.models import ChoreCompletion
+from planned_chores.models import PlannedChore
 from config import TRANSFER_RATE
 from core.enums import PeerTransactionENUM, RewardTransactionENUM
 from core.exceptions.wallets import NotEnoughCoins
 from core.services import BaseService
-from core.validators import (
-    validate_chore_completion_is_approved,
-)
+
 from families.repository import FamilyRepository
 from users.models import User
 from users.repository import UserRepository
@@ -104,45 +102,59 @@ class CoinsTransferService(BaseService[PeerTransaction | None]):
 
 
 @dataclass
-class CoinsRewardService(BaseService[RewardTransaction]):
-    """
-    Service for accruing coins for completing chore
-    """
-
-    chore_completion: ChoreCompletion
+class AwardService(BaseService[RewardTransaction]):
+    planned_chore: PlannedChore
     message: str
     db_session: AsyncSession
+    amount_multiplier: int = 1
 
     async def process(self) -> RewardTransaction:
-        user_id = self.chore_completion.completed_by_id
+        user_id = self.planned_chore.completed_by_id
+        if user_id is None:
+            raise ValueError("completed_by_id is None")
+
         chore = await ChoreRepository(self.db_session).get_by_id(
-            self.chore_completion.chore_id
+            self.planned_chore.chore_id
         )
-        await self._add_coins(user_id, chore.valuation)
-        transaction = await self._create_transaction_log(user_id, chore.valuation)
-        await self._add_experience(
-            user_id, self.chore_completion.family_id, chore.valuation
+
+        amount = chore.valuation * self.amount_multiplier
+
+        await self._change_coins(user_id, amount)
+
+        transaction = await self._create_transaction_log(
+            user_id=user_id,
+            amount=amount,
         )
+
+        await self._change_experience(
+            user_id=user_id,
+            family_id=self.planned_chore.family_id,
+            amount=amount,
+        )
+
         return transaction
 
-    async def _add_coins(self, user_id: UUID, amount: int):
-        wallet_dal = WalletRepository(self.db_session)
-        await wallet_dal.add_balance(user_id=user_id, amount=amount)
+    async def _change_coins(self, user_id: UUID, amount: int) -> None:
+        await WalletRepository(self.db_session).add_balance(user_id, amount)
 
-    async def _create_transaction_log(self, user_id: UUID, amount: int):
+    async def _create_transaction_log(
+        self, user_id: UUID, amount: int
+    ) -> RewardTransaction:
         transaction = RewardTransaction(
             detail=self.message,
             coins=amount,
             to_user_id=user_id,
-            chore_completion_id=self.chore_completion.id,
+            planned_chore_id=self.planned_chore.id,
             transaction_type=RewardTransactionENUM.reward_for_chore,
         )
-        transaction_log_dal = RewardTransactionDAL(self.db_session)
-        return await transaction_log_dal.create(transaction)
 
-    async def _add_experience(self, user_id: UUID, family_id: UUID, amount: int):
+        return await RewardTransactionDAL(self.db_session).create(transaction)
+
+    async def _change_experience(
+        self,
+        user_id: UUID,
+        family_id: UUID,
+        amount: int,
+    ) -> None:
         await UserRepository(self.db_session).increment_experience(user_id, amount)
         await FamilyRepository(self.db_session).increment_experience(family_id, amount)
-
-    def get_validators(self):
-        return [lambda: validate_chore_completion_is_approved(self.chore_completion)]

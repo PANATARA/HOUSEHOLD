@@ -65,7 +65,7 @@ class StatsClickhouseRepository(StatsRepository):
                 SELECT 
                     completed_by_id, 
                     count(*) AS chore_completion_count
-                FROM chore_completion_stats
+                FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY completed_by_id
                 ORDER BY chore_completion_count DESC
@@ -94,7 +94,7 @@ class StatsClickhouseRepository(StatsRepository):
                 SELECT 
                     chore_id, 
                     count(*) AS chore_completion_count
-                FROM chore_completion_stats
+                FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY chore_id
                 ORDER BY chore_completion_count DESC
@@ -121,9 +121,9 @@ class StatsClickhouseRepository(StatsRepository):
         query_result = await async_client.query(
             query=f"""
                 SELECT 
-                    toDate(created_at) AS day,
+                    due_date AS day,
                     count(*) AS chore_completion_count
-                FROM chore_completion_stats
+                FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY day
                 ORDER BY day ASC
@@ -146,9 +146,9 @@ class StatsClickhouseRepository(StatsRepository):
         query_result = await async_client.query(
             query=f"""
                 SELECT 
-                    toDate(created_at) AS day,
+                    due_date AS day,
                     count(*) AS chore_completion_count
-                FROM chore_completion_stats
+                FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY day
                 ORDER BY day ASC
@@ -178,7 +178,7 @@ class StatsClickhouseRepository(StatsRepository):
                 SELECT 
                     completed_by_id,
                     count(*) AS completion_count
-                FROM chore_completion_stats
+                FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY completed_by_id
             """,
@@ -201,7 +201,7 @@ class StatsClickhouseRepository(StatsRepository):
         query_result = await async_client.query(
             query=f"""
                 SELECT count(*) AS completion_count
-                FROM chore_completion_stats
+                FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY family_id
             """,
@@ -233,16 +233,14 @@ class StatsClickhouseRepository(StatsRepository):
     ) -> tuple[str, dict]:
         if interval:
             if interval.start and interval.end:
-                condition += (
-                    " AND toDate(created_at) BETWEEN %(start_date)s AND %(end_date)s"
-                )
+                condition += " AND due_date BETWEEN %(start_date)s AND %(end_date)s"
                 parameters["start_date"] = interval.start
                 parameters["end_date"] = interval.end
             elif interval.start:
-                condition += " AND toDate(created_at) >= %(start_date)s"
+                condition += " AND due_date >= %(start_date)s"
                 parameters["start_date"] = interval.start
             elif interval.end:
-                condition += " AND toDate(created_at) <= %(end_date)s"
+                condition += " AND due_date <= %(end_date)s"
                 parameters["end_date"] = interval.end
         return condition, parameters
 
@@ -256,14 +254,14 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> list[UserChoresCountSchema]:
-        condition = "family_id = :family_id"
+        condition = "family_id = :family_id AND status = 'completed'"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
             SELECT completed_by_id, COUNT(*) AS count
-            FROM chore_completion
+            FROM planned_chore
             WHERE {condition}
             GROUP BY completed_by_id
             ORDER BY count DESC
@@ -281,14 +279,14 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> list[ChoresFamilyCountSchema]:
-        condition = "family_id = :family_id"
+        condition = "family_id = :family_id AND status = 'completed'"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
             SELECT chore_id, COUNT(*) AS count
-            FROM chore_completion
+            FROM planned_chore
             WHERE {condition}
             GROUP BY chore_id
             ORDER BY count DESC
@@ -306,14 +304,14 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> dict[date, int]:
-        condition = "family_id = :family_id"
+        condition = "family_id = :family_id AND status = 'completed'"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
-            SELECT DATE(created_at) AS day, COUNT(*) AS count
-            FROM chore_completion
+            SELECT due_date AS day, COUNT(*) AS count
+            FROM planned_chore
             WHERE {condition}
             GROUP BY day
             ORDER BY day
@@ -327,14 +325,14 @@ class StatsPostgresRepository(StatsRepository):
         completed_by_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> dict[date, int]:
-        condition = "completed_by_id = :completed_by_id"
+        condition = "completed_by_id = :completed_by_id AND status = 'completed'"
         params = {"completed_by_id": str(completed_by_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
-            SELECT DATE(created_at) AS day, COUNT(*) AS count
-            FROM chore_completion
+            SELECT due_date AS day, COUNT(*) AS count
+            FROM planned_chore
             WHERE {condition}
             GROUP BY day
             ORDER BY day
@@ -351,13 +349,13 @@ class StatsPostgresRepository(StatsRepository):
         if not users_ids:
             return []
 
-        condition = "completed_by_id = ANY(:user_ids)"
+        condition = "completed_by_id = ANY(:user_ids) AND status = 'completed'"
         params = {"user_ids": list(map(str, users_ids))}
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
             SELECT completed_by_id, COUNT(*) AS completion_count
-            FROM chore_completion
+            FROM planned_chore
             WHERE {condition}
             GROUP BY completed_by_id
         """)
@@ -374,14 +372,14 @@ class StatsPostgresRepository(StatsRepository):
     async def get_family_chore_completion_count(
         self, family_id: UUID, interval: DateRangeSchema | None = None
     ) -> int:
-        condition = "family_id = :family_id"
+        condition = "family_id = :family_id AND status = 'completed'"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
             SELECT COUNT(*)
-            FROM chore_completion
+            FROM planned_chore
             WHERE {condition}
             GROUP BY family_id
         """)
@@ -395,14 +393,14 @@ class StatsPostgresRepository(StatsRepository):
     def _add_date_interval(self, condition, params, interval):
         if interval:
             if interval.start and interval.end:
-                condition += " AND DATE(created_at) BETWEEN :start AND :end"
+                condition += " AND due_date BETWEEN :start AND :end"
                 params["start"] = interval.start
                 params["end"] = interval.end
             elif interval.start:
-                condition += " AND DATE(created_at) >= :start"
+                condition += " AND due_date >= :start"
                 params["start"] = interval.start
             elif interval.end:
-                condition += " AND DATE(created_at) <= :end"
+                condition += " AND due_date <= :end"
                 params["end"] = interval.end
 
         return condition, params

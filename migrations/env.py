@@ -21,8 +21,7 @@ from core.models import Base
 from users.models import User, UserFamilyPermissions, UserSettings
 from families.models import Family
 from chores.models import Chore
-from chores_completions.models import ChoreCompletion
-from chores_confirmations.models import ChoreConfirmation
+from planned_chores.models import PlannedChore, ChoreSchedule
 from wallets.models import Wallet, PeerTransaction, RewardTransaction
 from products.models import Product, ProductBuyer
 

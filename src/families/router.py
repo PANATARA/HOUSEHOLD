@@ -42,7 +42,7 @@ from families.services import (
 from statistics.repository import StatsRepository, get_statistic_repo
 from users.models import User
 from users.repository import UserRepository
-from users.schemas import UserFamilyPermissionModelSchema, UserResponseSchema
+from users.schemas import UserResponseSchema
 from utils import get_current_week_range
 
 logger = getLogger(__name__)
@@ -238,10 +238,6 @@ async def join_to_family(
     async with async_session.begin():
         payload = get_payload_from_jwt_token(invite_token)
         family_id = payload.get("family_id")
-        allowed_fields = UserFamilyPermissionModelSchema.model_fields.keys()
-        user_permissions = UserFamilyPermissionModelSchema(
-            **{key: payload[key] for key in allowed_fields if key in payload}
-        )
         try:
             family = await FamilyRepository(async_session).get_by_id(family_id)
             service = AddUserToFamilyService(

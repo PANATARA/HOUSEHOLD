@@ -39,18 +39,3 @@ class UserPermissionsRepository(
     DeleteDALMixin,
 ):
     model = UserFamilyPermissions
-
-    async def get_users_should_confirm_chore_completion(
-        self, family_id: UUID, excluded_user_ids: list[UUID]
-    ) -> list[UUID] | None:
-        query = (
-            select(User.id)
-            .join(UserFamilyPermissions, UserFamilyPermissions.user_id == User.id)
-            .where(UserFamilyPermissions.should_confirm_chore_completion)
-            .where(User.family_id == family_id)
-            .where(User.id.notin_(excluded_user_ids))
-        )
-        query_result = await self.db_session.execute(query)
-        users_ids = list(query_result.scalars().all())
-
-        return users_ids if users_ids else None

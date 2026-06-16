@@ -44,3 +44,13 @@ class RewardTransactionENUM(PostgreSQLEnum):
     @classmethod
     def get_enum_name(self):
         return "system_transaction"
+
+
+class FrequencyTypeENUM(PostgreSQLEnum):
+    daily = "daily"
+    weekly = "weekly"
+    monthly = "monthly"
+
+    @classmethod
+    def get_enum_name(self):
+        return "frequency_type"
