@@ -29,3 +29,8 @@ class UserIsAlreadyFamilyMember(FamilyError, ConflictError):
 class UserCannotLeaveFamily(FamilyError):
     def __init__(self, message="User cannot leave the family."):
         super().__init__(message)
+
+
+class InvalidInviteCodeError(FamilyError):
+    def __init__(self, message="User cannot join to family."):
+        super().__init__(message)

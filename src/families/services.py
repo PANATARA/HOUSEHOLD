@@ -1,9 +1,13 @@
+import random
+import string
+
 from dataclasses import dataclass
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.services import ChoreCreatorService, get_default_chore_data
-from core.exceptions.families import UserCannotLeaveFamily
+from core.exceptions.families import InvalidInviteCodeError, UserCannotLeaveFamily
 from core.services import BaseService
 from core.validators import validate_user_not_in_family
 from families.models import Family
@@ -14,6 +18,7 @@ from users.schemas import UserFamilyPermissionModelSchema
 from wallets.models import Wallet
 from wallets.repository import WalletRepository
 from wallets.services import WalletCreatorService
+from database_connection import redis_client
 
 
 @dataclass
@@ -120,10 +125,114 @@ class LogoutUserFromFamilyService(BaseService[None]):
             raise UserCannotLeaveFamily()
 
 
+FAMILY_INVITE_CODE_LENGTH_LETTERS = 3
+FAMILY_INVITE_CODE_LENGTH_DIGITS = 3
+FAMILY_INVITE_CODE_EXPIRE = 60 * 5
+
+
 @dataclass
-class GenerateFamilyInviteTokenService(BaseService[None]):
+class GenerateFamilyInviteTokenService(BaseService[tuple[str, int]]):
     user: User
     db_session: AsyncSession
 
-    async def process(self) -> None:
-        pass
+    async def process(self) -> tuple[str, int]:
+        self.redis = await redis_client.get_client()
+
+        existing_code = await self._get_invite_code_from_redis()
+        if existing_code:
+            ttl = await self._get_invite_code_ttl()
+            return existing_code, ttl
+
+        code = await self._generate_unique_invite_code()
+        await self._set_invite_code_to_redis(code)
+        return code, FAMILY_INVITE_CODE_EXPIRE
+
+    async def _generate_unique_invite_code(self) -> str:
+        for _ in range(100):
+            code = self._generate_invite_code()
+            family_id = await self.redis.get(self._invite_code_key(code))
+            if family_id is None:
+                return code
+        raise RuntimeError(
+            "Failed to generate unique family invite code after 100 attempts"
+        )
+
+    def _generate_invite_code(self) -> str:
+        letters = "".join(
+            random.choices(
+                string.ascii_uppercase,
+                k=FAMILY_INVITE_CODE_LENGTH_LETTERS,
+            )
+        )
+        digits = "".join(
+            random.choices(
+                string.digits,
+                k=FAMILY_INVITE_CODE_LENGTH_DIGITS,
+            )
+        )
+        return f"{letters}{digits}"
+
+    async def _get_invite_code_from_redis(self) -> str | None:
+        value = await self.redis.get(str(self.user.family_id))
+        return value.decode() if isinstance(value, bytes) else value
+
+    async def _get_invite_code_ttl(self) -> int:
+        ttl = await self.redis.ttl(str(self.user.family_id))
+        return ttl if ttl > 0 else FAMILY_INVITE_CODE_EXPIRE
+
+    async def _set_invite_code_to_redis(self, code: str) -> None:
+        family_key = str(self.user.family_id)
+        code_key = self._invite_code_key(code)
+        async with self.redis.pipeline(transaction=True) as pipe:
+            pipe.set(family_key, code, ex=FAMILY_INVITE_CODE_EXPIRE)
+            pipe.set(code_key, str(self.user.family_id), ex=FAMILY_INVITE_CODE_EXPIRE)
+            await pipe.execute()
+
+    @staticmethod
+    def _invite_code_key(code: str) -> str:
+        return f"family_invite:{code}"
+
+
+@dataclass
+class JoinFamilyByInviteCodeService(BaseService[Family]):
+    user: User
+    invite_code: str
+    db_session: AsyncSession
+
+    async def process(self) -> Family:
+        self.redis = await redis_client.get_client()
+
+        family_id = await self._get_family_id_from_code()
+        if family_id is None:
+            raise InvalidInviteCodeError("Invite code is invalid or expired")
+
+        family = await self._get_family(family_id)
+        if family is None:
+            raise InvalidInviteCodeError("Family for this invite code no longer exists")
+
+        await self._join_family(family)
+
+        return family
+
+    async def _get_family_id_from_code(self) -> UUID | None:
+        value = await self.redis.get(self._invite_code_key(self.invite_code))
+        if value is None:
+            return None
+        family_id_str = value.decode() if isinstance(value, bytes) else value
+        return UUID(family_id_str)
+
+    async def _get_family(self, family_id: UUID) -> Family | None:
+        return await FamilyRepository(self.db_session).get_by_id(family_id)
+
+    async def _join_family(self, family: Family) -> None:
+        service = AddUserToFamilyService(
+            family=family,
+            user=self.user,
+            permissions=UserFamilyPermissionModelSchema(can_invite_users=True),
+            db_session=self.db_session,
+        )
+        await service.run_process()
+
+    @staticmethod
+    def _invite_code_key(code: str) -> str:
+        return f"family_invite:{code}"

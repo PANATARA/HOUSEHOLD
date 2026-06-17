@@ -1,4 +1,3 @@
-from datetime import timedelta
 from logging import getLogger
 from uuid import UUID
 
@@ -23,20 +22,19 @@ from core.permissions import (
     FamilyUserAccessPermission,
     IsAuthenicatedPermission,
 )
-from core.security import create_jwt_token, get_payload_from_jwt_token
 from database_connection import get_db
 from families.repository import FamilyRepository
 from families.schemas import (
     FamilyCreateSchema,
     FamilyResponseSchema,
-    FamilyInviteSchema,
     FamilyMemberStatsSchema,
     FamilyMembersSchema,
     InviteTokenSchema,
 )
 from families.services import (
-    AddUserToFamilyService,
     FamilyCreatorService,
+    GenerateFamilyInviteTokenService,
+    JoinFamilyByInviteCodeService,
     LogoutUserFromFamilyService,
 )
 from statistics.repository import StatsRepository, get_statistic_repo
@@ -213,45 +211,33 @@ async def change_family_admin(
     tags=["Family invited"],
 )
 async def generate_invite_token(
-    body: FamilyInviteSchema,
     current_user: User = Depends(FamilyInvitePermission()),
+    async_session: AsyncSession = Depends(get_db),
 ) -> InviteTokenSchema:
-    payload = body.model_dump()
-    payload["family_id"] = str(current_user.family_id)
-    invite_token = create_jwt_token(data=payload, expires_delta=timedelta(seconds=900))
+    async with async_session.begin():
+        service = GenerateFamilyInviteTokenService(current_user, async_session)
+        invite_code, ttl = await service.run_process()
     return InviteTokenSchema(
-        invite_token=invite_token,
-        life_time=timedelta(seconds=900),
+        invite_token=invite_code,
+        ttl=ttl,
     )
 
 
 @router.post(
-    path="/join/{invite_token}",
+    path="/join/{invite_code}",
     summary="Join to family by invite-token",
     tags=["Family invited"],
 )
 async def join_to_family(
-    invite_token: str,
+    invite_code: str,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> JSONResponse:
     async with async_session.begin():
-        payload = get_payload_from_jwt_token(invite_token)
-        family_id = payload.get("family_id")
-        try:
-            family = await FamilyRepository(async_session).get_by_id(family_id)
-            service = AddUserToFamilyService(
-                family=family,
-                user=current_user,
-                permissions=user_permissions,
-                db_session=async_session,
-            )
-            await service.run_process()
-        except UserIsAlreadyFamilyMember:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="The user is already a member of a family",
-            )
+        service = JoinFamilyByInviteCodeService(
+            user=current_user, invite_code=invite_code, db_session=async_session
+        )
+        await service.run_process()
         return JSONResponse(
             content={"message": "You have been successfully added to the family"},
             status_code=status.HTTP_200_OK,

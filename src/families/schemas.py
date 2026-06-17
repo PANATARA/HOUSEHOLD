@@ -1,4 +1,3 @@
-from datetime import timedelta
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -32,14 +31,10 @@ class FamilyMemberStatsSchema(BaseModel):
     chore_completion_count: int | None
 
 
-class FamilyInviteSchema(BaseModel):
-    can_invite_users: bool
-
-
 class FamilyJoinSchema(BaseModel):
     invite_token: str
 
 
 class InviteTokenSchema(BaseModel):
     invite_token: str
-    life_time: timedelta
+    ttl: int

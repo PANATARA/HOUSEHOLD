@@ -4,6 +4,7 @@ import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import ENABLE_CLICKHOUSE
+from core.services import BaseService
 from database_connection import rabbit_client
 from chores.models import Chore
 from families.models import Family
@@ -20,7 +21,7 @@ from wallets.services import AwardService
 
 
 @dataclass
-class CreatePlannedChore:
+class CreatePlannedChore(BaseService[PlannedChore]):
     schedule: ChoreSchedule | None
     chore: Chore
     assigned_to_user: User | None
@@ -53,7 +54,7 @@ class CreatePlannedChore:
 
 
 @dataclass
-class DeletePlannedChore:
+class DeletePlannedChore(BaseService[RewardTransaction | None]):
     planned_chore: PlannedChore
     db_session: AsyncSession
 
@@ -80,11 +81,11 @@ class DeletePlannedChore:
             db_session=self.db_session,
             amount_multiplier=-1,
         )
-        return await service.process()
+        return await service.run_process()
 
 
 @dataclass
-class CompletePlannedChore:
+class CompletePlannedChore(BaseService[PlannedChore]):
     planned_chore: PlannedChore
     completed_by: User
     db_session: AsyncSession

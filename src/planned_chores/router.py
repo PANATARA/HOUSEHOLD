@@ -57,7 +57,7 @@ async def create_planned_chore(
             message=body.message,
             db_session=async_session,
         )
-        planned_chore = await service.process()
+        planned_chore = await service.run_process()
         return JSONResponse(
             content={"id": str(planned_chore.id)}, status_code=status.HTTP_201_CREATED
         )
@@ -82,7 +82,7 @@ async def delete_planned_chore(
             planned_chore=planned_chore,
             db_session=async_session,
         )
-        await service.process()
+        await service.run_process()
 
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -107,7 +107,7 @@ async def complete_planned_chore(
             completed_by=current_user,
             db_session=async_session,
         )
-        planned_chore = await service.process()
+        planned_chore = await service.run_process()
         return JSONResponse(
             content={"id": str(planned_chore.id)}, status_code=status.HTTP_202_ACCEPTED
         )
