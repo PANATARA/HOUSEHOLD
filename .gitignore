@@ -173,3 +173,4 @@ cython_debug/
 .vscode/settings.json
 
 uploads/
+docker-compose-dev.yml

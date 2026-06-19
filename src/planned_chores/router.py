@@ -1,7 +1,8 @@
+from datetime import date
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status, Response
+from fastapi import APIRouter, Depends, Query, status, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +14,7 @@ from core.permissions import (
 )
 from database_connection import get_db
 from planned_chores.repository import PlannedChoreRepository
-from planned_chores.schemas import PlannedChoreCreateSchema
+from planned_chores.schemas import PlannedChoreCreateSchema, PlannedChoreResponseSchema
 from planned_chores.services import (
     CompletePlannedChore,
     CreatePlannedChore,
@@ -97,20 +98,18 @@ async def complete_planned_chore(
     planned_chore_id: UUID,
     current_user: User = Depends(PlannedChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
-):
+) -> PlannedChoreResponseSchema:
     async with async_session.begin():
-        planned_chore = await PlannedChoreRepository(async_session).get_by_id(
-            planned_chore_id
-        )
+        repo = PlannedChoreRepository(async_session)
+        planned_chore = await repo.get_by_id(planned_chore_id)
         service = CompletePlannedChore(
             planned_chore=planned_chore,
             completed_by=current_user,
             db_session=async_session,
         )
-        planned_chore = await service.run_process()
-        return JSONResponse(
-            content={"id": str(planned_chore.id)}, status_code=status.HTTP_202_ACCEPTED
-        )
+        await service.run_process()
+        planned_chore_full = await repo.get_planned_chore_by_id(planned_chore.id)
+        return PlannedChoreResponseSchema.model_validate(planned_chore_full)
 
 
 @router.patch(
@@ -147,7 +146,15 @@ async def reschedule_planned_chore(
     tags=["Planned Chore"],
 )
 async def get_family_planned_chore(
+    due_date: date | None = Query(default=None),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-):
-    pass
+) -> list[PlannedChoreResponseSchema]:
+    repo = PlannedChoreRepository(async_session)
+    result = await repo.get_family_planned_chores(
+        family_id=current_user.family_id,  # type: ignore
+        date_from=due_date,
+        date_to=due_date,
+    )
+
+    return result
