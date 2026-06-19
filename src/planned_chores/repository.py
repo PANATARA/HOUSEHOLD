@@ -69,7 +69,6 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
                     ),
                 ).label("assigned_to"),
                 PlannedChore.due_date.label("due_date"),
-                PlannedChore.status.label("status"),
                 PlannedChore.message.label("message"),
             )
             .join(Chore, PlannedChore.chore_id == Chore.id)
@@ -156,7 +155,6 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
                     ),
                 ).label("assigned_to"),
                 PlannedChore.due_date.label("due_date"),
-                PlannedChore.status.label("status"),
                 PlannedChore.message.label("message"),
             )
             .join(Chore, PlannedChore.chore_id == Chore.id)

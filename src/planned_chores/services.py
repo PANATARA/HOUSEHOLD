@@ -10,14 +10,34 @@ from chores.models import Chore
 from families.models import Family
 from planned_chores.models import ChoreSchedule, PlannedChore
 from planned_chores.repository import PlannedChoreRepository
-from core.enums import FrequencyTypeENUM, StatusConfirmENUM
+from core.enums import FrequencyTypeENUM
 from core.validators import (
     validate_date_is_not_in_past,
-    validate_planned_chore_is_changable,
+    validate_planned_chore_is_completed,
+    validate_planned_chore_is_not_completed,
 )
 from users.models import User
 from wallets.models import RewardTransaction
 from wallets.services import AwardService
+
+
+async def publish_chore_completion_event(
+    planned_chore: PlannedChore, sign: int
+) -> None:
+    """
+    sign=1  — the PlannedChore is calculated in statistics (completed)
+    sign=-1 — the PlannedChore has been removed from statistics (execution canceled or the completed task has been deleted)
+    """
+    message = {
+        "id": str(planned_chore.id),
+        "chore_id": str(planned_chore.chore_id),
+        "family_id": str(planned_chore.family_id),
+        "completed_by_id": str(planned_chore.completed_by_id),
+        "assigned_to_id": str(planned_chore.assigned_to_id),
+        "due_date": planned_chore.due_date.isoformat(),
+        "sign": sign,
+    }
+    await rabbit_client.publish(message=message)
 
 
 @dataclass
@@ -45,7 +65,6 @@ class CreatePlannedChore(BaseService[PlannedChore]):
             if self.assigned_to_user is not None
             else None,
             due_date=self.due_date,
-            status=StatusConfirmENUM.awaits,
             message=self.message,
             created_by=self.created_by.id,
         )
@@ -63,6 +82,9 @@ class DeletePlannedChore(BaseService[RewardTransaction | None]):
             await self._delete_planned_chore()
             return None
         else:
+            if ENABLE_CLICKHOUSE:
+                # The PlannedChore has been completed - we remove it from the statistics before deleting
+                await publish_chore_completion_event(self.planned_chore, sign=-1)
             await self._soft_delete_planned_chore()
             return await self._revoke_award()
 
@@ -93,26 +115,14 @@ class CompletePlannedChore(BaseService[PlannedChore]):
     async def process(self) -> PlannedChore:
         planned_chore = await self._complete_planned_chore()
         if ENABLE_CLICKHOUSE:
-            await self.rabbit_publish()
+            await publish_chore_completion_event(planned_chore, sign=1)
         await self.send_reward()
         return planned_chore
 
     async def _complete_planned_chore(self) -> PlannedChore:
         repo = PlannedChoreRepository(self.db_session)
-        self.planned_chore.status = StatusConfirmENUM.approved
         self.planned_chore.completed_by_id = self.completed_by.id
         return await repo.update(self.planned_chore)
-
-    async def rabbit_publish(self):
-        message = {
-            "id": str(self.planned_chore.id),
-            "chore_id": str(self.planned_chore.chore_id),
-            "family_id": str(self.planned_chore.family_id),
-            "completed_by_id": str(self.planned_chore.completed_by_id),
-            "assigned_to_id": str(self.planned_chore.assigned_to_id),
-            "due_date": self.planned_chore.due_date.isoformat(),
-        }
-        await rabbit_client.publish(message=message)
 
     async def send_reward(self):
         service = AwardService(
@@ -123,11 +133,46 @@ class CompletePlannedChore(BaseService[PlannedChore]):
         await service.run_process()
 
     def get_validators(self):
-        return [lambda: validate_planned_chore_is_changable(self.planned_chore)]
+        return [
+            lambda: validate_planned_chore_is_not_completed(self.planned_chore),
+            lambda: validate_date_is_not_in_past(self.planned_chore.due_date),
+        ]
 
 
 @dataclass
-class ReschedulePlannedChore:
+class UncompletePlannedChore(BaseService[PlannedChore]):
+    planned_chore: PlannedChore
+    db_session: AsyncSession
+
+    async def process(self) -> PlannedChore:
+        if ENABLE_CLICKHOUSE:
+            # публикуем ДО очистки completed_by_id — нужны те же значения, что были при complete
+            await publish_chore_completion_event(self.planned_chore, sign=-1)
+
+        planned_chore = await self._uncomplete_planned_chore()
+        await self._revoke_award()
+        return planned_chore
+
+    async def _uncomplete_planned_chore(self) -> PlannedChore:
+        repo = PlannedChoreRepository(self.db_session)
+        self.planned_chore.completed_by_id = None
+        return await repo.update(self.planned_chore)
+
+    async def _revoke_award(self) -> RewardTransaction:
+        service = AwardService(
+            planned_chore=self.planned_chore,
+            message="Отмена награды за выполнение задания",
+            db_session=self.db_session,
+            amount_multiplier=-1,
+        )
+        return await service.run_process()
+
+    def get_validators(self):
+        return [lambda: validate_planned_chore_is_completed(self.planned_chore)]
+
+
+@dataclass
+class ReschedulePlannedChore(BaseService[PlannedChore]):
     planned_chore: PlannedChore
     reschedule_due_date: datetime.date
     db_session: AsyncSession
@@ -142,8 +187,8 @@ class ReschedulePlannedChore:
 
     def get_validators(self):
         return [
-            lambda: validate_planned_chore_is_changable(self.planned_chore),
             lambda: validate_date_is_not_in_past(self.reschedule_due_date),
+            lambda: validate_planned_chore_is_not_completed(self.planned_chore),
         ]
 
 

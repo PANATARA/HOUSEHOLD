@@ -64,10 +64,11 @@ class StatsClickhouseRepository(StatsRepository):
             query=f"""
                 SELECT 
                     completed_by_id, 
-                    count(*) AS chore_completion_count
+                    SUM(sign) AS chore_completion_count
                 FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY completed_by_id
+                HAVING chore_completion_count > 0
                 ORDER BY chore_completion_count DESC
             """,
             parameters=parameters,
@@ -93,10 +94,11 @@ class StatsClickhouseRepository(StatsRepository):
             query=f"""
                 SELECT 
                     chore_id, 
-                    count(*) AS chore_completion_count
+                    SUM(sign) AS chore_completion_count
                 FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY chore_id
+                HAVING chore_completion_count > 0
                 ORDER BY chore_completion_count DESC
             """,
             parameters=parameters,
@@ -122,10 +124,11 @@ class StatsClickhouseRepository(StatsRepository):
             query=f"""
                 SELECT 
                     due_date AS day,
-                    count(*) AS chore_completion_count
+                    SUM(sign) AS chore_completion_count
                 FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY day
+                HAVING chore_completion_count > 0
                 ORDER BY day ASC
             """,
             parameters=parameters,
@@ -147,10 +150,11 @@ class StatsClickhouseRepository(StatsRepository):
             query=f"""
                 SELECT 
                     due_date AS day,
-                    count(*) AS chore_completion_count
+                    SUM(sign) AS chore_completion_count
                 FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY day
+                HAVING chore_completion_count > 0
                 ORDER BY day ASC
             """,
             parameters=parameters,
@@ -177,16 +181,20 @@ class StatsClickhouseRepository(StatsRepository):
             query=f"""
                 SELECT 
                     completed_by_id,
-                    count(*) AS completion_count
+                    SUM(sign) AS completion_count
                 FROM planned_chore_stats
                 WHERE {condition}
                 GROUP BY completed_by_id
+                HAVING completion_count > 0
             """,
             parameters=parameters,
         )
+        result = {row[0]: row[1] for row in query_result.result_rows}
         return [
-            UserChoresCountSchema(user_id=row[0], chores_completions_counts=row[1])
-            for row in query_result.result_rows
+            UserChoresCountSchema(
+                user_id=uid, chores_completions_counts=result.get(uid, 0)
+            )
+            for uid in users_ids
         ]
 
     async def get_family_chore_completion_count(
@@ -200,16 +208,15 @@ class StatsClickhouseRepository(StatsRepository):
 
         query_result = await async_client.query(
             query=f"""
-                SELECT count(*) AS completion_count
+                SELECT SUM(sign) AS completion_count
                 FROM planned_chore_stats
                 WHERE {condition}
-                GROUP BY family_id
             """,
             parameters=parameters,
         )
         rows = query_result.result_rows
-        if rows:
-            return rows[0][0]
+        if rows and rows[0][0] is not None:
+            return max(rows[0][0], 0)
         return 0
 
     def __family_date_condition_parameters(
@@ -254,7 +261,7 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> list[UserChoresCountSchema]:
-        condition = "family_id = :family_id AND status = 'completed'"
+        condition = "family_id = :family_id AND completed_by_id IS NOT NULL"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
@@ -279,7 +286,7 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> list[ChoresFamilyCountSchema]:
-        condition = "family_id = :family_id AND status = 'completed'"
+        condition = "family_id = :family_id AND completed_by_id IS NOT NULL"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
@@ -304,7 +311,7 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> dict[date, int]:
-        condition = "family_id = :family_id AND status = 'completed'"
+        condition = "family_id = :family_id AND completed_by_id IS NOT NULL"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
@@ -325,7 +332,7 @@ class StatsPostgresRepository(StatsRepository):
         completed_by_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> dict[date, int]:
-        condition = "completed_by_id = :completed_by_id AND status = 'completed'"
+        condition = "completed_by_id = :completed_by_id"
         params = {"completed_by_id": str(completed_by_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
@@ -349,7 +356,7 @@ class StatsPostgresRepository(StatsRepository):
         if not users_ids:
             return []
 
-        condition = "completed_by_id = ANY(:user_ids) AND status = 'completed'"
+        condition = "completed_by_id = ANY(:user_ids)"
         params = {"user_ids": list(map(str, users_ids))}
         condition, params = self._add_date_interval(condition, params, interval)
 
@@ -362,17 +369,17 @@ class StatsPostgresRepository(StatsRepository):
 
         rows = (await self.db_session.execute(query, params)).all()
         result = {row[0]: row[1] for row in rows}
-        for uid in users_ids:
-            result.setdefault(uid, 0)
         return [
-            UserChoresCountSchema(user_id=uid, chores_completions_counts=counts)
-            for uid, counts in result.items()
+            UserChoresCountSchema(
+                user_id=uid, chores_completions_counts=result.get(uid, 0)
+            )
+            for uid in users_ids
         ]
 
     async def get_family_chore_completion_count(
         self, family_id: UUID, interval: DateRangeSchema | None = None
     ) -> int:
-        condition = "family_id = :family_id AND status = 'completed'"
+        condition = "family_id = :family_id AND completed_by_id IS NOT NULL"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
@@ -381,7 +388,6 @@ class StatsPostgresRepository(StatsRepository):
             SELECT COUNT(*)
             FROM planned_chore
             WHERE {condition}
-            GROUP BY family_id
         """)
 
         rows = (await self.db_session.execute(query, params)).all()

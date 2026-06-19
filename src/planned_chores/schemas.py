@@ -19,7 +19,6 @@ class PlannedChoreResponseSchema(BaseModel):
     completed_by: UserResponseSchema | None = None
     assigned_to: UserResponseSchema | None = None
     due_date: date
-    status: str
     message: str
 
     model_config = {"from_attributes": True}

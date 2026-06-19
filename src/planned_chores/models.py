@@ -1,10 +1,10 @@
 import datetime
 import uuid
 
-from sqlalchemy import Enum, ForeignKey, String
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.enums import FrequencyTypeENUM, StatusConfirmENUM
+from core.enums import FrequencyTypeENUM
 from core.models import Base, BaseIdTimeStampModel
 
 
@@ -27,16 +27,6 @@ class PlannedChore(Base, BaseIdTimeStampModel):
         ForeignKey(column="users.id", ondelete="SET NULL")
     )
     due_date: Mapped[datetime.date]
-    status = mapped_column(
-        Enum(
-            StatusConfirmENUM,
-            name=StatusConfirmENUM.get_enum_name(),
-            create_type=False,
-            native_enum=False,
-        ),
-        nullable=False,
-        default=StatusConfirmENUM.awaits.value,
-    )
     message: Mapped[str] = mapped_column(String(50))
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(column="users.id", ondelete="SET NULL")
