@@ -8,6 +8,7 @@ COPY requirements.txt /usr/src/app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src /usr/src/app/src/
+COPY scripts/ /usr/src/app/scripts/
 COPY alembic.ini /usr/src/app/
 COPY migrations /usr/src/app/migrations
 

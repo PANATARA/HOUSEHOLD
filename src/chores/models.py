@@ -1,7 +1,7 @@
 import uuid
 
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.models import Base, BaseIdTimeStampModel
 
@@ -23,3 +23,30 @@ class Chore(Base, BaseIdTimeStampModel):
 
     def __repr__(self):
         return super().__repr__()
+
+
+class DefaultChore(Base, BaseIdTimeStampModel):
+    __tablename__ = "default_chore"
+
+    icon: Mapped[str]
+    color: Mapped[str]
+    valuation: Mapped[int]
+    order: Mapped[int]
+    is_active: Mapped[bool] = mapped_column(default=True)
+
+    translations: Mapped[list["DefaultChoreTranslation"]] = relationship(
+        back_populates="default_chore"
+    )
+
+
+class DefaultChoreTranslation(Base, BaseIdTimeStampModel):
+    __tablename__ = "default_chore_translation"
+
+    default_chore_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("default_chore.id", ondelete="CASCADE")
+    )
+    language: Mapped[str]
+    name: Mapped[str]
+    description: Mapped[str | None]
+
+    default_chore: Mapped["DefaultChore"] = relationship(back_populates="translations")
