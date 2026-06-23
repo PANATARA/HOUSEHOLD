@@ -149,8 +149,8 @@ class UncompletePlannedChore(BaseService[PlannedChore]):
             # публикуем ДО очистки completed_by_id — нужны те же значения, что были при complete
             await publish_chore_completion_event(self.planned_chore, sign=-1)
 
-        planned_chore = await self._uncomplete_planned_chore()
         await self._revoke_award()
+        planned_chore = await self._uncomplete_planned_chore()
         return planned_chore
 
     async def _uncomplete_planned_chore(self) -> PlannedChore:

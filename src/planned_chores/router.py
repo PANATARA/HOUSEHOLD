@@ -19,6 +19,7 @@ from planned_chores.services import (
     CompletePlannedChore,
     CreatePlannedChore,
     DeletePlannedChore,
+    UncompletePlannedChore,
 )
 from users.models import User
 from users.repository import UserRepository
@@ -123,7 +124,16 @@ async def uncomplete_planned_chore(
     current_user: User = Depends(PlannedChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
 ):
-    pass
+    async with async_session.begin():
+        repo = PlannedChoreRepository(async_session)
+        planned_chore = await repo.get_by_id(planned_chore_id)
+        service = UncompletePlannedChore(
+            planned_chore=planned_chore,
+            db_session=async_session,
+        )
+        await service.run_process()
+        planned_chore_full = await repo.get_planned_chore_by_id(planned_chore.id)
+        return PlannedChoreResponseSchema.model_validate(planned_chore_full)
 
 
 @router.patch(

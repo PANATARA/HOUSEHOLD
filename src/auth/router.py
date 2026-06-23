@@ -149,7 +149,9 @@ async def debug_auth_by_email(
         try:
             user = await UserRepository(db).get_user_by_email(email=body.email)
         except UserNotFoundError:
-            raise HTTPException(status_code=404, detail="User was not found")
+            user = await UserCreatorService(
+                email=body.email, db_session=db
+            ).run_process()
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
