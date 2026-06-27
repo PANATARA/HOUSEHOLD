@@ -54,8 +54,12 @@ class ProductRepository(BaseDals[Product], DeleteDALMixin):
                     User.name,
                     "surname",
                     User.surname,
-                    "avatar_version",
-                    User.avatar_version,
+                    "icon",
+                    User.icon,
+                    "icon_color",
+                    User.icon_color,
+                    "icon_bg",
+                    User.icon_bg,
                 ).label("seller"),
             )
             .where(

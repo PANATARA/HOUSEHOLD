@@ -9,7 +9,9 @@ class UserResponseSchema(BaseModel):
     username: str
     name: str | None
     surname: str | None
-    avatar_version: int | None
+    icon: str
+    icon_color: str
+    icon_bg: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -27,8 +29,13 @@ class UserUpdateSchema(BaseModel):
     username: str | None = None
     name: str | None = None
     surname: str | None = None
+    icon: str | None = None
+    icon_color: str | None = None
+    icon_bg: str | None = None
 
-    @field_validator("username", "name", "surname", mode="before")
+    @field_validator(
+        "username", "name", "surname", "icon", "icon_color", "icon_bg", mode="before"
+    )
     @classmethod
     def field_not_none(cls, value, info):
         if value is None:

@@ -75,8 +75,12 @@ class TransactionDataService:
                     u.name,
                     "surname",
                     u.surname,
-                    "avatar_version",
-                    u.avatar_version,
+                    "icon",
+                    u.icon,
+                    "icon_color",
+                    u.icon_color,
+                    "icon_bg",
+                    u.icon_bg,
                 ).label("other_user"),
                 case(
                     (

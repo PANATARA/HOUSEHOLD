@@ -28,6 +28,11 @@ class User(Base, BaseIdTimeStampModel):
     )
     avatar_version: Mapped[int | None] = mapped_column(default=None)
     avatar_extension: Mapped[str | None] = mapped_column(default=None)
+    icon: Mapped[str] = mapped_column(server_default="material-symbols:person-rounded")
+    icon_color: Mapped[str] = mapped_column(server_default="#ffffff")
+    icon_bg: Mapped[str] = mapped_column(
+        server_default="linear-gradient(135deg, #8a7f6e 0%, #6b5f50 100%)"
+    )
     experience: Mapped[int] = mapped_column(default=0)
 
     def __repr__(self):

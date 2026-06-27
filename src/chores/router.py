@@ -121,3 +121,28 @@ async def edit_family_chore(
         icon=chore.icon,
         valuation=chore.valuation,
     )
+
+
+@router.get(
+    path="/default",
+    summary="",
+    tags=["Chores Default"],
+)
+async def get_default_chores(
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+):
+    pass
+
+
+@router.post(
+    path="/default",
+    summary="",
+    tags=["Chores Default"],
+)
+async def use_default_chores(
+    body: ChoreCreateSchema,
+    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
+    async_session: AsyncSession = Depends(get_db),
+) -> ChoreResponseSchema:
+    pass

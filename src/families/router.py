@@ -29,6 +29,7 @@ from families.schemas import (
     FamilyResponseSchema,
     FamilyMemberStatsSchema,
     FamilyMembersSchema,
+    FamilyUpdateSchema,
     InviteTokenSchema,
 )
 from families.services import (
@@ -73,6 +74,35 @@ async def create_family(
             raise HTTPException(status_code=400, detail=str(e))
         else:
             return FamilyResponseSchema.model_validate(family)
+
+
+@router.patch(
+    path="/",
+    summary="Update family's profile",
+    tags=["Family"],
+)
+async def me_user_partial_update(
+    body: FamilyUpdateSchema,
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> FamilyResponseSchema:
+    async with async_session.begin():
+        repo = FamilyRepository(async_session)
+        family = await repo.get_by_id(current_user.family_id)
+        for field, value in body.model_dump(exclude_unset=True).items():
+            setattr(family, field, value)
+
+        family = await repo.update(family)
+
+    result_response = FamilyResponseSchema(
+        id=family.id,
+        name=family.name,
+        icon=family.icon,
+        icon_bg=family.icon_bg,
+        icon_color=family.icon_color,
+        experience=family.experience,
+    )
+    return result_response
 
 
 @router.get(
@@ -245,7 +275,10 @@ async def join_to_family(
 
 
 @router.post(
-    path="/avatar/file/", summary="Upload new family's avatar", tags=["Family"]
+    path="/avatar/file/",
+    summary="Upload new family's avatar",
+    tags=["Family"],
+    include_in_schema=False,
 )
 async def upload_family_avatar(
     file: UploadFile = File(...),
@@ -269,6 +302,7 @@ async def upload_family_avatar(
     summary="Get family's avatar",
     tags=["Family"],
     response_model=None,
+    include_in_schema=False,
 )
 async def family_get_avatar(
     current_user: User = Depends(FamilyMemberPermission()),

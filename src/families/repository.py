@@ -26,7 +26,13 @@ class FamilyRepository(BaseDals[Family]):
         """Returns a pydantic model of the family and its members"""
         result = await self.db_session.execute(
             select(
-                User.id, User.username, User.name, User.surname, User.avatar_version
+                User.id,
+                User.username,
+                User.name,
+                User.surname,
+                User.icon,
+                User.icon_color,
+                User.icon_bg,
             ).where(User.family_id == family_id)
         )
         rows = result.mappings().all()

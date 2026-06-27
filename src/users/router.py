@@ -58,7 +58,9 @@ async def me_get_user_profile(
         username=current_user.username,
         name=current_user.name,
         surname=current_user.surname,
-        avatar_version=current_user.avatar_version,
+        icon=current_user.icon,
+        icon_bg=current_user.icon_bg,
+        icon_color=current_user.icon_color,
         experience=current_user.experience,
         is_family_member=is_family_member,
         is_family_admin=is_family_admin,
@@ -87,7 +89,9 @@ async def me_user_partial_update(
         username=user.username,
         name=user.name,
         surname=user.surname,
-        avatar_version=user.avatar_version,
+        icon=user.icon,
+        icon_bg=user.icon_bg,
+        icon_color=user.icon_color,
     )
     return result_response
 
@@ -156,6 +160,7 @@ async def get_user_profile(
     path="me/avatar/file",
     summary="Upload a new avatar for the current user",
     tags=["Me"],
+    include_in_schema=False
 )
 async def me_user_upload_avatar(
     file: UploadFile = File(...),
@@ -178,6 +183,7 @@ async def me_user_upload_avatar(
     summary="Get avatar for a user by ID",
     tags=["Users"],
     response_model=None,
+    include_in_schema=False
 )
 async def user_get_avatar(
     user_id: UUID,
