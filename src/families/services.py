@@ -6,7 +6,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from chores.services import ChoreCreatorService, get_default_chore_data
 from core.exceptions.families import InvalidInviteCodeError, UserCannotLeaveFamily
 from core.services import BaseService
 from core.validators import validate_user_not_in_family
@@ -32,7 +31,6 @@ class FamilyCreatorService(BaseService[Family]):
     async def process(self) -> Family:
         family = await self._create_family()
         await self._add_user_to_family(family)
-        await self._create_default_family_chore(family)
         return family
 
     async def _create_family(self) -> Family:
@@ -50,11 +48,6 @@ class FamilyCreatorService(BaseService[Family]):
             db_session=self.db_session,
         )
         await new_member.run_process()
-
-    async def _create_default_family_chore(self, family: Family) -> None:
-        data = get_default_chore_data()
-        ChoresService = ChoreCreatorService(family, self.db_session, data)
-        await ChoresService.run_process()
 
 
 @dataclass

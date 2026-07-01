@@ -6,14 +6,18 @@ from pydantic import BaseModel, Field
 class ChoreCreateSchema(BaseModel):
     name: str = Field(max_length=32)
     description: str = Field(max_length=128)
-    icon: str = Field(max_length=64)
+    icon: str
+    icon_color: str
+    icon_bg: str
     valuation: int
 
 
 class ChoreUpdateSchema(BaseModel):
     name: str | None = Field(default=None, max_length=32)
     description: str | None = Field(default=None, max_length=128)
-    icon: str | None = Field(default=None, max_length=64)
+    icon: str
+    icon_color: str
+    icon_bg: str
     valuation: int | None = None
 
 
@@ -22,6 +26,8 @@ class ChoreResponseSchema(BaseModel):
     name: str
     description: str
     icon: str
+    icon_color: str
+    icon_bg: str
     valuation: int
 
 
@@ -38,3 +44,19 @@ class ChoresListResponseSchema(BaseModel):
         ]
         sorted_chores.extend(chores_map.values())
         self.chores = sorted_chores
+
+
+class DefaultChoreResponseSchema(BaseModel):
+    id: UUID
+    name: str
+    description: str | None
+    icon: str
+    icon_color: str
+    icon_bg: str
+    valuation: int
+    order: int
+
+
+class ChoresFromDefaultsSchema(BaseModel):
+    default_chore_ids: list[UUID]
+    language: str = "ru"

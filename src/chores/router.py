@@ -5,14 +5,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
-from chores.repository import ChoreRepository
+from chores.repository import ChoreRepository, DefaultChoreRepository
 from chores.schemas import (
     ChoreCreateSchema,
     ChoreResponseSchema,
     ChoreUpdateSchema,
+    ChoresFromDefaultsSchema,
     ChoresListResponseSchema,
+    DefaultChoreResponseSchema,
 )
-from chores.services import ChoreCreatorService
+from chores.services import ChoreCreatorService, ChoreFromDefaultService
 from core.permissions import (
     ChorePermission,
     FamilyMemberPermission,
@@ -20,6 +22,7 @@ from core.permissions import (
 from database_connection import get_db
 from families.repository import FamilyRepository
 from users.models import User
+from users.repository import UserSettingsRepository
 
 logger = getLogger(__name__)
 
@@ -67,6 +70,8 @@ async def create_family_chore(
             name=new_chore.name,
             description=new_chore.description,
             icon=new_chore.icon,
+            icon_color=new_chore.icon_color,
+            icon_bg=new_chore.icon_bg,
             valuation=new_chore.valuation,
         )
 
@@ -119,6 +124,8 @@ async def edit_family_chore(
         name=chore.name,
         description=chore.description,
         icon=chore.icon,
+        icon_color=chore.icon_color,
+        icon_bg=chore.icon_bg,
         valuation=chore.valuation,
     )
 
@@ -131,18 +138,35 @@ async def edit_family_chore(
 async def get_default_chores(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-):
-    pass
+) -> list[DefaultChoreResponseSchema]:
+    async with async_session:
+        default_chore_repo = DefaultChoreRepository(async_session)
+        user_settings_repo = UserSettingsRepository(async_session)
+        user_settings = await user_settings_repo.get_by_user_id(current_user.id)
+        if user_settings is None:
+            language = "en"
+        else:
+            language = user_settings.language
+        result_response = await default_chore_repo.get_all_default_chores(language)
+
+    return result_response
 
 
 @router.post(
-    path="/default",
-    summary="",
+    path="/chores/from-defaults",
     tags=["Chores Default"],
 )
-async def use_default_chores(
-    body: ChoreCreateSchema,
-    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
+async def create_chores_from_defaults(
+    body: ChoresFromDefaultsSchema,
+    current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> ChoreResponseSchema:
-    pass
+) -> Chore | list[Chore]:
+    async with async_session.begin():
+        service = ChoreFromDefaultService(
+            family_id=current_user.family_id,  # type: ignore
+            db_session=async_session,
+            default_chore_ids=body.default_chore_ids,
+            language=body.language,
+        )
+        chores = await service.run_process()
+    return chores

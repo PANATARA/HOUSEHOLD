@@ -11,7 +11,11 @@ class Chore(Base, BaseIdTimeStampModel):
 
     name: Mapped[str]
     description: Mapped[str]
-    icon: Mapped[str]
+    icon: Mapped[str] = mapped_column(server_default="material-symbols:mop")
+    icon_color: Mapped[str] = mapped_column(server_default="#ffffff")
+    icon_bg: Mapped[str] = mapped_column(
+        server_default="linear-gradient(135deg, #8a7f6e 0%, #6b5f50 100%)"
+    )
     valuation: Mapped[int]
     family_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(column="family.id", ondelete="CASCADE")
@@ -28,8 +32,11 @@ class Chore(Base, BaseIdTimeStampModel):
 class DefaultChore(Base, BaseIdTimeStampModel):
     __tablename__ = "default_chore"
 
-    icon: Mapped[str]
-    color: Mapped[str]
+    icon: Mapped[str] = mapped_column(server_default="material-symbols:mop")
+    icon_color: Mapped[str] = mapped_column(server_default="#ffffff")
+    icon_bg: Mapped[str] = mapped_column(
+        server_default="linear-gradient(135deg, #8a7f6e 0%, #6b5f50 100%)"
+    )
     valuation: Mapped[int]
     order: Mapped[int]
     is_active: Mapped[bool] = mapped_column(default=True)
