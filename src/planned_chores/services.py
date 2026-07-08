@@ -9,7 +9,7 @@ from database_connection import rabbit_client
 from chores.models import Chore
 from families.models import Family
 from planned_chores.models import ChoreSchedule, PlannedChore
-from planned_chores.repository import PlannedChoreRepository
+from planned_chores.repository import ChoreScheduleRepository, PlannedChoreRepository
 from core.enums import FrequencyTypeENUM
 from core.validators import (
     validate_date_is_not_in_past,
@@ -193,23 +193,74 @@ class ReschedulePlannedChore(BaseService[PlannedChore]):
 
 
 @dataclass
-class CreateChoreSchedule:
+class CreateChoreScheduleService(BaseService[ChoreSchedule]):
     chore: Chore
-    family: Family
-    assigned_to_id: User
+    assigned_to: User
     created_by: User
-    frequency_type: FrequencyTypeENUM  # Recurrence type: daily / weekly / monthly
-    interval: int  # Repeat interval (e.g. every 2 days, every 3 weeks)
-    days_of_week: int | None  # Weekday bitmask for weekly recurrence
-    day_of_month: int | None  # Day of month for monthly recurrence
-    starts_at: datetime.date  # Recurrence active period
-    ends_at: datetime.date | None  # Recurrence active period
-    last_generated_until: (
-        datetime.date | None
-    )  # Last date for which instances were generated
+    frequency_type: FrequencyTypeENUM
+    interval: int
+    days_of_week: int | None
+    day_of_month: int | None
+    starts_at: datetime.date
+    ends_at: datetime.date | None
 
-    async def process(self):
-        pass
+    db_session: AsyncSession
 
-    async def _celery_work(self):
-        pass
+    async def process(self) -> ChoreSchedule:
+        schedule = await self._create_schedule()
+        return schedule
+
+    async def _create_schedule(self) -> ChoreSchedule:
+        repo = ChoreScheduleRepository(self.db_session)
+        schedule = ChoreSchedule(
+            chore_id=self.chore.id,
+            family_id=self.chore.family_id,
+            assigned_to_id=self.assigned_to.id,
+            created_by=self.created_by.id,
+            frequency_type=self.frequency_type,
+            interval=self.interval,
+            days_of_week=self.days_of_week,
+            day_of_month=self.day_of_month,
+            starts_at=self.starts_at,
+            ends_at=self.ends_at,
+            last_generated_until=None,
+            is_active=True,
+        )
+        return await repo.create(schedule)
+
+    def get_validators(self):
+        return [
+            lambda: self._validate_interval(),
+            lambda: self._validate_days_of_week(),
+            lambda: self._validate_day_of_month(),
+            lambda: self._validate_dates(),
+            lambda: self._validate_assigned_to_family(),
+        ]
+
+    def _validate_interval(self) -> None:
+        if self.interval < 1:
+            raise ValueError("Interval must be at least 1")
+
+    def _validate_days_of_week(self) -> None:
+        if self.frequency_type == FrequencyTypeENUM.weekly:
+            if self.days_of_week is None:
+                raise ValueError("days_of_week is required for weekly frequency")
+            if not (1 <= self.days_of_week <= 127):  # 0b0000001 - 0b1111111
+                raise ValueError("days_of_week bitmask must be between 1 and 127")
+
+    def _validate_day_of_month(self) -> None:
+        if self.frequency_type == FrequencyTypeENUM.monthly:
+            if self.day_of_month is None:
+                raise ValueError("day_of_month is required for monthly frequency")
+            if not (1 <= self.day_of_month <= 31):
+                raise ValueError("day_of_month must be between 1 and 31")
+
+    def _validate_dates(self) -> None:
+        if self.ends_at is not None and self.ends_at <= self.starts_at:
+            raise ValueError("ends_at must be after starts_at")
+        if self.starts_at < datetime.date.today():
+            raise ValueError("starts_at cannot be in the past")
+
+    def _validate_assigned_to_family(self) -> None:
+        if self.assigned_to.family_id != self.chore.family_id:
+            raise ValueError("assigned_to user does not belong to the chore's family")

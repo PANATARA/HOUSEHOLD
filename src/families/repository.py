@@ -6,7 +6,7 @@ from core.base_dals import BaseDals
 from core.exceptions.families import FamilyNotFoundError
 from families.models import Family
 from users.models import User
-from users.schemas import UserResponseSchema
+from users.schemas import UserResponseSchemaFull
 
 
 class FamilyRepository(BaseDals[Family]):
@@ -22,7 +22,7 @@ class FamilyRepository(BaseDals[Family]):
         result = await self.db_session.execute(query)
         return bool(result.scalar())
 
-    async def get_family_members(self, family_id: UUID) -> list[UserResponseSchema]:
+    async def get_family_members(self, family_id: UUID) -> list[UserResponseSchemaFull]:
         """Returns a pydantic model of the family and its members"""
         result = await self.db_session.execute(
             select(
@@ -33,12 +33,13 @@ class FamilyRepository(BaseDals[Family]):
                 User.icon,
                 User.icon_color,
                 User.icon_bg,
+                User.experience,
             ).where(User.family_id == family_id)
         )
         rows = result.mappings().all()
         if rows is None:
             raise FamilyNotFoundError
-        return [UserResponseSchema.model_validate(member) for member in rows]
+        return [UserResponseSchemaFull.model_validate(member) for member in rows]
 
     async def increment_experience(self, family_id: UUID, value: int):
         await self.db_session.execute(

@@ -5,7 +5,7 @@ from sqlalchemy import case, select, func
 from sqlalchemy.orm import aliased
 
 from chores.models import Chore
-from planned_chores.models import PlannedChore
+from planned_chores.models import ChoreSchedule, PlannedChore
 from core.base_dals import BaseDals, DeleteDALMixin
 from core.exceptions.chores_completion import ChoreCompletionNotFoundError
 from planned_chores.schemas import PlannedChoreResponseSchema
@@ -35,6 +35,10 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
                     Chore.description,
                     "icon",
                     Chore.icon,
+                    "icon_color",
+                    Chore.icon_color,
+                    "icon_bg",
+                    Chore.icon_bg,
                     "valuation",
                     Chore.valuation,
                 ).label("chore"),
@@ -129,6 +133,10 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
                     Chore.description,
                     "icon",
                     Chore.icon,
+                    "icon_color",
+                    Chore.icon_color,
+                    "icon_bg",
+                    Chore.icon_bg,
                     "valuation",
                     Chore.valuation,
                 ).label("chore"),
@@ -184,3 +192,8 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
         raw = result.mappings().all()
 
         return [PlannedChoreResponseSchema.model_validate(row) for row in raw]
+
+
+class ChoreScheduleRepository(BaseDals[ChoreSchedule], DeleteDALMixin):
+    model = ChoreSchedule
+    not_found_exception = ChoreCompletionNotFoundError  # !Improve!

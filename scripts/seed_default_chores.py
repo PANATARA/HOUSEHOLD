@@ -15,7 +15,8 @@ from src.chores.models import DefaultChore, DefaultChoreTranslation
 DEFAULT_CHORES = [
     {
         "icon": "material-symbols:dish-washer-rounded",
-        "color": "#e8a87c",
+        "icon_bg": "#FFF3E0",
+        "icon_color": "#F57C00",
         "valuation": 10,
         "order": 1,
         "translations": {
@@ -25,7 +26,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:delete-rounded",
-        "color": "#e8a87c",
+        "icon_bg": "#FBE9E7",
+        "icon_color": "#D84315",
         "valuation": 10,
         "order": 2,
         "translations": {
@@ -35,7 +37,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:vacuum-rounded",
-        "color": "#e8a87c",
+        "icon_bg": "#FFF8E1",
+        "icon_color": "#F9A825",
         "valuation": 15,
         "order": 3,
         "translations": {
@@ -45,7 +48,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:local-laundry-service-rounded",
-        "color": "#e8a87c",
+        "icon_bg": "#F3E5F5",
+        "icon_color": "#8E24AA",
         "valuation": 20,
         "order": 4,
         "translations": {
@@ -55,7 +59,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:pets-rounded",
-        "color": "#e8a87c",
+        "icon_bg": "#FFF3E0",
+        "icon_color": "#EF6C00",
         "valuation": 15,
         "order": 5,
         "translations": {
@@ -65,7 +70,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:water-drop-rounded",
-        "color": "#6ab8a0",
+        "icon_bg": "#E8F5E9",
+        "icon_color": "#43A047",
         "valuation": 10,
         "order": 6,
         "translations": {
@@ -75,7 +81,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:cleaning-rounded",
-        "color": "#e8a87c",
+        "icon_bg": "#FFF8E1",
+        "icon_color": "#FBC02D",
         "valuation": 10,
         "order": 7,
         "translations": {
@@ -85,7 +92,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:iron-rounded",
-        "color": "#e8a87c",
+        "icon_bg": "#F3E5F5",
+        "icon_color": "#7B1FA2",
         "valuation": 15,
         "order": 8,
         "translations": {
@@ -95,7 +103,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:window-rounded",
-        "color": "#6ab8a0",
+        "icon_bg": "#E3F2FD",
+        "icon_color": "#1E88E5",
         "valuation": 20,
         "order": 9,
         "translations": {
@@ -105,7 +114,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:bathroom-rounded",
-        "color": "#6ab8a0",
+        "icon_bg": "#E3F2FD",
+        "icon_color": "#039BE5",
         "valuation": 20,
         "order": 10,
         "translations": {
@@ -115,7 +125,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:cooking-rounded",
-        "color": "#e8856a",
+        "icon_bg": "#FFEBEE",
+        "icon_color": "#E53935",
         "valuation": 25,
         "order": 11,
         "translations": {
@@ -125,7 +136,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:bedroom-parent-rounded",
-        "color": "#e8a87c",
+        "icon_bg": "#FFF8E1",
+        "icon_color": "#FB8C00",
         "valuation": 15,
         "order": 12,
         "translations": {
@@ -135,7 +147,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:mop-rounded",
-        "color": "#e8a87c",
+        "icon_bg": "#FFF8E1",
+        "icon_color": "#F9A825",
         "valuation": 20,
         "order": 13,
         "translations": {
@@ -145,7 +158,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:shopping-cart-rounded",
-        "color": "#6ab8a0",
+        "icon_bg": "#E8F5E9",
+        "icon_color": "#2E7D32",
         "valuation": 20,
         "order": 14,
         "translations": {
@@ -155,7 +169,8 @@ DEFAULT_CHORES = [
     },
     {
         "icon": "material-symbols:kitchen-rounded",
-        "color": "#6ab8a0",
+        "icon_bg": "#FFF3E0",
+        "icon_color": "#EF6C00",
         "valuation": 25,
         "order": 15,
         "translations": {
@@ -177,7 +192,8 @@ async def seed(session: AsyncSession) -> None:
     for data in DEFAULT_CHORES:
         chore = DefaultChore(
             icon=data["icon"],
-            color=data["color"],
+            icon_color=data["icon_color"],
+            icon_bg=data["icon_bg"],
             valuation=data["valuation"],
             order=data["order"],
         )

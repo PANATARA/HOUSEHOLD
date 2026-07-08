@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from logging import getLogger
 from uuid import UUID
 
@@ -21,6 +22,8 @@ from core.permissions import (
 )
 from database_connection import get_db
 from families.repository import FamilyRepository
+from statistics.repository import StatsRepository, get_statistic_repo
+from statistics.schemas import DateRangeSchema
 from users.models import User
 from users.repository import UserSettingsRepository
 
@@ -38,13 +41,26 @@ async def get_family_chores(
     limit: int | None = Query(None, ge=1),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> ChoresListResponseSchema:
-    async with async_session.begin():
-        family_chores = await ChoreRepository(async_session).get_family_chores(
-            current_user.family_id, limit=limit
-        )
-        result_response = ChoresListResponseSchema(chores=family_chores)
-        return result_response
+    stats_repo: StatsRepository = Depends(get_statistic_repo),
+):
+    family_chores = await ChoreRepository(async_session).get_family_chores(
+        current_user.family_id,  # type: ignore
+        limit=limit,
+    )
+
+    interval = DateRangeSchema(
+        start=date.today() - timedelta(days=30),
+        end=date.today(),
+    )
+    stats = await stats_repo.get_chores_by_completions(
+        family_id=current_user.family_id,  # type: ignore
+        interval=interval,
+    )
+    usage_map = {str(s.chore_id): s.chores_completions_counts for s in stats}
+
+    family_chores.sort(key=lambda c: usage_map.get(str(c.id), 0), reverse=True)
+
+    return ChoresListResponseSchema(chores=family_chores)
 
 
 @router.post(
@@ -155,12 +171,13 @@ async def get_default_chores(
 @router.post(
     path="/chores/from-defaults",
     tags=["Chores Default"],
+    response_model=ChoreResponseSchema | list[ChoreResponseSchema],
 )
 async def create_chores_from_defaults(
     body: ChoresFromDefaultsSchema,
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> Chore | list[Chore]:
+) -> ChoreResponseSchema | list[ChoreResponseSchema]:
     async with async_session.begin():
         service = ChoreFromDefaultService(
             family_id=current_user.family_id,  # type: ignore
@@ -169,4 +186,7 @@ async def create_chores_from_defaults(
             language=body.language,
         )
         chores = await service.run_process()
-    return chores
+
+    if isinstance(chores, list):
+        return [ChoreResponseSchema.model_validate(c) for c in chores]
+    return ChoreResponseSchema.model_validate(chores)
