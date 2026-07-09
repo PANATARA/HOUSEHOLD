@@ -7,7 +7,6 @@ from config import ENABLE_CLICKHOUSE
 from core.services import BaseService
 from database_connection import rabbit_client
 from chores.models import Chore
-from families.models import Family
 from planned_chores.models import ChoreSchedule, PlannedChore
 from planned_chores.repository import ChoreScheduleRepository, PlannedChoreRepository
 from core.enums import FrequencyTypeENUM
@@ -264,3 +263,131 @@ class CreateChoreScheduleService(BaseService[ChoreSchedule]):
     def _validate_assigned_to_family(self) -> None:
         if self.assigned_to.family_id != self.chore.family_id:
             raise ValueError("assigned_to user does not belong to the chore's family")
+
+
+@dataclass
+class GeneratePlannedChores(BaseService[None]):
+    db_session: AsyncSession
+    horizon_days: int = 30
+
+    async def process(self) -> None:
+        schedule_repo = ChoreScheduleRepository(self.db_session)
+
+        today = datetime.date.today()
+        generate_until = today + datetime.timedelta(days=self.horizon_days)
+
+        schedules = await schedule_repo.get_active()
+
+        for schedule in schedules:
+            await self._generate_schedule(
+                schedule=schedule,
+                generate_until=generate_until,
+            )
+
+        await self.db_session.commit()
+
+    async def _generate_schedule(
+        self,
+        schedule: ChoreSchedule,
+        generate_until: datetime.date,
+    ) -> None:
+        if (
+            schedule.last_generated_until is not None
+            and schedule.last_generated_until >= generate_until
+        ):
+            return
+
+        start_date = schedule.starts_at
+
+        if schedule.last_generated_until is not None:
+            start_date = max(
+                start_date,
+                schedule.last_generated_until + datetime.timedelta(days=1),
+            )
+
+        if schedule.ends_at is not None:
+            generate_until = min(generate_until, schedule.ends_at)
+
+        if start_date > generate_until:
+            return
+
+        current = start_date
+
+        while current <= generate_until:
+            if self._matches_schedule(schedule, current):
+                await CreatePlannedChore(
+                    schedule=schedule,
+                    chore=schedule.chore,
+                    assigned_to_user=schedule.assigned_to,
+                    created_by=schedule.created_by,
+                    due_date=current,
+                    message="",
+                    db_session=self.db_session,
+                ).process()
+
+            current += datetime.timedelta(days=1)
+
+        schedule.last_generated_until = generate_until
+
+    def _matches_schedule(
+        self,
+        schedule: ChoreSchedule,
+        date: datetime.date,
+    ) -> bool:
+
+        if date < schedule.starts_at:
+            return False
+
+        if schedule.ends_at is not None and date > schedule.ends_at:
+            return False
+
+        if schedule.frequency_type == FrequencyTypeENUM.daily:
+            return self._matches_daily(schedule, date)
+
+        if schedule.frequency_type == FrequencyTypeENUM.weekly:
+            return self._matches_weekly(schedule, date)
+
+        if schedule.frequency_type == FrequencyTypeENUM.monthly:
+            return self._matches_monthly(schedule, date)
+
+        return False
+
+    def _matches_daily(
+        self,
+        schedule: ChoreSchedule,
+        date: datetime.date,
+    ) -> bool:
+        delta = (date - schedule.starts_at).days
+        return delta % schedule.interval == 0
+
+    def _matches_weekly(
+        self,
+        schedule: ChoreSchedule,
+        date: datetime.date,
+    ) -> bool:
+
+        weeks = (date - schedule.starts_at).days // 7
+
+        if weeks % schedule.interval != 0:
+            return False
+
+        weekday = date.weekday()  # Monday = 0
+
+        return bool(schedule.days_of_week & (1 << weekday))
+
+    def _matches_monthly(
+        self,
+        schedule: ChoreSchedule,
+        date: datetime.date,
+    ) -> bool:
+
+        months = (
+            (date.year - schedule.starts_at.year) * 12
+            + date.month
+            - schedule.starts_at.month
+        )
+
+        if months % schedule.interval != 0:
+            return False
+
+        return date.day == schedule.day_of_month

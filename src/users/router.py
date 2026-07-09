@@ -21,12 +21,12 @@ from users.models import User
 from users.repository import UserRepository, UserSettingsRepository
 from users.schemas import (
     UserResponseSchema,
-    UserResponseSchemaFull,
     UserSettingsResponseSchema,
     UserSettingsUpdateSchema,
     UserUpdateSchema,
-    MeResponseSchemaFull,
+    UserResponseProfile,
 )
+from users.services import get_level_info
 
 logger = getLogger(__name__)
 
@@ -42,7 +42,7 @@ router = APIRouter()
 async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> MeResponseSchemaFull:
+) -> UserResponseProfile:
     is_family_member = current_user.family_id is not None
     is_family_admin = False
 
@@ -53,17 +53,15 @@ async def me_get_user_profile(
                 async_session
             ).user_is_family_admin(current_user.id, current_user.family_id)
 
-    return MeResponseSchemaFull(
-        id=current_user.id,
-        username=current_user.username,
-        name=current_user.name,
-        surname=current_user.surname,
-        icon=current_user.icon,
-        icon_bg=current_user.icon_bg,
-        icon_color=current_user.icon_color,
-        experience=current_user.experience,
-        is_family_member=is_family_member,
-        is_family_admin=is_family_admin,
+    level_info = get_level_info(current_user.experience)
+
+    return UserResponseProfile.model_validate(
+        {
+            **current_user.__dict__,
+            **level_info,
+            "is_family_member": is_family_member,
+            "is_family_admin": is_family_admin,
+        }
     )
 
 
@@ -92,6 +90,7 @@ async def me_user_partial_update(
         icon=user.icon,
         icon_bg=user.icon_bg,
         icon_color=user.icon_color,
+        experience=user.experience,
     )
     return result_response
 
@@ -149,18 +148,31 @@ async def get_user_profile(
     user_id: UUID,
     current_user: User = Depends(FamilyUserAccessPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> UserResponseSchemaFull:
+) -> UserResponseProfile:
     async with async_session.begin():
         user = await UserRepository(async_session).get_by_id(user_id)
-    result = UserResponseSchemaFull.model_validate(user)
-    return result
+        is_family_admin = await FamilyRepository(async_session).user_is_family_admin(
+            user_id,
+            current_user.family_id,  # type: ignore
+        )
+
+    level_info = get_level_info(user.experience)
+
+    return UserResponseProfile.model_validate(
+        {
+            **user.__dict__,
+            **level_info,
+            "is_family_member": True,
+            "is_family_admin": is_family_admin,
+        }
+    )
 
 
 @router.post(
     path="me/avatar/file",
     summary="Upload a new avatar for the current user",
     tags=["Me"],
-    include_in_schema=False
+    include_in_schema=False,
 )
 async def me_user_upload_avatar(
     file: UploadFile = File(...),
@@ -183,7 +195,7 @@ async def me_user_upload_avatar(
     summary="Get avatar for a user by ID",
     tags=["Users"],
     response_model=None,
-    include_in_schema=False
+    include_in_schema=False,
 )
 async def user_get_avatar(
     user_id: UUID,

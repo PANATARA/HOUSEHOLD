@@ -81,6 +81,8 @@ class TransactionDataService:
                     u.icon_color,
                     "icon_bg",
                     u.icon_bg,
+                    "experience",
+                    u.experience,
                 ).label("other_user"),
                 case(
                     (

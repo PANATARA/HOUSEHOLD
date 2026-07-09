@@ -12,15 +12,16 @@ class UserResponseSchema(BaseModel):
     icon: str
     icon_color: str
     icon_bg: str
+    experience: int
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserResponseSchemaFull(UserResponseSchema):
-    experience: int
-
-
-class MeResponseSchemaFull(UserResponseSchemaFull):
+class UserResponseProfile(UserResponseSchema):
+    level: int
+    exp_to_next_total: int | None
+    progress_percent: int
+    is_max_level: bool
     is_family_member: bool
     is_family_admin: bool
 

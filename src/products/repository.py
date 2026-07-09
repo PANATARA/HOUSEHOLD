@@ -1,8 +1,6 @@
-from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.base_dals import BaseDals, DeleteDALMixin
 from core.exceptions.products import ProductNotFoundError
@@ -60,6 +58,8 @@ class ProductRepository(BaseDals[Product], DeleteDALMixin):
                     User.icon_color,
                     "icon_bg",
                     User.icon_bg,
+                    "experience",
+                    User.experience,
                 ).label("seller"),
             )
             .where(

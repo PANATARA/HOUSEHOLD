@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from users.schemas import UserResponseSchema, UserResponseSchemaFull
+from users.schemas import UserResponseSchema
 
 
 class FamilyCreateSchema(BaseModel):
@@ -38,7 +38,7 @@ class FamilyUpdateSchema(BaseModel):
 
 
 class FamilyMembersSchema(BaseModel):
-    members: list[UserResponseSchemaFull]
+    members: list[UserResponseSchema]
 
 
 class FamilyMemberStatsSchema(BaseModel):
