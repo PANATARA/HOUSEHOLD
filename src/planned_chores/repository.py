@@ -41,6 +41,8 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
                     Chore.icon_bg,
                     "valuation",
                     Chore.valuation,
+                    "default_chore_id",
+                    Chore.default_chore_id,
                 ).label("chore"),
                 case(
                     (UserCompleted.id.is_(None), None),
@@ -143,6 +145,8 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
                     Chore.icon_bg,
                     "valuation",
                     Chore.valuation,
+                    "default_chore_id",
+                    Chore.default_chore_id,
                 ).label("chore"),
                 case(
                     (UserCompleted.id.is_(None), None),

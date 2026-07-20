@@ -1,20 +1,21 @@
-from dataclasses import dataclass
 import datetime
+from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import ENABLE_CLICKHOUSE
-from core.services import BaseService
-from database_connection import rabbit_client
 from chores.models import Chore
-from planned_chores.models import ChoreSchedule, PlannedChore
-from planned_chores.repository import ChoreScheduleRepository, PlannedChoreRepository
+from config import ENABLE_CLICKHOUSE
 from core.enums import FrequencyTypeENUM
+from core.services import BaseService
 from core.validators import (
     validate_date_is_not_in_past,
     validate_planned_chore_is_completed,
     validate_planned_chore_is_not_completed,
 )
+from database_connection import rabbit_client
+from planned_chores.models import ChoreSchedule, PlannedChore
+from planned_chores.repository import ChoreScheduleRepository, PlannedChoreRepository
+from src.families.repository import FamilyRepository
 from users.models import User
 from wallets.models import RewardTransaction
 from wallets.services import AwardService
@@ -122,6 +123,10 @@ class CompletePlannedChore(BaseService[PlannedChore]):
         repo = PlannedChoreRepository(self.db_session)
         self.planned_chore.completed_by_id = self.completed_by.id
         return await repo.update(self.planned_chore)
+
+    async def increment_family_total_completed(self) -> None:
+        repo = FamilyRepository(self.db_session)
+        return await repo.increment_total_completed(self.planned_chore.family_id)
 
     async def send_reward(self):
         service = AwardService(

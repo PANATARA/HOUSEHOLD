@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore, DefaultChore
 from chores.repository import ChoreRepository, DefaultChoreRepository
-from chores.schemas import ChoreCreateSchema
+from chores.schemas import ChoreCreateSchema, ChoreUpdateSchema
+from core.exceptions.chores import ChoreNotFoundError
 from core.services import BaseService
 from families.models import Family
 
@@ -33,8 +34,38 @@ class ChoreCreatorService(BaseService[Chore]):
                 icon_bg=self.data.icon_bg,
                 valuation=self.data.valuation,
                 family_id=self.family.id,
+                default_chore_id=None,
             )
         )
+
+
+@dataclass
+class UpdateChoreService(BaseService[Chore]):
+    chore: Chore
+    data: ChoreUpdateSchema
+    db_session: AsyncSession
+
+    async def process(self) -> Chore:
+        return await self._update_chore()
+
+    async def _update_chore(self):
+        repo = ChoreRepository(self.db_session)
+        for field, value in self.data.model_dump(exclude_unset=True).items():
+            setattr(self.chore, field, value)
+        await repo.update(self.chore)
+        return self.chore
+
+    def get_validators(self):
+        return [lambda: self._validate_editable()]
+
+    def _validate_editable(self) -> None:
+        if self.chore.default_chore_id is not None:
+            data = self.data.model_dump(exclude={"description"})
+
+            if any(value is not None for value in data.values()):
+                raise ChoreNotFoundError(
+                    "Cannot change fields of a default chore except description"
+                )
 
 
 @dataclass
@@ -80,13 +111,14 @@ class ChoreFromDefaultService(BaseService[Chore | list[Chore]]):
             dc.translations[0] if dc.translations else None,
         )
         return Chore(
-            family_id=self.family.id,
+            family_id=self.family_id,
             name=translation.name if translation else "",
             description=translation.description if translation else None,
             icon=dc.icon,
             icon_color=dc.icon_color,
             icon_bg=dc.icon_bg,
             valuation=dc.valuation,
+            default_chore_id=dc.id,
         )
 
     def get_validators(self):

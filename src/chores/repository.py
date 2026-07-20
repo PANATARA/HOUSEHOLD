@@ -41,6 +41,7 @@ class ChoreRepository(BaseDals[Chore], DeleteDALMixin):
             Chore.icon_color,
             Chore.icon_bg,
             Chore.valuation,
+            Chore.default_chore_id,
         ).where(Chore.family_id == family_id, Chore.is_active)
 
         if limit is not None:
@@ -86,6 +87,48 @@ class DefaultChoreRepository(BaseDals[Chore]):
         raw_data = query_result.mappings().all()
         if not raw_data:
             return []
+        return [DefaultChoreResponseSchema.model_validate(item) for item in raw_data]
+
+
+    async def get_default_chores_not_added(
+        self, family_id: UUID, language: str
+    ) -> list[DefaultChoreResponseSchema]:
+        query = (
+            select(
+                DefaultChore.id,
+                DefaultChore.icon,
+                DefaultChore.icon_color,
+                DefaultChore.icon_bg,
+                DefaultChore.valuation,
+                DefaultChore.order,
+                DefaultChoreTranslation.name,
+                DefaultChoreTranslation.description,
+            )
+            .join(
+                DefaultChoreTranslation,
+                (DefaultChoreTranslation.default_chore_id == DefaultChore.id)
+                & (DefaultChoreTranslation.language == language),
+                isouter=True,
+            )
+            .outerjoin(
+                Chore,
+                (Chore.default_chore_id == DefaultChore.id)
+                & (Chore.family_id == family_id),
+            )
+            .where(
+                DefaultChore.is_active,
+                Chore.id.is_(None),
+            )
+            .order_by(DefaultChore.order)
+        )
+
+        query_result = await self.db_session.execute(query)
+
+        raw_data = query_result.mappings().all()
+
+        if not raw_data:
+            return []
+
         return [DefaultChoreResponseSchema.model_validate(item) for item in raw_data]
 
     async def get_by_ids_with_translations(

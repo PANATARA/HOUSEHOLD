@@ -10,7 +10,7 @@ class Chore(Base, BaseIdTimeStampModel):
     __tablename__ = "chores"
 
     name: Mapped[str]
-    description: Mapped[str]
+    description: Mapped[str | None]
     icon: Mapped[str] = mapped_column(server_default="material-symbols:mop")
     icon_color: Mapped[str] = mapped_column(server_default="#ffffff")
     icon_bg: Mapped[str] = mapped_column(
@@ -23,6 +23,9 @@ class Chore(Base, BaseIdTimeStampModel):
     is_active: Mapped[bool] = mapped_column(default=True)
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(column="users.id", ondelete="SET NULL")
+    )
+    default_chore_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("default_chore.id", ondelete="SET NULL")
     )
 
     def __repr__(self):

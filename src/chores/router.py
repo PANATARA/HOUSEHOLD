@@ -5,7 +5,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from chores.models import Chore
 from chores.repository import ChoreRepository, DefaultChoreRepository
 from chores.schemas import (
     ChoreCreateSchema,
@@ -15,7 +14,11 @@ from chores.schemas import (
     ChoresListResponseSchema,
     DefaultChoreResponseSchema,
 )
-from chores.services import ChoreCreatorService, ChoreFromDefaultService
+from chores.services import (
+    ChoreCreatorService,
+    ChoreFromDefaultService,
+    UpdateChoreService,
+)
 from core.permissions import (
     ChorePermission,
     FamilyMemberPermission,
@@ -70,7 +73,7 @@ async def get_family_chores(
 )
 async def create_family_chore(
     body: ChoreCreateSchema,
-    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
+    current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ) -> ChoreResponseSchema:
     async with async_session.begin():
@@ -89,6 +92,7 @@ async def create_family_chore(
             icon_color=new_chore.icon_color,
             icon_bg=new_chore.icon_bg,
             valuation=new_chore.valuation,
+            default_chore_id=new_chore.default_chore_id,
         )
 
 
@@ -122,28 +126,15 @@ async def delete_family_chore(
 async def edit_family_chore(
     chore_id: UUID,
     body: ChoreUpdateSchema,
-    current_user: User = Depends(ChorePermission(only_admin=True)),
+    current_user: User = Depends(ChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
 ) -> ChoreResponseSchema:
     async with async_session.begin():
-        chore = await async_session.get(Chore, chore_id)
-        if not chore:
-            raise HTTPException(404, "Chore not found")
+        chore = await ChoreRepository(async_session).get_by_id(chore_id)
+        service = UpdateChoreService(chore=chore, data=body, db_session=async_session)
+        updated_chore = await service.run_process()
 
-        for field, value in body.model_dump(exclude_unset=True).items():
-            setattr(chore, field, value)
-
-        await async_session.flush()
-
-    return ChoreResponseSchema(
-        id=chore.id,
-        name=chore.name,
-        description=chore.description,
-        icon=chore.icon,
-        icon_color=chore.icon_color,
-        icon_bg=chore.icon_bg,
-        valuation=chore.valuation,
-    )
+    return ChoreResponseSchema.model_validate(updated_chore)
 
 
 @router.get(
@@ -163,13 +154,16 @@ async def get_default_chores(
             language = "en"
         else:
             language = user_settings.language
-        result_response = await default_chore_repo.get_all_default_chores(language)
+        result_response = await default_chore_repo.get_default_chores_not_added(
+            current_user.family_id,  # type: ignore
+            language,
+        )
 
     return result_response
 
 
 @router.post(
-    path="/chores/from-defaults",
+    path="/from-defaults",
     tags=["Chores Default"],
     response_model=ChoreResponseSchema | list[ChoreResponseSchema],
 )

@@ -23,6 +23,7 @@ class Family(Base, BaseIdTimeStampModel):
     )
     avatar_version: Mapped[int | None] = mapped_column(default=None)
     avatar_extension: Mapped[str | None] = mapped_column(default=None)
+    total_completed: Mapped[int] = mapped_column(server_default="0", nullable=False)
     experience: Mapped[int] = mapped_column(default=0)
 
     def __repr__(self):

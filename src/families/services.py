@@ -25,6 +25,9 @@ class FamilyCreatorService(BaseService[Family]):
     """Create and return a new Family"""
 
     name: str
+    icon: str
+    icon_color: str
+    icon_bg: str
     user: User  # User who creates a family
     db_session: AsyncSession
 
@@ -36,7 +39,13 @@ class FamilyCreatorService(BaseService[Family]):
     async def _create_family(self) -> Family:
         family_dal = FamilyRepository(self.db_session)
         new_family = await family_dal.create(
-            Family(name=self.name, family_admin_id=self.user.id)
+            Family(
+                name=self.name,
+                icon=self.icon,
+                icon_color=self.icon_color,
+                icon_bg=self.icon_bg,
+                family_admin_id=self.user.id,
+            )
         )
         return new_family
 

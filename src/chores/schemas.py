@@ -15,9 +15,9 @@ class ChoreCreateSchema(BaseModel):
 class ChoreUpdateSchema(BaseModel):
     name: str | None = Field(default=None, max_length=32)
     description: str | None = Field(default=None, max_length=128)
-    icon: str
-    icon_color: str
-    icon_bg: str
+    icon: str | None = None
+    icon_color: str | None = None
+    icon_bg: str | None = None
     valuation: int | None = None
 
 
@@ -26,26 +26,16 @@ class ChoreResponseSchema(BaseModel):
 
     id: UUID
     name: str
-    description: str
+    description: str | None
     icon: str
     icon_color: str
     icon_bg: str
     valuation: int
+    default_chore_id: UUID | None
 
 
 class ChoresListResponseSchema(BaseModel):
     chores: list[ChoreResponseSchema]
-
-    def sort_chores_by_id(self, chores_ids: list[UUID]):
-        chores_map = {chore.id: chore for chore in self.chores}
-
-        sorted_chores = [
-            chores_map.pop(chore_id)
-            for chore_id in chores_ids
-            if chore_id in chores_map
-        ]
-        sorted_chores.extend(chores_map.values())
-        self.chores = sorted_chores
 
 
 class DefaultChoreResponseSchema(BaseModel):

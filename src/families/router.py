@@ -1,4 +1,5 @@
 from logging import getLogger
+from statistics.repository import StatsRepository, get_statistic_repo
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -26,9 +27,12 @@ from database_connection import get_db
 from families.repository import FamilyRepository
 from families.schemas import (
     FamilyCreateSchema,
-    FamilyResponseSchema,
-    FamilyMemberStatsSchema,
+    FamilyJoinSchema,
+    FamilyLeadersResponseSchema,
     FamilyMembersSchema,
+    FamilyMemberStatsSchema,
+    FamilyResponseSchema,
+    FamilyStatsResponseSchema,
     FamilyUpdateSchema,
     InviteTokenSchema,
 )
@@ -38,7 +42,6 @@ from families.services import (
     JoinFamilyByInviteCodeService,
     LogoutUserFromFamilyService,
 )
-from statistics.repository import StatsRepository, get_statistic_repo
 from users.models import User
 from users.repository import UserRepository
 from users.schemas import UserResponseSchema
@@ -62,7 +65,12 @@ async def create_family(
     async with async_session.begin():
         try:
             family_creator_service = FamilyCreatorService(
-                name=body.name, user=current_user, db_session=async_session
+                name=body.name,
+                icon=body.icon,
+                icon_color=body.icon_color,
+                icon_bg=body.icon_bg,
+                user=current_user,
+                db_session=async_session,
             )
             family = await family_creator_service.run_process()
         except UserIsAlreadyFamilyMember:
@@ -121,6 +129,35 @@ async def get_my_family(
 
 
 @router.get(
+    path="/stats",
+    summary="",
+    tags=["Family"],
+)
+async def get_my_family_with_stats(
+    current_user: User = Depends(FamilyMemberPermission()),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
+    async_session: AsyncSession = Depends(get_db),
+) -> FamilyStatsResponseSchema:
+    async with async_session.begin():
+        family_id = current_user.family_id
+        repo = FamilyRepository(async_session)
+        family = await repo.get_by_id(family_id)
+        members_count = await repo.count_family_members(family_id)
+        week_completed = await statsRepo.get_family_chore_completion_count(
+            family_id,
+            interval=get_current_week_range(),
+        )
+    return FamilyStatsResponseSchema.model_validate(
+        {
+            **family.__dict__,
+            "members_count": members_count,
+            "week_completed": week_completed,
+            "streak": 0,
+        }
+    )
+
+
+@router.get(
     path="/members",
     summary="",
     tags=["Family members"],
@@ -145,21 +182,34 @@ async def get_family_leader(
     current_user: User = Depends(FamilyMemberPermission()),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
     async_session: AsyncSession = Depends(get_db),
-) -> FamilyMemberStatsSchema:
+) -> FamilyLeadersResponseSchema:
     async with async_session.begin():
         family_id: UUID = current_user.family_id  # type: ignore
+
         members = await statsRepo.get_family_members_by_chores_completions(
-            family_id, interval=get_current_week_range()
+            family_id,
+            interval=get_current_week_range(),
         )
-        if len(members) == 0:
-            return FamilyMemberStatsSchema(
-                member=None,
-                chore_completion_count=None,
+
+        leaders: list[FamilyMemberStatsSchema] = []
+
+        user_repo = UserRepository(async_session)
+
+        for member in members[:3]:
+            user = await user_repo.get_by_id(member.user_id)
+
+            if user is None:
+                continue
+
+            leaders.append(
+                FamilyMemberStatsSchema(
+                    member=UserResponseSchema.model_validate(user),
+                    chore_completion_count=member.chores_completions_counts,
+                )
             )
-        user = await UserRepository(async_session).get_by_id(members[0].user_id)
-        return FamilyMemberStatsSchema(
-            member=UserResponseSchema.model_validate(user),
-            chore_completion_count=members[0].chores_completions_counts,
+
+        return FamilyLeadersResponseSchema(
+            leaders=leaders,
         )
 
 
@@ -254,24 +304,21 @@ async def generate_invite_token(
 
 
 @router.post(
-    path="/join/{invite_code}",
+    path="/join",
     summary="Join to family by invite-token",
     tags=["Family invited"],
 )
 async def join_to_family(
-    invite_code: str,
+    body: FamilyJoinSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
     async_session: AsyncSession = Depends(get_db),
-) -> JSONResponse:
+) -> FamilyResponseSchema:
     async with async_session.begin():
         service = JoinFamilyByInviteCodeService(
-            user=current_user, invite_code=invite_code, db_session=async_session
+            user=current_user, invite_code=body.invite_code, db_session=async_session
         )
-        await service.run_process()
-        return JSONResponse(
-            content={"message": "You have been successfully added to the family"},
-            status_code=status.HTTP_200_OK,
-        )
+        family = await service.run_process()
+        return FamilyResponseSchema.model_validate(family)
 
 
 @router.post(

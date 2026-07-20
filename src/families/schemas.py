@@ -10,6 +10,8 @@ class FamilyCreateSchema(BaseModel):
 
     name: str
     icon: str
+    icon_color: str
+    icon_bg: str
 
 
 class FamilyResponseSchema(BaseModel):
@@ -21,6 +23,12 @@ class FamilyResponseSchema(BaseModel):
     experience: int
 
     model_config = ConfigDict(from_attributes=True)
+
+class FamilyStatsResponseSchema(FamilyResponseSchema):
+    members_count: int
+    total_completed: int
+    week_completed: int
+    streak: int
 
 
 class FamilyUpdateSchema(BaseModel):
@@ -46,8 +54,12 @@ class FamilyMemberStatsSchema(BaseModel):
     chore_completion_count: int | None
 
 
+class FamilyLeadersResponseSchema(BaseModel):
+    leaders: list[FamilyMemberStatsSchema]
+
+
 class FamilyJoinSchema(BaseModel):
-    invite_token: str
+    invite_code: str
 
 
 class InviteTokenSchema(BaseModel):
