@@ -114,6 +114,7 @@ class CompletePlannedChore(BaseService[PlannedChore]):
 
     async def process(self) -> PlannedChore:
         planned_chore = await self._complete_planned_chore()
+        await self.increment_family_total_completed()
         if ENABLE_CLICKHOUSE:
             await publish_chore_completion_event(planned_chore, sign=1)
         await self.send_reward()
@@ -153,6 +154,7 @@ class UncompletePlannedChore(BaseService[PlannedChore]):
             # публикуем ДО очистки completed_by_id — нужны те же значения, что были при complete
             await publish_chore_completion_event(self.planned_chore, sign=-1)
 
+        await self.decrement_family_total_completed()
         await self._revoke_award()
         planned_chore = await self._uncomplete_planned_chore()
         return planned_chore
@@ -161,6 +163,10 @@ class UncompletePlannedChore(BaseService[PlannedChore]):
         repo = PlannedChoreRepository(self.db_session)
         self.planned_chore.completed_by_id = None
         return await repo.update(self.planned_chore)
+
+    async def decrement_family_total_completed(self) -> None:
+        repo = FamilyRepository(self.db_session)
+        return await repo.decrement_total_completed(self.planned_chore.family_id)
 
     async def _revoke_award(self) -> RewardTransaction:
         service = AwardService(

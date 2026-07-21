@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date
+from statistics.schemas import (
+    ChoresFamilyCountSchema,
+    DateRangeSchema,
+    UserChoresCountSchema,
+)
 from uuid import UUID
 
 from fastapi import Depends
@@ -8,11 +13,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import ENABLE_CLICKHOUSE
-from statistics.schemas import (
-    ChoresFamilyCountSchema,
-    DateRangeSchema,
-    UserChoresCountSchema,
-)
 from database_connection import clickhouse_client, get_db
 
 
@@ -47,6 +47,9 @@ class StatsRepository(ABC):
         self, family_id: UUID, interval: DateRangeSchema | None = None
     ) -> int: ...
 
+    @abstractmethod
+    async def get_family_current_streak(self, family_id: UUID) -> int: ...
+
 
 class StatsClickhouseRepository(StatsRepository):
     async def get_family_members_by_chores_completions(
@@ -62,8 +65,8 @@ class StatsClickhouseRepository(StatsRepository):
 
         query_result = await async_client.query(
             query=f"""
-                SELECT 
-                    completed_by_id, 
+                SELECT
+                    completed_by_id,
                     SUM(sign) AS chore_completion_count
                 FROM planned_chore_stats
                 WHERE {condition}
@@ -92,8 +95,8 @@ class StatsClickhouseRepository(StatsRepository):
 
         query_result = await async_client.query(
             query=f"""
-                SELECT 
-                    chore_id, 
+                SELECT
+                    chore_id,
                     SUM(sign) AS chore_completion_count
                 FROM planned_chore_stats
                 WHERE {condition}
@@ -122,7 +125,7 @@ class StatsClickhouseRepository(StatsRepository):
 
         query_result = await async_client.query(
             query=f"""
-                SELECT 
+                SELECT
                     due_date AS day,
                     SUM(sign) AS chore_completion_count
                 FROM planned_chore_stats
@@ -148,7 +151,7 @@ class StatsClickhouseRepository(StatsRepository):
 
         query_result = await async_client.query(
             query=f"""
-                SELECT 
+                SELECT
                     due_date AS day,
                     SUM(sign) AS chore_completion_count
                 FROM planned_chore_stats
@@ -179,7 +182,7 @@ class StatsClickhouseRepository(StatsRepository):
 
         query_result = await async_client.query(
             query=f"""
-                SELECT 
+                SELECT
                     completed_by_id,
                     SUM(sign) AS completion_count
                 FROM planned_chore_stats
@@ -218,6 +221,38 @@ class StatsClickhouseRepository(StatsRepository):
         if rows and rows[0][0] is not None:
             return max(rows[0][0], 0)
         return 0
+
+    async def get_family_current_streak(self, family_id: UUID) -> int:
+        async_client = await clickhouse_client.get_client()
+        query_result = await async_client.query(
+            query="""
+                WITH active_days AS (
+                    SELECT
+                        toDate(created_at) AS day
+                    FROM planned_chore_stats
+                    WHERE family_id = {family_id:UUID}
+                    GROUP BY day
+                    HAVING SUM(sign) > 0
+                ),
+                anchor AS (
+                    SELECT
+                        if(max(day) = today(), today(), today() - 1) AS anchor_date
+                    FROM active_days
+                ),
+                ranked AS (
+                    SELECT
+                        day,
+                        row_number() OVER (ORDER BY day DESC) - 1 AS rn
+                    FROM active_days
+                    WHERE day <= (SELECT anchor_date FROM anchor)
+                )
+                SELECT count() AS current_streak
+                FROM ranked
+                WHERE day = (SELECT anchor_date FROM anchor) - rn
+            """,
+            parameters={"family_id": family_id},
+        )
+        return query_result.result_rows[0][0] if query_result.result_rows else 0
 
     def __family_date_condition_parameters(
         self, family_id: UUID, interval: DateRangeSchema | None = None
@@ -395,6 +430,56 @@ class StatsPostgresRepository(StatsRepository):
         if rows:
             return rows[0][0]
         return 0
+
+    async def get_family_current_streak(
+        self,
+        family_id: UUID,
+    ) -> int:
+        query = text("""
+            WITH active_days AS (
+                SELECT
+                    due_date AS day
+                FROM planned_chore
+                WHERE family_id = :family_id
+                  AND completed_by_id IS NOT NULL
+                GROUP BY due_date
+            ),
+
+            anchor AS (
+                SELECT
+                    CASE
+                        WHEN MAX(day) IS NULL THEN NULL
+                        WHEN MAX(day) >= CURRENT_DATE THEN CURRENT_DATE
+                        ELSE CURRENT_DATE - INTERVAL '1 day'
+                    END AS anchor_date
+                FROM active_days
+            ),
+
+            ranked AS (
+                SELECT
+                    day,
+                    ROW_NUMBER() OVER (
+                        ORDER BY day DESC
+                    ) - 1 AS rn
+                FROM active_days
+            )
+
+            SELECT COUNT(*)
+            FROM ranked
+            CROSS JOIN anchor
+            WHERE anchor.anchor_date IS NOT NULL
+              AND day <= anchor.anchor_date
+              AND day = anchor.anchor_date - rn * INTERVAL '1 day'
+        """)
+
+        result = await self.db_session.execute(
+            query,
+            {
+                "family_id": family_id,
+            },
+        )
+
+        return result.scalar_one()
 
     def _add_date_interval(self, condition, params, interval):
         if interval:

@@ -147,12 +147,15 @@ async def get_my_family_with_stats(
             family_id,
             interval=get_current_week_range(),
         )
+        streak = await statsRepo.get_family_current_streak(
+            family_id,
+        )
     return FamilyStatsResponseSchema.model_validate(
         {
             **family.__dict__,
             "members_count": members_count,
             "week_completed": week_completed,
-            "streak": 0,
+            "streak": streak,
         }
     )
 

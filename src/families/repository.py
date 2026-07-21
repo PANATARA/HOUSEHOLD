@@ -63,3 +63,12 @@ class FamilyRepository(BaseDals[Family]):
             .values(total_completed=Family.total_completed + 1)
         )
         await self.db_session.flush()
+
+    async def decrement_total_completed(self, family_id: UUID):
+        await self.db_session.execute(
+            update(Family)
+            .where(Family.id == family_id)
+            .where(Family.total_completed > 0)
+            .values(total_completed=Family.total_completed - 1)
+        )
+        await self.db_session.flush()
