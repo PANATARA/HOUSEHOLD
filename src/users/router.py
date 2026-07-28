@@ -17,14 +17,16 @@ from core.permissions import (
 )
 from database_connection import get_db
 from families.repository import FamilyRepository
+from src.statistics.repository import StatsRepository, get_statistic_repo
+from src.utils import get_current_week_range
 from users.models import User
 from users.repository import UserRepository, UserSettingsRepository
 from users.schemas import (
+    UserResponseProfile,
     UserResponseSchema,
     UserSettingsResponseSchema,
     UserSettingsUpdateSchema,
     UserUpdateSchema,
-    UserResponseProfile,
 )
 from users.services import get_level_info
 
@@ -41,6 +43,7 @@ router = APIRouter()
 )
 async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
     async_session: AsyncSession = Depends(get_db),
 ) -> UserResponseProfile:
     is_family_member = current_user.family_id is not None
@@ -54,11 +57,20 @@ async def me_get_user_profile(
             ).user_is_family_admin(current_user.id, current_user.family_id)
 
     level_info = get_level_info(current_user.experience)
+    week_completed = await statsRepo.get_users_chore_completion_count(
+        [current_user.id],
+        interval=get_current_week_range(),
+    )
+    streak = await statsRepo.get_family_current_streak(
+        current_user.id,
+    )
 
     return UserResponseProfile.model_validate(
         {
             **current_user.__dict__,
             **level_info,
+            "week_completed": week_completed[0].chores_completions_counts,
+            "streak": streak,
             "is_family_member": is_family_member,
             "is_family_admin": is_family_admin,
         }

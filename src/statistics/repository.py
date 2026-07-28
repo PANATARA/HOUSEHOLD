@@ -50,6 +50,9 @@ class StatsRepository(ABC):
     @abstractmethod
     async def get_family_current_streak(self, family_id: UUID) -> int: ...
 
+    @abstractmethod
+    async def get_user_current_streak(self, user_id: UUID) -> int: ...
+
 
 class StatsClickhouseRepository(StatsRepository):
     async def get_family_members_by_chores_completions(
@@ -251,6 +254,38 @@ class StatsClickhouseRepository(StatsRepository):
                 WHERE day = (SELECT anchor_date FROM anchor) - rn
             """,
             parameters={"family_id": family_id},
+        )
+        return query_result.result_rows[0][0] if query_result.result_rows else 0
+
+    async def get_user_current_streak(self, user_id: UUID) -> int:
+        async_client = await clickhouse_client.get_client()
+        query_result = await async_client.query(
+            query="""
+                WITH active_days AS (
+                    SELECT
+                        toDate(created_at) AS day
+                    FROM planned_chore_stats
+                    WHERE completed_by_id = {user_id:UUID}
+                    GROUP BY day
+                    HAVING SUM(sign) > 0
+                ),
+                anchor AS (
+                    SELECT
+                        if(max(day) = today(), today(), today() - 1) AS anchor_date
+                    FROM active_days
+                ),
+                ranked AS (
+                    SELECT
+                        day,
+                        row_number() OVER (ORDER BY day DESC) - 1 AS rn
+                    FROM active_days
+                    WHERE day <= (SELECT anchor_date FROM anchor)
+                )
+                SELECT count() AS current_streak
+                FROM ranked
+                WHERE day = (SELECT anchor_date FROM anchor) - rn
+            """,
+            parameters={"user_id": user_id},
         )
         return query_result.result_rows[0][0] if query_result.result_rows else 0
 
@@ -476,6 +511,55 @@ class StatsPostgresRepository(StatsRepository):
             query,
             {
                 "family_id": family_id,
+            },
+        )
+
+        return result.scalar_one()
+
+    async def get_user_current_streak(
+        self,
+        user_id: UUID,
+    ) -> int:
+        query = text("""
+            WITH active_days AS (
+                SELECT
+                    due_date AS day
+                FROM planned_chore
+                WHERE completed_by_id = :user_id
+                GROUP BY due_date
+            ),
+
+            anchor AS (
+                SELECT
+                    CASE
+                        WHEN MAX(day) IS NULL THEN NULL
+                        WHEN MAX(day) >= CURRENT_DATE THEN CURRENT_DATE
+                        ELSE CURRENT_DATE - INTERVAL '1 day'
+                    END AS anchor_date
+                FROM active_days
+            ),
+
+            ranked AS (
+                SELECT
+                    day,
+                    ROW_NUMBER() OVER (
+                        ORDER BY day DESC
+                    ) - 1 AS rn
+                FROM active_days
+            )
+
+            SELECT COUNT(*)
+            FROM ranked
+            CROSS JOIN anchor
+            WHERE anchor.anchor_date IS NOT NULL
+              AND day <= anchor.anchor_date
+              AND day = anchor.anchor_date - rn * INTERVAL '1 day'
+        """)
+
+        result = await self.db_session.execute(
+            query,
+            {
+                "user_id": user_id,
             },
         )
 

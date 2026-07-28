@@ -28,6 +28,23 @@ class UserRepository(BaseDals[User]):
         )
         await self.db_session.flush()
 
+    async def increment_total_completed(self, user_id: UUID):
+        await self.db_session.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(total_completed=User.total_completed + 1)
+        )
+        await self.db_session.flush()
+
+    async def decrement_total_completed(self, user_id: UUID):
+        await self.db_session.execute(
+            update(User)
+            .where(User.id == user_id)
+            .where(User.total_completed > 0)
+            .values(total_completed=User.total_completed - 1)
+        )
+        await self.db_session.flush()
+
 
 class UserSettingsRepository(BaseDals[UserSettings], BaseUserPkDals[UserSettings]):
     model = UserSettings

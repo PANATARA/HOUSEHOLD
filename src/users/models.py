@@ -34,6 +34,7 @@ class User(Base, BaseIdTimeStampModel):
         server_default="linear-gradient(135deg, #8a7f6e 0%, #6b5f50 100%)"
     )
     experience: Mapped[int] = mapped_column(default=0)
+    total_completed: Mapped[int] = mapped_column(server_default="0", nullable=False)
 
     def __repr__(self):
         return super().__repr__()

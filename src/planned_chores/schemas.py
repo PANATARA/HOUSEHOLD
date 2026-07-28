@@ -1,5 +1,5 @@
-from datetime import date
 import datetime
+from datetime import date
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -13,6 +13,10 @@ class PlannedChoreCreateSchema(BaseModel):
     assigned_to_id: UUID | None
     due_date: date
     message: str
+
+
+class PlannedChoreRescheduleSchema(BaseModel):
+    reschedule_due_date: date
 
 
 class PlannedChoreResponseSchema(BaseModel):

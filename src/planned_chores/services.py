@@ -16,6 +16,7 @@ from database_connection import rabbit_client
 from planned_chores.models import ChoreSchedule, PlannedChore
 from planned_chores.repository import ChoreScheduleRepository, PlannedChoreRepository
 from src.families.repository import FamilyRepository
+from src.users.repository import UserRepository
 from users.models import User
 from wallets.models import RewardTransaction
 from wallets.services import AwardService
@@ -115,6 +116,7 @@ class CompletePlannedChore(BaseService[PlannedChore]):
     async def process(self) -> PlannedChore:
         planned_chore = await self._complete_planned_chore()
         await self.increment_family_total_completed()
+        await self.increment_user_total_completed()
         if ENABLE_CLICKHOUSE:
             await publish_chore_completion_event(planned_chore, sign=1)
         await self.send_reward()
@@ -128,6 +130,10 @@ class CompletePlannedChore(BaseService[PlannedChore]):
     async def increment_family_total_completed(self) -> None:
         repo = FamilyRepository(self.db_session)
         return await repo.increment_total_completed(self.planned_chore.family_id)
+
+    async def increment_user_total_completed(self) -> None:
+        repo = UserRepository(self.db_session)
+        return await repo.increment_total_completed(self.completed_by.id)
 
     async def send_reward(self):
         service = AwardService(
@@ -155,6 +161,7 @@ class UncompletePlannedChore(BaseService[PlannedChore]):
             await publish_chore_completion_event(self.planned_chore, sign=-1)
 
         await self.decrement_family_total_completed()
+        await self.decrement_user_total_completed()
         await self._revoke_award()
         planned_chore = await self._uncomplete_planned_chore()
         return planned_chore
@@ -167,6 +174,10 @@ class UncompletePlannedChore(BaseService[PlannedChore]):
     async def decrement_family_total_completed(self) -> None:
         repo = FamilyRepository(self.db_session)
         return await repo.decrement_total_completed(self.planned_chore.family_id)
+
+    async def decrement_user_total_completed(self) -> None:
+        repo = UserRepository(self.db_session)
+        return await repo.decrement_total_completed(self.planned_chore.completed_by_id)
 
     async def _revoke_award(self) -> RewardTransaction:
         service = AwardService(
@@ -197,7 +208,6 @@ class ReschedulePlannedChore(BaseService[PlannedChore]):
 
     def get_validators(self):
         return [
-            lambda: validate_date_is_not_in_past(self.reschedule_due_date),
             lambda: validate_planned_chore_is_not_completed(self.planned_chore),
         ]
 

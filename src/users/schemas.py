@@ -21,6 +21,9 @@ class UserResponseProfile(UserResponseSchema):
     level: int
     exp_to_next_total: int | None
     progress_percent: int
+    total_completed: int
+    week_completed: int
+    streak: int
     is_max_level: bool
     is_family_member: bool
     is_family_admin: bool

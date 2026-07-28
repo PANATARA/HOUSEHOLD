@@ -2,7 +2,7 @@ from datetime import date
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +18,7 @@ from planned_chores.schemas import (
     ChoreScheduleResponseSchema,
     CreateChoreScheduleSchema,
     PlannedChoreCreateSchema,
+    PlannedChoreRescheduleSchema,
     PlannedChoreResponseSchema,
 )
 from planned_chores.services import (
@@ -25,6 +26,7 @@ from planned_chores.services import (
     CreateChoreScheduleService,
     CreatePlannedChore,
     DeletePlannedChore,
+    ReschedulePlannedChore,
     UncompletePlannedChore,
 )
 from users.models import User
@@ -149,11 +151,22 @@ async def uncomplete_planned_chore(
     description="...",
 )
 async def reschedule_planned_chore(
+    body: PlannedChoreRescheduleSchema,
     planned_chore_id: UUID,
     current_user: User = Depends(PlannedChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
 ):
-    pass
+    async with async_session.begin():
+        repo = PlannedChoreRepository(async_session)
+        planned_chore = await repo.get_by_id(planned_chore_id)
+        service = ReschedulePlannedChore(
+            planned_chore=planned_chore,
+            reschedule_due_date=body.reschedule_due_date,
+            db_session=async_session,
+        )
+        await service.run_process()
+        planned_chore_full = await repo.get_planned_chore_by_id(planned_chore.id)
+        return PlannedChoreResponseSchema.model_validate(planned_chore_full)
 
 
 @router.get(
