@@ -159,6 +159,7 @@ async def me_user_settings_partial_update(
 async def get_user_profile(
     user_id: UUID,
     current_user: User = Depends(FamilyUserAccessPermission()),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
     async_session: AsyncSession = Depends(get_db),
 ) -> UserResponseProfile:
     async with async_session.begin():
@@ -169,11 +170,20 @@ async def get_user_profile(
         )
 
     level_info = get_level_info(user.experience)
+    week_completed = await statsRepo.get_users_chore_completion_count(
+        [user_id],
+        interval=get_current_week_range(),
+    )
+    streak = await statsRepo.get_family_current_streak(
+        user_id,
+    )
 
     return UserResponseProfile.model_validate(
         {
             **user.__dict__,
             **level_info,
+            "week_completed": week_completed[0].chores_completions_counts,
+            "streak": streak,
             "is_family_member": True,
             "is_family_admin": is_family_admin,
         }
