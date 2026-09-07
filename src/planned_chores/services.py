@@ -1,25 +1,37 @@
 import datetime
 from dataclasses import dataclass
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
 from config import ENABLE_CLICKHOUSE
 from core.enums import FrequencyTypeENUM
+from core.exceptions.chores_completion import ChoreCompletionCanNotBeChanged
 from core.services import BaseService
 from core.validators import (
     validate_date_is_not_in_past,
     validate_planned_chore_is_completed,
     validate_planned_chore_is_not_completed,
+    validate_quick_planned_chore_is_completed,
+    validate_quick_planned_chore_is_not_completed,
 )
 from database_connection import rabbit_client
-from planned_chores.models import ChoreSchedule, PlannedChore
-from planned_chores.repository import ChoreScheduleRepository, PlannedChoreRepository
+from planned_chores.models import ChoreSchedule, PlannedChore, QuickPlannedChore
+from planned_chores.repository import (
+    ChoreScheduleRepository,
+    PlannedChoreRepository,
+    QuickPlannedChoreRepository,
+)
+from planned_chores.schemas import (
+    QuickPlannedChoreCreateSchema,
+    QuickPlannedChoreUpdateSchema,
+)
 from src.families.repository import FamilyRepository
 from src.users.repository import UserRepository
 from users.models import User
 from wallets.models import RewardTransaction
-from wallets.services import AwardService
+from wallets.services import AwardService, QuickAwardService
 
 
 async def publish_chore_completion_event(
@@ -37,6 +49,24 @@ async def publish_chore_completion_event(
         "assigned_to_id": str(planned_chore.assigned_to_id),
         "due_date": planned_chore.due_date.isoformat(),
         "sign": sign,
+    }
+    await rabbit_client.publish(message=message)
+
+
+async def publish_quick_chore_completion_event(
+    quick_chore: QuickPlannedChore, sign: int
+) -> None:
+    message = {
+        "id": str(quick_chore.id),
+        "chore_id": None,
+        "family_id": str(quick_chore.family_id),
+        "completed_by_id": str(quick_chore.completed_by_id),
+        "assigned_to_id": str(quick_chore.assigned_to_id)
+        if quick_chore.assigned_to_id
+        else None,
+        "due_date": quick_chore.due_date.isoformat(),
+        "sign": sign,
+        "is_quick": True,  # флаг чтобы различать в аналитике
     }
     await rabbit_client.publish(message=message)
 
@@ -412,3 +442,165 @@ class GeneratePlannedChores(BaseService[None]):
             return False
 
         return date.day == schedule.day_of_month
+
+
+@dataclass
+class CreateQuickPlannedChore(BaseService[QuickPlannedChore]):
+    body: QuickPlannedChoreCreateSchema
+    current_user: User
+    assigned_to_user: User | None
+    db_session: AsyncSession
+
+    async def process(self) -> QuickPlannedChore:
+        repo = QuickPlannedChoreRepository(self.db_session)
+        obj = QuickPlannedChore(
+            name=self.body.name,
+            description=self.body.description,
+            icon=self.body.icon,
+            icon_color=self.body.icon_color,
+            icon_bg=self.body.icon_bg,
+            valuation=self.body.valuation,
+            family_id=self.current_user.family_id,
+            assigned_to_id=self.assigned_to_user.id if self.assigned_to_user else None,
+            due_date=self.body.due_date,
+            message=self.body.message,
+            created_by=self.current_user.id,
+            completed_by_id=None,
+            is_active=True,
+        )
+        return await repo.create(obj)
+
+
+@dataclass
+class CompleteQuickPlannedChore(BaseService[QuickPlannedChore]):
+    quick_planned_chore: QuickPlannedChore
+    current_user: User
+    db_session: AsyncSession
+
+    async def process(self) -> QuickPlannedChore:
+        quick_planned_chore = await self._complete_quick_planned_chore()
+        await self.increment_family_total_completed()
+        await self.increment_user_total_completed()
+        if ENABLE_CLICKHOUSE:
+            await publish_quick_chore_completion_event(quick_planned_chore, sign=1)
+        await self.send_reward()
+        return quick_planned_chore
+
+    async def _complete_quick_planned_chore(self) -> QuickPlannedChore:
+        repo = QuickPlannedChoreRepository(self.db_session)
+        self.quick_planned_chore.completed_by_id = self.current_user.id
+        self.quick_planned_chore = await repo.update(self.quick_planned_chore)
+        return self.quick_planned_chore
+
+    async def increment_family_total_completed(self) -> None:
+        await FamilyRepository(self.db_session).increment_total_completed(
+            self.quick_planned_chore.family_id
+        )
+
+    async def increment_user_total_completed(self) -> None:
+        await UserRepository(self.db_session).increment_total_completed(
+            self.current_user.id  # ← было self.quick_planned_chore.id
+        )
+
+    async def send_reward(self):
+        await QuickAwardService(
+            quick_chore=self.quick_planned_chore,
+            message="income",
+            db_session=self.db_session,
+        ).run_process()
+
+    def get_validators(self):
+        return [
+            lambda: validate_quick_planned_chore_is_not_completed(
+                self.quick_planned_chore
+            ),
+        ]
+
+
+@dataclass
+class UncompleteQuickPlannedChore(BaseService[QuickPlannedChore]):
+    quick_planned_chore: QuickPlannedChore
+    db_session: AsyncSession
+
+    async def process(self) -> QuickPlannedChore:
+        if ENABLE_CLICKHOUSE:
+            await publish_quick_chore_completion_event(
+                self.quick_planned_chore, sign=-1
+            )
+        await self.decrement_family_total_completed()
+        await self.decrement_user_total_completed()
+        await self._revoke_award()
+        return await self._uncomplete_quick_planned_chore()
+
+    async def _uncomplete_quick_planned_chore(self) -> QuickPlannedChore:
+        repo = QuickPlannedChoreRepository(self.db_session)
+        self.quick_planned_chore.completed_by_id = None
+        return await repo.update(self.quick_planned_chore)
+
+    async def decrement_family_total_completed(self) -> None:
+        repo = FamilyRepository(self.db_session)
+        return await repo.decrement_total_completed(self.quick_planned_chore.family_id)
+
+    async def decrement_user_total_completed(self) -> None:
+        repo = UserRepository(self.db_session)
+        return await repo.decrement_total_completed(
+            self.quick_planned_chore.completed_by_id
+        )
+
+    async def _revoke_award(self) -> RewardTransaction:
+        service = QuickAwardService(
+            quick_chore=self.quick_planned_chore,
+            message="Отмена награды за выполнение задания",
+            db_session=self.db_session,
+            amount_multiplier=-1,
+        )
+        return await service.run_process()
+
+    def get_validators(self):
+        return [
+            lambda: validate_quick_planned_chore_is_completed(self.quick_planned_chore)
+        ]
+
+
+@dataclass
+class UpdateQuickPlannedChore(BaseService[QuickPlannedChore]):
+    quick_planned_chore_id: UUID
+    body: QuickPlannedChoreUpdateSchema
+    current_user: User
+    db_session: AsyncSession
+
+    async def process(self) -> QuickPlannedChore:
+        repo = QuickPlannedChoreRepository(self.db_session)
+        obj = await repo.get_by_id(self.quick_planned_chore_id)
+
+        for field, value in self.body.model_dump(exclude_none=True).items():
+            setattr(obj, field, value)
+
+        return await repo.update(obj)
+
+
+@dataclass
+class DeleteQuickPlannedChore(BaseService[None]):
+    quick_planned_chore_id: UUID
+    db_session: AsyncSession
+
+    async def process(self) -> None:
+        repo = QuickPlannedChoreRepository(self.db_session)
+        obj = await repo.get_by_id(self.quick_planned_chore_id)
+
+        if obj.completed_by_id is not None:
+            await AwardService(
+                planned_chore=obj,
+                message="Отмена награды за выполнение задания",
+                db_session=self.db_session,
+                amount_multiplier=-1,
+            ).run_process()
+
+            await FamilyRepository(self.db_session).decrement_total_completed(
+                obj.family_id
+            )
+            await UserRepository(self.db_session).decrement_total_completed(
+                obj.completed_by_id
+            )
+
+        await repo.soft_delete(self.quick_planned_chore_id)

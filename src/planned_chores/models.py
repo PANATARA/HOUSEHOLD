@@ -74,3 +74,34 @@ class ChoreSchedule(Base, BaseIdTimeStampModel):
 
     # Whether recurrence is active
     is_active: Mapped[bool] = mapped_column(default=True)
+
+
+class QuickPlannedChore(Base, BaseIdTimeStampModel):
+    __tablename__ = "quick_planned_chore"
+
+    name: Mapped[str]
+    description: Mapped[str | None]
+    icon: Mapped[str] = mapped_column(server_default="material-symbols:bolt-rounded")
+    icon_color: Mapped[str] = mapped_column(server_default="#ffffff")
+    icon_bg: Mapped[str] = mapped_column(
+        server_default="linear-gradient(135deg, #F59E0B 0%, #F97316 100%)"
+    )
+    valuation: Mapped[int]
+    family_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(column="family.id", ondelete="CASCADE")
+    )
+    is_active: Mapped[bool] = mapped_column(default=True)
+    completed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(column="users.id", ondelete="SET NULL")
+    )
+    assigned_to_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(column="users.id", ondelete="SET NULL")
+    )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(column="users.id", ondelete="SET NULL")
+    )
+    due_date: Mapped[datetime.date]
+    message: Mapped[str] = mapped_column(String(50), server_default="")
+
+    def __repr__(self):
+        return super().__repr__()

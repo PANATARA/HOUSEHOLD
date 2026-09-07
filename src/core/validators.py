@@ -2,13 +2,13 @@ from datetime import date
 from uuid import UUID
 
 from chores.models import Chore
-from planned_chores.models import PlannedChore
 from core.exceptions.chores import ChoreNotFoundError
 from core.exceptions.chores_completion import (
     ChoreCompletionCanNotBeChanged,
 )
 from core.exceptions.families import UserIsAlreadyFamilyMember, UserNotFoundInFamily
 from core.exceptions.products import ProductError, ProductNotFoundError
+from planned_chores.models import PlannedChore, QuickPlannedChore
 from products.models import Product
 from users.models import User
 
@@ -35,6 +35,16 @@ def validate_planned_chore_is_completed(target: PlannedChore) -> None:
 
 def validate_planned_chore_is_not_completed(target: PlannedChore) -> None:
     if target.completed_by_id is not None:
+        raise ChoreCompletionCanNotBeChanged()
+
+
+def validate_quick_planned_chore_is_not_completed(target: QuickPlannedChore) -> None:
+    if target.completed_by_id is not None:
+        raise ChoreCompletionCanNotBeChanged()
+
+
+def validate_quick_planned_chore_is_completed(target: QuickPlannedChore) -> None:
+    if target.completed_by_id is None:
         raise ChoreCompletionCanNotBeChanged()
 
 

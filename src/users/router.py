@@ -18,7 +18,7 @@ from core.permissions import (
 from database_connection import get_db
 from families.repository import FamilyRepository
 from src.statistics.repository import StatsRepository, get_statistic_repo
-from src.utils import get_current_week_range
+from src.utils import get_current_month_range, get_current_week_range
 from users.models import User
 from users.repository import UserRepository, UserSettingsRepository
 from users.schemas import (
@@ -61,16 +61,16 @@ async def me_get_user_profile(
         [current_user.id],
         interval=get_current_week_range(),
     )
-    streak = await statsRepo.get_family_current_streak(
-        current_user.id,
+    month_completed = await statsRepo.get_users_chore_completion_count(
+        [current_user.id],
+        interval=get_current_month_range(),
     )
-
     return UserResponseProfile.model_validate(
         {
             **current_user.__dict__,
             **level_info,
             "week_completed": week_completed[0].chores_completions_counts,
-            "streak": streak,
+            "month_completed": month_completed[0].chores_completions_counts,
             "is_family_member": is_family_member,
             "is_family_admin": is_family_admin,
         }
@@ -174,8 +174,9 @@ async def get_user_profile(
         [user_id],
         interval=get_current_week_range(),
     )
-    streak = await statsRepo.get_family_current_streak(
-        user_id,
+    month_completed = await statsRepo.get_users_chore_completion_count(
+        [current_user.id],
+        interval=get_current_month_range(),
     )
 
     return UserResponseProfile.model_validate(
@@ -183,7 +184,7 @@ async def get_user_profile(
             **user.__dict__,
             **level_info,
             "week_completed": week_completed[0].chores_completions_counts,
-            "streak": streak,
+            "month_completed": month_completed[0].chores_completions_counts,
             "is_family_member": True,
             "is_family_admin": is_family_admin,
         }

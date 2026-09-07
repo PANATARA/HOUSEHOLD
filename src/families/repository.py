@@ -1,10 +1,12 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import and_, exists, func, select, update
 
-from core.base_dals import BaseDals
+from core.base_dals import BaseDals, DeleteDALMixin
 from core.exceptions.families import FamilyNotFoundError
-from families.models import Family
+from families.models import Event, Family
+from families.schemas import EventResponseSchema
 from users.models import User
 from users.schemas import UserResponseSchema
 
@@ -72,3 +74,49 @@ class FamilyRepository(BaseDals[Family]):
             .values(total_completed=Family.total_completed - 1)
         )
         await self.db_session.flush()
+
+
+class EventRepository(BaseDals[Event], DeleteDALMixin):
+    model = Event
+    not_found_exception = FamilyNotFoundError
+
+    async def get_by_date_range(
+        self,
+        family_id: UUID,
+        date_from: datetime,
+        date_to: datetime,
+    ) -> list[EventResponseSchema]:
+        result = await self.db_session.execute(
+            select(Event)
+            .where(
+                Event.family_id == family_id,
+                Event.date >= date_from,
+                Event.date < date_to,
+            )
+            .order_by(Event.date)
+        )
+
+        return [
+            EventResponseSchema.model_validate(event)
+            for event in result.scalars().all()
+        ]
+
+    async def get_upcoming(
+        self,
+        family_id: UUID,
+        limit: int = 3,
+    ) -> list[EventResponseSchema]:
+        now = datetime.utcnow().date()
+        result = await self.db_session.execute(
+            select(Event)
+            .where(
+                Event.family_id == family_id,
+                Event.date >= now,
+            )
+            .order_by(Event.date)
+            .limit(limit)
+        )
+        return [
+            EventResponseSchema.model_validate(event)
+            for event in result.scalars().all()
+        ]

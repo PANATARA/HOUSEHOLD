@@ -5,20 +5,19 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.repository import ChoreRepository
-from planned_chores.models import PlannedChore
 from config import TRANSFER_RATE
 from core.enums import PeerTransactionENUM, RewardTransactionENUM
 from core.exceptions.wallets import NotEnoughCoins
 from core.services import BaseService
-
 from families.repository import FamilyRepository
+from planned_chores.models import PlannedChore, QuickPlannedChore
 from users.models import User
 from users.repository import UserRepository
 from wallets.models import PeerTransaction, RewardTransaction, Wallet
 from wallets.repository import (
-    WalletRepository,
     PeerTransactionDAL,
     RewardTransactionDAL,
+    WalletRepository,
 )
 
 
@@ -148,6 +147,55 @@ class AwardService(BaseService[RewardTransaction]):
             transaction_type=RewardTransactionENUM.reward_for_chore,
         )
 
+        return await RewardTransactionDAL(self.db_session).create(transaction)
+
+    async def _change_experience(
+        self,
+        user_id: UUID,
+        family_id: UUID,
+        amount: int,
+    ) -> None:
+        await UserRepository(self.db_session).increment_experience(user_id, amount)
+        await FamilyRepository(self.db_session).increment_experience(family_id, amount)
+
+
+@dataclass
+class QuickAwardService(BaseService[RewardTransaction]):
+    quick_chore: QuickPlannedChore
+    message: str
+    db_session: AsyncSession
+    amount_multiplier: int = 1
+
+    async def process(self) -> RewardTransaction:
+        user_id = self.quick_chore.completed_by_id
+        if user_id is None:
+            raise ValueError("completed_by_id is None")
+
+        # valuation берём напрямую из модели — не нужен ChoreRepository
+        amount = self.quick_chore.valuation * self.amount_multiplier
+
+        await self._change_coins(user_id, amount)
+        transaction = await self._create_transaction_log(user_id, amount)
+        await self._change_experience(
+            user_id=user_id,
+            family_id=self.quick_chore.family_id,
+            amount=amount,
+        )
+        return transaction
+
+    async def _change_coins(self, user_id: UUID, amount: int) -> None:
+        await WalletRepository(self.db_session).add_balance(user_id, amount)
+
+    async def _create_transaction_log(
+        self, user_id: UUID, amount: int
+    ) -> RewardTransaction:
+        transaction = RewardTransaction(
+            detail=self.message,
+            coins=amount,
+            to_user_id=user_id,
+            planned_chore_id=None,
+            transaction_type=RewardTransactionENUM.reward_for_chore,
+        )
         return await RewardTransactionDAL(self.db_session).create(transaction)
 
     async def _change_experience(

@@ -11,23 +11,36 @@ from core.permissions import (
     ChorePermission,
     FamilyMemberPermission,
     PlannedChorePermission,
+    QuickPlannedChorePermission,
 )
 from database_connection import get_db
-from planned_chores.repository import ChoreScheduleRepository, PlannedChoreRepository
+from planned_chores.repository import (
+    ChoreScheduleRepository,
+    PlannedChoreRepository,
+    QuickPlannedChoreRepository,
+)
 from planned_chores.schemas import (
     ChoreScheduleResponseSchema,
     CreateChoreScheduleSchema,
     PlannedChoreCreateSchema,
     PlannedChoreRescheduleSchema,
     PlannedChoreResponseSchema,
+    QuickPlannedChoreCreateSchema,
+    QuickPlannedChoreResponseSchema,
+    QuickPlannedChoreUpdateSchema,
 )
 from planned_chores.services import (
     CompletePlannedChore,
+    CompleteQuickPlannedChore,
     CreateChoreScheduleService,
     CreatePlannedChore,
+    CreateQuickPlannedChore,
     DeletePlannedChore,
+    DeleteQuickPlannedChore,
     ReschedulePlannedChore,
     UncompletePlannedChore,
+    UncompleteQuickPlannedChore,
+    UpdateQuickPlannedChore,
 )
 from users.models import User
 from users.repository import UserRepository
@@ -250,3 +263,126 @@ async def delete_chore_schedule(
             raise HTTPException(status_code=403, detail="Access denied")
 
         await ChoreScheduleRepository(async_session).hard_delete(schedule_id)
+
+
+@router.post(
+    path="/quick",
+    summary="Create a Quick Planned Chore",
+)
+async def create_quick_planned_chore(
+    body: QuickPlannedChoreCreateSchema,
+    current_user: User = Depends(FamilyMemberPermission(only_admin=False)),
+    async_session: AsyncSession = Depends(get_db),
+):
+    async with async_session.begin():
+        assigned_to_user = None
+        if body.assigned_to_id is not None:
+            assigned_to_user = await UserRepository(async_session).get_by_id(
+                body.assigned_to_id
+            )
+        obj = await CreateQuickPlannedChore(
+            body=body,
+            current_user=current_user,
+            assigned_to_user=assigned_to_user,
+            db_session=async_session,
+        ).run_process()
+        return JSONResponse(
+            content={"id": str(obj.id)},
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+@router.get(
+    path="/quick",
+    summary="List Quick Planned Chores for family",
+    response_model=list[QuickPlannedChoreResponseSchema],
+)
+async def list_quick_planned_chores(
+    date_from: date | None = None,
+    date_to: date | None = None,
+    current_user: User = Depends(FamilyMemberPermission(only_admin=False)),
+    async_session: AsyncSession = Depends(get_db),
+):
+    async with async_session.begin():
+        return await QuickPlannedChoreRepository(async_session).get_family_quick_chores(
+            family_id=current_user.family_id,
+            date_from=date_from,
+            date_to=date_to,
+        )
+
+
+@router.patch(
+    path="/quick/{quick_planned_chore_id}",
+    summary="Update a Quick Planned Chore",
+)
+async def update_quick_planned_chore(
+    quick_planned_chore_id: UUID,
+    body: QuickPlannedChoreUpdateSchema,
+    current_user: User = Depends(QuickPlannedChorePermission(only_admin=False)),
+    async_session: AsyncSession = Depends(get_db),
+):
+    async with async_session.begin():
+        obj = await UpdateQuickPlannedChore(
+            quick_planned_chore_id=quick_planned_chore_id,
+            body=body,
+            current_user=current_user,
+            db_session=async_session,
+        ).run_process()
+        return JSONResponse(content={"id": str(obj.id)}, status_code=status.HTTP_200_OK)
+
+
+@router.patch(
+    path="/quick/{quick_planned_chore_id}/complete",
+    summary="Complete a Quick Planned Chore",
+)
+async def complete_quick_planned_chore(
+    quick_planned_chore_id: UUID,
+    current_user: User = Depends(QuickPlannedChorePermission(only_admin=False)),
+    async_session: AsyncSession = Depends(get_db),
+):
+    async with async_session.begin():
+        repo = QuickPlannedChoreRepository(async_session)
+        quick_planned_chore = await repo.get_by_id(quick_planned_chore_id)
+
+        obj = await CompleteQuickPlannedChore(
+            quick_planned_chore=quick_planned_chore,
+            current_user=current_user,
+            db_session=async_session,
+        ).run_process()
+        return JSONResponse(content={"id": str(obj.id)}, status_code=status.HTTP_200_OK)
+
+
+@router.patch(
+    path="/quick/{quick_planned_chore_id}/uncomplete",
+    summary="Uncomplete a Quick Planned Chore",
+)
+async def uncomplete_quick_planned_chore(
+    quick_planned_chore_id: UUID,
+    current_user: User = Depends(QuickPlannedChorePermission(only_admin=False)),
+    async_session: AsyncSession = Depends(get_db),
+):
+    async with async_session.begin():
+        repo = QuickPlannedChoreRepository(async_session)
+        quick_planned_chore = await repo.get_by_id(quick_planned_chore_id)
+        obj = await UncompleteQuickPlannedChore(
+            quick_planned_chore=quick_planned_chore,
+            db_session=async_session,
+        ).run_process()
+        return JSONResponse(content={"id": str(obj.id)}, status_code=status.HTTP_200_OK)
+
+
+@router.delete(
+    path="/quick/{quick_planned_chore_id}",
+    summary="Delete a Quick Planned Chore",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_quick_planned_chore(
+    quick_planned_chore_id: UUID,
+    current_user: User = Depends(QuickPlannedChorePermission(only_admin=False)),
+    async_session: AsyncSession = Depends(get_db),
+):
+    async with async_session.begin():
+        await DeleteQuickPlannedChore(
+            quick_planned_chore_id=quick_planned_chore_id,
+            db_session=async_session,
+        ).run_process()

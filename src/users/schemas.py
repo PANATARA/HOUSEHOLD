@@ -23,7 +23,7 @@ class UserResponseProfile(UserResponseSchema):
     progress_percent: int
     total_completed: int
     week_completed: int
-    streak: int
+    month_completed: int
     is_max_level: bool
     is_family_member: bool
     is_family_admin: bool

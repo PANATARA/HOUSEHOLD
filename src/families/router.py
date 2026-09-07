@@ -1,3 +1,4 @@
+from datetime import datetime
 from logging import getLogger
 from statistics.repository import StatsRepository, get_statistic_repo
 from uuid import UUID
@@ -24,8 +25,12 @@ from core.permissions import (
     IsAuthenicatedPermission,
 )
 from database_connection import get_db
-from families.repository import FamilyRepository
+from families.models import Event
+from families.repository import EventRepository, FamilyRepository
 from families.schemas import (
+    EventCreateSchema,
+    EventResponseSchema,
+    EventUpdateSchema,
     FamilyCreateSchema,
     FamilyJoinSchema,
     FamilyLeadersResponseSchema,
@@ -372,3 +377,90 @@ async def family_get_avatar(
         return RedirectResponse(url=avatar)
     else:
         return FileResponse(avatar)
+
+
+@router.post(
+    "/events",
+    summary="Create a new family event",
+    tags=["Events"],
+)
+async def create_event(
+    body: EventCreateSchema,
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> EventResponseSchema:
+    async with async_session.begin():
+        event = Event(
+            **body.model_dump(),
+            family_id=current_user.family_id,
+        )
+
+        event = await EventRepository(async_session).create(event)
+
+    return EventResponseSchema.model_validate(event)
+
+
+@router.patch(
+    "/events/{event_id}",
+    summary="Update a family event",
+    tags=["Events"],
+)
+async def update_event(
+    event_id: UUID,
+    body: EventUpdateSchema,
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> EventResponseSchema:
+    async with async_session.begin():
+        repo = EventRepository(async_session)
+        event = await repo.get_by_id(event_id)
+
+        for field, value in body.model_dump(exclude_unset=True).items():
+            setattr(event, field, value)
+
+        event = await repo.update(event)
+
+    return EventResponseSchema.model_validate(event)
+
+
+@router.delete(
+    "/events/{event_id}",
+    summary="Delete a family event",
+    tags=["Events"],
+)
+async def delete_event(
+    event_id: UUID,
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+    async with async_session.begin():
+        repo = EventRepository(async_session)
+        event = await repo.get_by_id(event_id)
+
+        if event.family_id != current_user.family_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Event not found"
+            )
+
+        await repo.hard_delete(event_id)
+
+    return JSONResponse(
+        content={"message": "Event deleted successfully"},
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@router.get(
+    path="/events/upcoming",
+    summary="Get upcoming family events",
+    response_model=list[EventResponseSchema],
+)
+async def get_upcoming_events(
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+):
+    async with async_session.begin():
+        events = await EventRepository(async_session).get_upcoming(
+            family_id=current_user.family_id,
+        )
+        return events
