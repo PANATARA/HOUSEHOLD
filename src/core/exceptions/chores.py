@@ -10,3 +10,8 @@ class ChoreError(BaseAPIException):
 class ChoreNotFoundError(ChoreError, ObjectNotFoundError):
     def __init__(self, message="The specified chore was not found."):
         super().__init__(message)
+
+
+class ChoreScheduleNotFoundError(ChoreError, ObjectNotFoundError):
+    def __init__(self, message="The specified chore schedule was not found."):
+        super().__init__(message)

@@ -2,7 +2,7 @@ import datetime
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from chores.schemas import ChoreResponseSchema
 from core.enums import FrequencyTypeENUM
@@ -21,6 +21,7 @@ class PlannedChoreRescheduleSchema(BaseModel):
 
 class PlannedChoreResponseSchema(BaseModel):
     id: UUID
+    schedule_id: UUID | None = None
     chore: ChoreResponseSchema
     completed_by: UserResponseSchema | None = None
     assigned_to: UserResponseSchema | None = None
@@ -30,14 +31,71 @@ class PlannedChoreResponseSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class CreateChoreScheduleSchema(BaseModel):
+class ChoreScheduleCreateSchema(BaseModel):
     assigned_to_id: UUID
     frequency_type: FrequencyTypeENUM
-    interval: int = 1
+    interval: int = Field(default=1, ge=1)
     days_of_week: int | None = None
     day_of_month: int | None = None
-    starts_at: datetime.date
-    ends_at: datetime.date | None = None
+    starts_at: date
+    ends_at: date | None = None
+
+    @model_validator(mode="after")
+    def validate_frequency_specific_fields(self) -> "ChoreScheduleCreateSchema":
+        if self.frequency_type == FrequencyTypeENUM.weekly:
+            if self.days_of_week is None:
+                raise ValueError("days_of_week is required for weekly frequency")
+            if not (1 <= self.days_of_week <= 127):
+                raise ValueError("days_of_week bitmask must be between 1 and 127")
+        elif self.frequency_type == FrequencyTypeENUM.monthly:
+            if self.day_of_month is None:
+                raise ValueError("day_of_month is required for monthly frequency")
+            if not (1 <= self.day_of_month <= 31):
+                raise ValueError("day_of_month must be between 1 and 31")
+
+        if self.ends_at is not None and self.ends_at < self.starts_at:
+            raise ValueError("ends_at cannot be before starts_at")
+
+        return self
+
+
+# Backward compatibility alias
+CreateChoreScheduleSchema = ChoreScheduleCreateSchema
+
+
+class ChoreScheduleUpdateSchema(BaseModel):
+    assigned_to_id: UUID | None = None
+    frequency_type: FrequencyTypeENUM | None = None
+    interval: int | None = Field(default=None, ge=1)
+    days_of_week: int | None = None
+    day_of_month: int | None = None
+    starts_at: date | None = None
+    ends_at: date | None = None
+    is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def validate_frequency_specific_fields(self) -> "ChoreScheduleUpdateSchema":
+        if self.frequency_type == FrequencyTypeENUM.weekly:
+            if self.days_of_week is None:
+                raise ValueError("days_of_week is required for weekly frequency")
+        elif self.frequency_type == FrequencyTypeENUM.monthly:
+            if self.day_of_month is None:
+                raise ValueError("day_of_month is required for monthly frequency")
+
+        if self.days_of_week is not None and not (1 <= self.days_of_week <= 127):
+            raise ValueError("days_of_week bitmask must be between 1 and 127")
+
+        if self.day_of_month is not None and not (1 <= self.day_of_month <= 31):
+            raise ValueError("day_of_month must be between 1 and 31")
+
+        if (
+            self.starts_at is not None
+            and self.ends_at is not None
+            and self.ends_at < self.starts_at
+        ):
+            raise ValueError("ends_at cannot be before starts_at")
+
+        return self
 
 
 class ChoreScheduleResponseSchema(BaseModel):
@@ -51,9 +109,11 @@ class ChoreScheduleResponseSchema(BaseModel):
     interval: int
     days_of_week: int | None
     day_of_month: int | None
-    starts_at: datetime.date
-    ends_at: datetime.date | None
+    starts_at: date
+    ends_at: date | None
+    last_generated_until: date | None = None
     is_active: bool
+    created_by: UUID | None = None
 
 
 class QuickPlannedChoreCreateSchema(BaseModel):

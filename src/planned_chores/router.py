@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from chores.repository import ChoreRepository
 from core.permissions import (
     ChorePermission,
+    ChoreSchedulePermission,
     FamilyMemberPermission,
     PlannedChorePermission,
     QuickPlannedChorePermission,
@@ -20,7 +21,9 @@ from planned_chores.repository import (
     QuickPlannedChoreRepository,
 )
 from planned_chores.schemas import (
+    ChoreScheduleCreateSchema,
     ChoreScheduleResponseSchema,
+    ChoreScheduleUpdateSchema,
     CreateChoreScheduleSchema,
     PlannedChoreCreateSchema,
     PlannedChoreRescheduleSchema,
@@ -32,14 +35,17 @@ from planned_chores.schemas import (
 from planned_chores.services import (
     CompletePlannedChore,
     CompleteQuickPlannedChore,
+    CreateChoreSchedule,
     CreateChoreScheduleService,
     CreatePlannedChore,
     CreateQuickPlannedChore,
+    DeleteChoreSchedule,
     DeletePlannedChore,
     DeleteQuickPlannedChore,
     ReschedulePlannedChore,
     UncompletePlannedChore,
     UncompleteQuickPlannedChore,
+    UpdateChoreSchedule,
     UpdateQuickPlannedChore,
 )
 from users.models import User
@@ -48,6 +54,7 @@ from users.repository import UserRepository
 logger = getLogger(__name__)
 
 router = APIRouter()
+schedules_router = APIRouter()
 
 
 @router.post(
@@ -203,14 +210,20 @@ async def get_family_planned_chore(
 
 
 @router.post(
-    path="/{chore_id}/schedules",
+    path="/{chore_id}/schedule",
     tags=["Chore Schedule"],
     response_model=ChoreScheduleResponseSchema,
 )
+@router.post(
+    path="/{chore_id}/schedules",
+    tags=["Chore Schedule"],
+    response_model=ChoreScheduleResponseSchema,
+    include_in_schema=False,
+)
 async def create_chore_schedule(
     chore_id: UUID,
-    body: CreateChoreScheduleSchema,
-    current_user: User = Depends(ChorePermission(only_admin=True)),
+    body: ChoreScheduleCreateSchema,
+    current_user: User = Depends(ChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
 ) -> ChoreScheduleResponseSchema:
     async with async_session.begin():
@@ -218,11 +231,13 @@ async def create_chore_schedule(
         if chore is None:
             raise HTTPException(status_code=404, detail="Chore not found")
 
-        assigned_to = await UserRepository(async_session).get_by_id(body.assigned_to_id)
+        assigned_to = await UserRepository(async_session).get_by_id(
+            body.assigned_to_id
+        )
         if assigned_to is None:
             raise HTTPException(status_code=404, detail="User not found")
 
-        service = CreateChoreScheduleService(
+        service = CreateChoreSchedule(
             chore=chore,
             assigned_to=assigned_to,
             created_by=current_user,
@@ -239,30 +254,115 @@ async def create_chore_schedule(
     return ChoreScheduleResponseSchema.model_validate(schedule)
 
 
+@router.get(
+    path="/{chore_id}/schedule",
+    tags=["Chore Schedule"],
+    response_model=ChoreScheduleResponseSchema,
+)
+@router.get(
+    path="/{chore_id}/schedules",
+    tags=["Chore Schedule"],
+    response_model=ChoreScheduleResponseSchema,
+    include_in_schema=False,
+)
+async def get_chore_schedule(
+    chore_id: UUID,
+    current_user: User = Depends(ChorePermission(only_admin=False)),
+    async_session: AsyncSession = Depends(get_db),
+) -> ChoreScheduleResponseSchema:
+    async with async_session.begin():
+        schedule = await ChoreScheduleRepository(async_session).get_by_chore_id(
+            chore_id=chore_id, active_only=True
+        )
+        if schedule is None:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+
+    return ChoreScheduleResponseSchema.model_validate(schedule)
+
+
+@schedules_router.patch(
+    path="/{schedule_id}",
+    tags=["Chore Schedule"],
+    response_model=ChoreScheduleResponseSchema,
+)
+@router.patch(
+    path="/schedules/{schedule_id}",
+    tags=["Chore Schedule"],
+    response_model=ChoreScheduleResponseSchema,
+    include_in_schema=False,
+)
+async def update_chore_schedule(
+    schedule_id: UUID,
+    body: ChoreScheduleUpdateSchema,
+    current_user: User = Depends(ChoreSchedulePermission(only_admin=False)),
+    async_session: AsyncSession = Depends(get_db),
+) -> ChoreScheduleResponseSchema:
+    async with async_session.begin():
+        schedule_repo = ChoreScheduleRepository(async_session)
+        schedule = await schedule_repo.get_by_id(schedule_id)
+        if schedule is None:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+
+        assigned_to = None
+        if body.assigned_to_id is not None:
+            assigned_to = await UserRepository(async_session).get_by_id(
+                body.assigned_to_id
+            )
+            if assigned_to is None:
+                raise HTTPException(status_code=404, detail="User not found")
+
+        service = UpdateChoreSchedule(
+            schedule=schedule,
+            body=body,
+            db_session=async_session,
+            assigned_to=assigned_to,
+        )
+        updated_schedule = await service.run_process()
+
+    return ChoreScheduleResponseSchema.model_validate(updated_schedule)
+
+
+@schedules_router.delete(
+    path="/{schedule_id}",
+    tags=["Chore Schedule"],
+    status_code=204,
+)
+@router.delete(
+    path="/schedules/{schedule_id}",
+    tags=["Chore Schedule"],
+    status_code=204,
+    include_in_schema=False,
+)
 @router.delete(
     path="/{chore_id}/schedules/{schedule_id}",
     tags=["Chore Schedule"],
     status_code=204,
+    include_in_schema=False,
 )
 async def delete_chore_schedule(
-    chore_id: UUID,
     schedule_id: UUID,
-    current_user: User = Depends(ChorePermission(only_admin=True)),
+    chore_id: UUID | None = None,
+    revoke_completed_awards: bool = Query(default=False),
+    current_user: User = Depends(ChoreSchedulePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
-) -> None:
+) -> Response:
     async with async_session.begin():
-        schedule = await ChoreScheduleRepository(async_session).get_by_id(schedule_id)
-
+        schedule_repo = ChoreScheduleRepository(async_session)
+        schedule = await schedule_repo.get_by_id(schedule_id)
         if schedule is None:
             raise HTTPException(status_code=404, detail="Schedule not found")
 
-        if schedule.chore_id != chore_id:
+        if chore_id is not None and schedule.chore_id != chore_id:
             raise HTTPException(status_code=404, detail="Schedule not found")
 
-        if schedule.family_id != current_user.family_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+        service = DeleteChoreSchedule(
+            schedule=schedule,
+            db_session=async_session,
+            revoke_completed_awards=revoke_completed_awards,
+        )
+        await service.run_process()
 
-        await ChoreScheduleRepository(async_session).hard_delete(schedule_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(

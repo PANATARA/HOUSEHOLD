@@ -6,6 +6,7 @@ from sqlalchemy.orm import aliased
 
 from chores.models import Chore
 from core.base_dals import BaseDals, DeleteDALMixin
+from core.exceptions.chores import ChoreScheduleNotFoundError
 from core.exceptions.chores_completion import ChoreCompletionNotFoundError
 from planned_chores.models import ChoreSchedule, PlannedChore, QuickPlannedChore
 from planned_chores.schemas import (
@@ -29,6 +30,7 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
         query = (
             select(
                 PlannedChore.id.label("id"),
+                PlannedChore.schedule_id.label("schedule_id"),
                 func.json_build_object(
                     "id",
                     Chore.id,
@@ -133,6 +135,7 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
         query = (
             select(
                 PlannedChore.id.label("id"),
+                PlannedChore.schedule_id.label("schedule_id"),
                 func.json_build_object(
                     "id",
                     Chore.id,
@@ -211,7 +214,48 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
 
 class ChoreScheduleRepository(BaseDals[ChoreSchedule], DeleteDALMixin):
     model = ChoreSchedule
-    not_found_exception = ChoreCompletionNotFoundError  # !Improve!
+    not_found_exception = ChoreScheduleNotFoundError
+
+    async def get_by_id(self, schedule_id: UUID) -> ChoreSchedule | None:
+        query = select(self.model).where(self.model.id == schedule_id)
+        result = await self.db_session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def get_by_chore_id(
+        self, chore_id: UUID, active_only: bool = True
+    ) -> ChoreSchedule | None:
+        conditions = [self.model.chore_id == chore_id]
+        if active_only:
+            conditions.append(self.model.is_active.is_(True))
+        query = (
+            select(self.model)
+            .where(*conditions)
+            .order_by(self.model.created_at.desc())
+            .limit(1)
+        )
+        result = await self.db_session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def get_active_schedules_for_family(
+        self, family_id: UUID
+    ) -> list[ChoreSchedule]:
+        query = (
+            select(self.model)
+            .where(
+                self.model.family_id == family_id,
+                self.model.is_active.is_(True),
+            )
+            .order_by(self.model.created_at.desc())
+        )
+        result = await self.db_session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_active(self) -> list[ChoreSchedule]:
+        query = select(self.model).where(self.model.is_active.is_(True))
+        result = await self.db_session.execute(query)
+        return list(result.scalars().all())
+
+    get_all_active_schedules = get_active
 
 
 class QuickPlannedChoreRepository(BaseDals[QuickPlannedChore], DeleteDALMixin):

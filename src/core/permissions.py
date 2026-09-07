@@ -10,7 +10,7 @@ from chores.models import Chore
 from core.exceptions.http_exceptions import permission_denided
 from core.security import get_payload_from_jwt_token
 from database_connection import get_db
-from planned_chores.models import PlannedChore, QuickPlannedChore
+from planned_chores.models import ChoreSchedule, PlannedChore, QuickPlannedChore
 from products.models import Product
 from users.models import User, UserFamilyPermissions
 from users.repository import UserRepository
@@ -176,6 +176,46 @@ class ChorePermission(BasePermission):
             User.id == user_id,
             exists().where(
                 (Chore.id == chore_id) & (User.family_id == Chore.family_id)
+            ),
+        )
+
+        result = await async_session.execute(query)
+        user = result.scalars().first()
+
+        if user is None:
+            raise permission_denided
+        return user
+
+
+class ChoreSchedulePermission(BasePermission):
+    """
+    Permission that checks whether the user has access to a specific chore schedule in their family.
+    If `only_admin=True`, access is granted only to family admins.
+    """
+
+    def __init__(self, only_admin: bool = False):
+        self.only_admin = only_admin
+        super().__init__()
+
+    async def get_user_and_check_permission(
+        self,
+        token_payload: dict[str, Any],
+        http_method: str,
+        async_session: AsyncSession,
+        **kwargs,
+    ) -> User:
+        if self.only_admin:
+            user_is_family_admin = token_payload.get("is_family_admin")
+            if not user_is_family_admin:
+                raise permission_denided
+
+        schedule_id = kwargs.get("schedule_id")
+        user_id = token_payload.get("sub")
+        query = select(User).where(
+            User.id == user_id,
+            exists().where(
+                (ChoreSchedule.id == schedule_id)
+                & (User.family_id == ChoreSchedule.family_id)
             ),
         )
 

@@ -1,7 +1,9 @@
+import calendar
 import datetime
 from dataclasses import dataclass
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
@@ -24,11 +26,13 @@ from planned_chores.repository import (
     QuickPlannedChoreRepository,
 )
 from planned_chores.schemas import (
+    ChoreScheduleCreateSchema,
+    ChoreScheduleUpdateSchema,
     QuickPlannedChoreCreateSchema,
     QuickPlannedChoreUpdateSchema,
 )
-from src.families.repository import FamilyRepository
-from src.users.repository import UserRepository
+from families.repository import FamilyRepository
+from users.repository import UserRepository
 from users.models import User
 from wallets.models import RewardTransaction
 from wallets.services import AwardService, QuickAwardService
@@ -243,7 +247,11 @@ class ReschedulePlannedChore(BaseService[PlannedChore]):
 
 
 @dataclass
-class CreateChoreScheduleService(BaseService[ChoreSchedule]):
+class CreateChoreSchedule(BaseService[ChoreSchedule]):
+    """
+    Creates a new recurring chore schedule (ChoreSchedule).
+    Validates recurrence frequency, bitmask / day bounds, and family membership.
+    """
     chore: Chore
     assigned_to: User
     created_by: User
@@ -258,6 +266,8 @@ class CreateChoreScheduleService(BaseService[ChoreSchedule]):
 
     async def process(self) -> ChoreSchedule:
         schedule = await self._create_schedule()
+        generator = GeneratePlannedChores(db_session=self.db_session)
+        await generator.generate_for_schedule(schedule)
         return schedule
 
     async def _create_schedule(self) -> ChoreSchedule:
@@ -306,86 +316,371 @@ class CreateChoreScheduleService(BaseService[ChoreSchedule]):
                 raise ValueError("day_of_month must be between 1 and 31")
 
     def _validate_dates(self) -> None:
-        if self.ends_at is not None and self.ends_at <= self.starts_at:
-            raise ValueError("ends_at must be after starts_at")
-        if self.starts_at < datetime.date.today():
-            raise ValueError("starts_at cannot be in the past")
+        if self.ends_at is not None and self.ends_at < self.starts_at:
+            raise ValueError("ends_at cannot be before starts_at")
 
     def _validate_assigned_to_family(self) -> None:
         if self.assigned_to.family_id != self.chore.family_id:
             raise ValueError("assigned_to user does not belong to the chore's family")
 
 
+# Backward compatibility alias
+CreateChoreScheduleService = CreateChoreSchedule
+
+
 @dataclass
-class GeneratePlannedChores(BaseService[None]):
+class UpdateChoreSchedule(BaseService[ChoreSchedule]):
+    """
+    Updates an existing recurring chore schedule and reconciles future uncompleted planned chores.
+    Deletes uncompleted chores that do not match the new recurrence parameters.
+    """
+    schedule: ChoreSchedule
+    body: ChoreScheduleUpdateSchema
     db_session: AsyncSession
-    horizon_days: int = 30
+    assigned_to: User | None = None
+
+    def get_validators(self):
+        return [
+            lambda: self._validate_frequency_and_fields(),
+            lambda: self._validate_dates(),
+            lambda: self._validate_assigned_to(),
+        ]
+
+    def _validate_frequency_and_fields(self) -> None:
+        target_freq = (
+            self.body.frequency_type
+            if self.body.frequency_type is not None
+            else self.schedule.frequency_type
+        )
+        target_interval = (
+            self.body.interval
+            if self.body.interval is not None
+            else self.schedule.interval
+        )
+        target_days = (
+            self.body.days_of_week
+            if self.body.days_of_week is not None
+            else self.schedule.days_of_week
+        )
+        target_day_month = (
+            self.body.day_of_month
+            if self.body.day_of_month is not None
+            else self.schedule.day_of_month
+        )
+
+        if target_interval < 1:
+            raise ValueError("Interval must be at least 1")
+
+        if target_freq == FrequencyTypeENUM.weekly:
+            if target_days is None:
+                raise ValueError("days_of_week is required for weekly frequency")
+            if not (1 <= target_days <= 127):
+                raise ValueError("days_of_week bitmask must be between 1 and 127")
+        elif target_freq == FrequencyTypeENUM.monthly:
+            if target_day_month is None:
+                raise ValueError("day_of_month is required for monthly frequency")
+            if not (1 <= target_day_month <= 31):
+                raise ValueError("day_of_month must be between 1 and 31")
+
+    def _validate_dates(self) -> None:
+        target_starts_at = (
+            self.body.starts_at
+            if self.body.starts_at is not None
+            else self.schedule.starts_at
+        )
+        target_ends_at = (
+            self.body.ends_at
+            if self.body.ends_at is not None
+            else self.schedule.ends_at
+        )
+        if target_ends_at is not None and target_ends_at < target_starts_at:
+            raise ValueError("ends_at cannot be before starts_at")
+
+    def _validate_assigned_to(self) -> None:
+        if self.assigned_to is not None:
+            if self.assigned_to.family_id != self.schedule.family_id:
+                raise ValueError(
+                    "assigned_to user does not belong to the schedule's family"
+                )
+
+    async def process(self) -> ChoreSchedule:
+        update_data = self.body.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(self.schedule, field, value)
+
+        if self.assigned_to is not None:
+            self.schedule.assigned_to_id = self.assigned_to.id
+
+        repo = ChoreScheduleRepository(self.db_session)
+        updated_schedule = await repo.update(self.schedule)
+
+        generator = GeneratePlannedChores(db_session=self.db_session)
+        await generator.reconcile_for_schedule(updated_schedule)
+
+        return updated_schedule
+
+
+@dataclass
+class DeleteChoreSchedule(BaseService[None]):
+    """
+    Deactivates (soft-deletes) a chore schedule and cleans up associated future uncompleted chores.
+    Optionally revokes completion awards for already completed chores if specified.
+    """
+    schedule: ChoreSchedule
+    db_session: AsyncSession
+    revoke_completed_awards: bool = False
 
     async def process(self) -> None:
+        repo = ChoreScheduleRepository(self.db_session)
+        await repo.soft_delete(self.schedule.id)
+        self.schedule.is_active = False
+
+        # Delete / cancel future uncompleted planned chores
+        planned_chore_repo = PlannedChoreRepository(self.db_session)
+        query = select(PlannedChore).where(
+            PlannedChore.schedule_id == self.schedule.id,
+            PlannedChore.is_active.is_(True),
+        )
+        result = await self.db_session.execute(query)
+        planned_chores = list(result.scalars().all())
+
+        for planned_chore in planned_chores:
+            if planned_chore.completed_by_id is None:
+                await planned_chore_repo.hard_delete(planned_chore.id)
+            elif self.revoke_completed_awards:
+                delete_service = DeletePlannedChore(
+                    planned_chore=planned_chore,
+                    db_session=self.db_session,
+                )
+                await delete_service.run_process()
+
+
+@dataclass
+class GeneratePlannedChores(BaseService[int]):
+    """
+    Generates planned chores ahead for all active recurring chore schedules.
+    Maintains a rolling horizon (default: 3 weeks) idempotently.
+    """
+    db_session: AsyncSession
+    horizon_weeks: int = 3
+
+    async def process(self) -> int:
         schedule_repo = ChoreScheduleRepository(self.db_session)
-
-        today = datetime.date.today()
-        generate_until = today + datetime.timedelta(days=self.horizon_days)
-
         schedules = await schedule_repo.get_active()
 
+        today = datetime.date.today()
+        horizon_end = today + datetime.timedelta(weeks=self.horizon_weeks)
+
+        total_generated = 0
         for schedule in schedules:
-            await self._generate_schedule(
+            generated = await self.generate_for_schedule(
                 schedule=schedule,
-                generate_until=generate_until,
+                generate_until=horizon_end,
             )
+            total_generated += len(generated)
 
-        await self.db_session.commit()
+        await self.db_session.flush()
+        return total_generated
 
-    async def _generate_schedule(
+    async def generate_for_schedule(
         self,
         schedule: ChoreSchedule,
-        generate_until: datetime.date,
-    ) -> None:
-        if (
-            schedule.last_generated_until is not None
-            and schedule.last_generated_until >= generate_until
-        ):
-            return
+        generate_until: datetime.date | None = None,
+    ) -> list[PlannedChore]:
+        """
+        Generates upcoming PlannedChore instances for a single schedule from its last generated date.
+        Uses idempotency checks to prevent duplicate chores on the same date.
+        """
+        if not schedule.is_active:
+            return []
 
+        today = datetime.date.today()
+        if generate_until is None:
+            generate_until = today + datetime.timedelta(weeks=self.horizon_weeks)
+
+        if schedule.ends_at is not None:
+            generate_until = min(generate_until, schedule.ends_at)
+
+        # Window calculation
         start_date = schedule.starts_at
-
         if schedule.last_generated_until is not None:
             start_date = max(
                 start_date,
                 schedule.last_generated_until + datetime.timedelta(days=1),
             )
 
-        if schedule.ends_at is not None:
-            generate_until = min(generate_until, schedule.ends_at)
-
         if start_date > generate_until:
-            return
+            return []
 
+        # Strict idempotency: prefetch existing PlannedChore due_dates for this schedule
+        existing_query = select(PlannedChore.due_date).where(
+            PlannedChore.schedule_id == schedule.id,
+            PlannedChore.is_active.is_(True),
+            PlannedChore.due_date >= start_date,
+            PlannedChore.due_date <= generate_until,
+        )
+        result = await self.db_session.execute(existing_query)
+        existing_due_dates = set(result.scalars().all())
+
+        new_chores: list[PlannedChore] = []
         current = start_date
 
         while current <= generate_until:
             if self._matches_schedule(schedule, current):
-                await CreatePlannedChore(
-                    schedule=schedule,
-                    chore=schedule.chore,
-                    assigned_to_user=schedule.assigned_to,
-                    created_by=schedule.created_by,
-                    due_date=current,
-                    message="",
-                    db_session=self.db_session,
-                ).process()
+                if current not in existing_due_dates:
+                    new_chore = PlannedChore(
+                        schedule_id=schedule.id,
+                        chore_id=schedule.chore_id,
+                        family_id=schedule.family_id,
+                        completed_by_id=None,
+                        assigned_to_id=schedule.assigned_to_id,
+                        due_date=current,
+                        message="",
+                        created_by=schedule.created_by,
+                        is_active=True,
+                    )
+                    self.db_session.add(new_chore)
+                    new_chores.append(new_chore)
+                    existing_due_dates.add(current)
 
             current += datetime.timedelta(days=1)
 
+        # Advance last_generated_until to the end of calculated horizon
+        if (
+            schedule.last_generated_until is None
+            or generate_until > schedule.last_generated_until
+        ):
+            schedule.last_generated_until = generate_until
+            schedule_repo = ChoreScheduleRepository(self.db_session)
+            await schedule_repo.update(schedule)
+
+        return new_chores
+
+    async def reconcile_for_schedule(
+        self,
+        schedule: ChoreSchedule,
+        from_date: datetime.date | None = None,
+        generate_until: datetime.date | None = None,
+    ) -> list[PlannedChore]:
+        """
+        Reconciles planned chores after a schedule modification.
+        - Deletes future uncompleted chores that no longer match the new recurrence rules.
+        - Preserves completed chores and their rewards.
+        - Generates missing matching chores up to the horizon limit.
+        - Updates schedule.last_generated_until.
+        """
+        today = datetime.date.today()
+        if from_date is None:
+            from_date = today
+
+        planned_chore_repo = PlannedChoreRepository(self.db_session)
+
+        # 1. If schedule is inactive, delete all uncompleted future chores
+        if not schedule.is_active:
+            query = select(PlannedChore).where(
+                PlannedChore.schedule_id == schedule.id,
+                PlannedChore.is_active.is_(True),
+                PlannedChore.due_date >= from_date,
+            )
+            result = await self.db_session.execute(query)
+            existing_chores = list(result.scalars().all())
+            for chore in existing_chores:
+                if chore.completed_by_id is None:
+                    await planned_chore_repo.hard_delete(chore.id)
+            await self.db_session.flush()
+            return []
+
+        # 2. Determine generation horizon
+        if generate_until is None:
+            generate_until = today + datetime.timedelta(weeks=self.horizon_weeks)
+
+        if schedule.ends_at is not None:
+            generate_until = min(generate_until, schedule.ends_at)
+
+        # 3. Query all active planned chores related to this schedule/chore from from_date onwards
+        query = select(PlannedChore).where(
+            (PlannedChore.schedule_id == schedule.id)
+            | (
+                (PlannedChore.chore_id == schedule.chore_id)
+                & (PlannedChore.family_id == schedule.family_id)
+            ),
+            PlannedChore.is_active.is_(True),
+            PlannedChore.due_date >= from_date,
+        )
+        result = await self.db_session.execute(query)
+        existing_chores = list(result.scalars().all())
+
+        existing_due_dates: set[datetime.date] = set()
+
+        for chore in existing_chores:
+            if chore.schedule_id != schedule.id:
+                # Standalone/manual chore for the same chore: preserve it and don't duplicate on this date
+                existing_due_dates.add(chore.due_date)
+                continue
+
+            if chore.completed_by_id is not None:
+                # Completed chore: never delete completed chores
+                existing_due_dates.add(chore.due_date)
+                continue
+
+            # Check if this uncompleted chore still satisfies the updated schedule
+            should_keep = (
+                chore.due_date >= schedule.starts_at
+                and (schedule.ends_at is None or chore.due_date <= schedule.ends_at)
+                and chore.due_date <= generate_until
+                and self._matches_schedule(schedule, chore.due_date)
+            )
+
+            if should_keep:
+                # Synchronize assigned user if schedule was reassigned
+                if (
+                    schedule.assigned_to_id is not None
+                    and chore.assigned_to_id != schedule.assigned_to_id
+                ):
+                    chore.assigned_to_id = schedule.assigned_to_id
+                existing_due_dates.add(chore.due_date)
+            else:
+                # Chore does not match the updated schedule -> remove it!
+                await planned_chore_repo.hard_delete(chore.id)
+
+        # 4. Generate missing chores up to generate_until
+        start_date = max(from_date, schedule.starts_at)
+        new_chores: list[PlannedChore] = []
+
+        if start_date <= generate_until:
+            current = start_date
+            while current <= generate_until:
+                if self._matches_schedule(schedule, current):
+                    if current not in existing_due_dates:
+                        new_chore = PlannedChore(
+                            schedule_id=schedule.id,
+                            chore_id=schedule.chore_id,
+                            family_id=schedule.family_id,
+                            completed_by_id=None,
+                            assigned_to_id=schedule.assigned_to_id,
+                            due_date=current,
+                            message="",
+                            created_by=schedule.created_by,
+                            is_active=True,
+                        )
+                        self.db_session.add(new_chore)
+                        new_chores.append(new_chore)
+                        existing_due_dates.add(current)
+                current += datetime.timedelta(days=1)
+
+        # 5. Advance/reset last_generated_until
         schedule.last_generated_until = generate_until
+        schedule_repo = ChoreScheduleRepository(self.db_session)
+        await schedule_repo.update(schedule)
+        await self.db_session.flush()
+
+        return new_chores
 
     def _matches_schedule(
         self,
         schedule: ChoreSchedule,
         date: datetime.date,
     ) -> bool:
-
         if date < schedule.starts_at:
             return False
 
@@ -416,14 +711,19 @@ class GeneratePlannedChores(BaseService[None]):
         schedule: ChoreSchedule,
         date: datetime.date,
     ) -> bool:
-
-        weeks = (date - schedule.starts_at).days // 7
-
-        if weeks % schedule.interval != 0:
+        if schedule.days_of_week is None:
             return False
 
-        weekday = date.weekday()  # Monday = 0
+        starts_monday = schedule.starts_at - datetime.timedelta(
+            days=schedule.starts_at.weekday()
+        )
+        current_monday = date - datetime.timedelta(days=date.weekday())
+        weeks_diff = (current_monday - starts_monday).days // 7
 
+        if weeks_diff % schedule.interval != 0:
+            return False
+
+        weekday = date.weekday()  # Monday = 0, Tuesday = 1, ... Sunday = 6
         return bool(schedule.days_of_week & (1 << weekday))
 
     def _matches_monthly(
@@ -431,17 +731,22 @@ class GeneratePlannedChores(BaseService[None]):
         schedule: ChoreSchedule,
         date: datetime.date,
     ) -> bool:
+        if schedule.day_of_month is None:
+            return False
 
-        months = (
+        months_diff = (
             (date.year - schedule.starts_at.year) * 12
             + date.month
             - schedule.starts_at.month
         )
 
-        if months % schedule.interval != 0:
+        if months_diff % schedule.interval != 0:
             return False
 
-        return date.day == schedule.day_of_month
+        last_day_of_month = calendar.monthrange(date.year, date.month)[1]
+        target_day = min(schedule.day_of_month, last_day_of_month)
+
+        return date.day == target_day
 
 
 @dataclass

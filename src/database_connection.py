@@ -20,6 +20,7 @@ engine = create_async_engine(
 
 # create session for the interaction with database
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+async_session_maker = async_session
 
 
 async def get_db() -> AsyncGenerator:
