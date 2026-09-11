@@ -19,6 +19,15 @@ class PlannedChoreRescheduleSchema(BaseModel):
     reschedule_due_date: date
 
 
+class PlannedChoreUpdateMessageSchema(BaseModel):
+    message: str = Field(..., max_length=2000)
+
+
+# Backward compatibility aliases
+PlannedChoreUpdateSchema = PlannedChoreUpdateMessageSchema
+UpdatePlannedChoreMessageSchema = PlannedChoreUpdateMessageSchema
+
+
 class PlannedChoreResponseSchema(BaseModel):
     id: UUID
     schedule_id: UUID | None = None

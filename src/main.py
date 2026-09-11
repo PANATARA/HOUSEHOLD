@@ -10,7 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from auth.router import router as auth_router
 from chores.router import router as chores_router
-from planned_chores.router import router as planned_chores_router, schedules_router
+from planned_chores.router import (
+    router as planned_chores_router,
+    schedules_router,
+    update_planned_chore_message,
+)
 from config import swagger_ui_settings
 from core.enums import PostgreSQLEnum
 from core.exceptions.base_exceptions import BaseAPIException
@@ -94,8 +98,20 @@ main_api_router.include_router(chores_router, prefix="/chores")
 main_api_router.include_router(wallet_router, prefix="/wallets")
 main_api_router.include_router(product_router, prefix="/products")
 main_api_router.include_router(stats_router, prefix="/stats")
+main_api_router.add_api_route(
+    "/planned-chores/{planned_chore_id}",
+    update_planned_chore_message,
+    methods=["PATCH"],
+    include_in_schema=False,
+)
 
 app.include_router(main_api_router)
+app.add_api_route(
+    "/planned-chores/{planned_chore_id}",
+    update_planned_chore_message,
+    methods=["PATCH"],
+    include_in_schema=False,
+)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

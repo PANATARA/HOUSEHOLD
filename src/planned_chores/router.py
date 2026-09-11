@@ -28,6 +28,8 @@ from planned_chores.schemas import (
     PlannedChoreCreateSchema,
     PlannedChoreRescheduleSchema,
     PlannedChoreResponseSchema,
+    PlannedChoreUpdateMessageSchema,
+    PlannedChoreUpdateSchema,
     QuickPlannedChoreCreateSchema,
     QuickPlannedChoreResponseSchema,
     QuickPlannedChoreUpdateSchema,
@@ -46,6 +48,8 @@ from planned_chores.services import (
     UncompletePlannedChore,
     UncompleteQuickPlannedChore,
     UpdateChoreSchedule,
+    UpdatePlannedChore,
+    UpdatePlannedChoreMessage,
     UpdateQuickPlannedChore,
 )
 from users.models import User
@@ -182,6 +186,40 @@ async def reschedule_planned_chore(
         service = ReschedulePlannedChore(
             planned_chore=planned_chore,
             reschedule_due_date=body.reschedule_due_date,
+            db_session=async_session,
+        )
+        await service.run_process()
+        planned_chore_full = await repo.get_planned_chore_by_id(planned_chore.id)
+        return PlannedChoreResponseSchema.model_validate(planned_chore_full)
+
+
+@router.patch(
+    path="/planned/{planned_chore_id}/message",
+    tags=["Planned Chore"],
+    summary="Update message of a Planned chore",
+    description="Update the message for a planned chore",
+    response_model=PlannedChoreResponseSchema,
+)
+@router.patch(
+    path="/planned/{planned_chore_id}",
+    tags=["Planned Chore"],
+    summary="Update message of a Planned chore",
+    description="Update the message for a planned chore",
+    response_model=PlannedChoreResponseSchema,
+    include_in_schema=False,
+)
+async def update_planned_chore_message(
+    planned_chore_id: UUID,
+    body: PlannedChoreUpdateMessageSchema,
+    current_user: User = Depends(PlannedChorePermission(only_admin=False)),
+    async_session: AsyncSession = Depends(get_db),
+) -> PlannedChoreResponseSchema:
+    async with async_session.begin():
+        repo = PlannedChoreRepository(async_session)
+        planned_chore = await repo.get_by_id(planned_chore_id)
+        service = UpdatePlannedChoreMessage(
+            planned_chore=planned_chore,
+            message=body.message,
             db_session=async_session,
         )
         await service.run_process()

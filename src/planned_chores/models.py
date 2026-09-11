@@ -27,7 +27,7 @@ class PlannedChore(Base, BaseIdTimeStampModel):
         ForeignKey(column="users.id", ondelete="SET NULL")
     )
     due_date: Mapped[datetime.date]
-    message: Mapped[str] = mapped_column(String(50))
+    message: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(column="users.id", ondelete="SET NULL")
     )

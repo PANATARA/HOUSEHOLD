@@ -247,6 +247,24 @@ class ReschedulePlannedChore(BaseService[PlannedChore]):
 
 
 @dataclass
+class UpdatePlannedChoreMessage(BaseService[PlannedChore]):
+    planned_chore: PlannedChore
+    message: str
+    db_session: AsyncSession
+
+    async def process(self) -> PlannedChore:
+        return await self.update_planned_chore_message()
+
+    async def update_planned_chore_message(self) -> PlannedChore:
+        self.planned_chore.message = self.message
+        repo = PlannedChoreRepository(self.db_session)
+        return await repo.update(self.planned_chore)
+
+
+UpdatePlannedChore = UpdatePlannedChoreMessage
+
+
+@dataclass
 class CreateChoreSchedule(BaseService[ChoreSchedule]):
     """
     Creates a new recurring chore schedule (ChoreSchedule).
