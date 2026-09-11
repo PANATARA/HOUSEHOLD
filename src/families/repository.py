@@ -120,3 +120,22 @@ class EventRepository(BaseDals[Event], DeleteDALMixin):
             EventResponseSchema.model_validate(event)
             for event in result.scalars().all()
         ]
+
+    async def get_all_paginated(
+        self,
+        family_id: UUID,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[EventResponseSchema]:
+        result = await self.db_session.execute(
+            select(Event)
+            .where(Event.family_id == family_id)
+            .order_by(Event.date.desc(), Event.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return [
+            EventResponseSchema.model_validate(event)
+            for event in result.scalars().all()
+        ]
+

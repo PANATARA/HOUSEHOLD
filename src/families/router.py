@@ -3,7 +3,7 @@ from logging import getLogger
 from statistics.repository import StatsRepository, get_statistic_repo
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -462,5 +462,26 @@ async def get_upcoming_events(
     async with async_session.begin():
         events = await EventRepository(async_session).get_upcoming(
             family_id=current_user.family_id,
+        )
+        return events
+
+
+@router.get(
+    path="/events",
+    summary="Get all family events with pagination",
+    tags=["Events"],
+    response_model=list[EventResponseSchema],
+)
+async def get_all_events(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+) -> list[EventResponseSchema]:
+    async with async_session.begin():
+        events = await EventRepository(async_session).get_all_paginated(
+            family_id=current_user.family_id,
+            limit=limit,
+            offset=offset,
         )
         return events
