@@ -24,6 +24,7 @@ from chores.models import Chore, DefaultChore, DefaultChoreTranslation
 from planned_chores.models import PlannedChore, ChoreSchedule
 from wallets.models import Wallet, PeerTransaction, RewardTransaction
 from products.models import Product, ProductBuyer
+from meals.models import Recipe, PlannedMeal, GroceryItem
 
 
 target_metadata = Base.metadata

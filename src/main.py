@@ -24,6 +24,7 @@ from products.router import router as product_router
 from users.router import router as user_router
 from wallets.router import router as wallet_router
 from statistics.router import router as stats_router
+from meals.router import router as meals_router
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ main_api_router.include_router(chores_router, prefix="/chores")
 main_api_router.include_router(wallet_router, prefix="/wallets")
 main_api_router.include_router(product_router, prefix="/products")
 main_api_router.include_router(stats_router, prefix="/stats")
+main_api_router.include_router(meals_router, prefix="/meals")
 main_api_router.add_api_route(
     "/planned-chores/{planned_chore_id}",
     update_planned_chore_message,
