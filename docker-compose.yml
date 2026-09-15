@@ -47,6 +47,24 @@ services:
             - "6379:6379"
         networks:
             - shared_network
+    worker:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: worker
+        volumes:
+            - ./src:/usr/src/app/src:cached
+            - ./uploads:/usr/src/app/uploads
+        env_file:
+            - .env
+        depends_on:
+            - postgres_db
+            - redis
+        networks:
+            - shared_network
+        command: >
+            python -m arq worker.WorkerSettings
+        restart: unless-stopped
 volumes:
     pgdata:
 

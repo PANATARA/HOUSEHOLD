@@ -452,6 +452,24 @@ class GeneratePlannedChores(BaseService[int]):
         await self.db_session.flush()
         return total_generated
 
+    async def generate_for_family(self, family_id: UUID) -> int:
+        schedule_repo = ChoreScheduleRepository(self.db_session)
+        schedules = await schedule_repo.get_active_schedules_for_family(family_id)
+
+        today = datetime.date.today()
+        horizon_end = today + datetime.timedelta(weeks=self.horizon_weeks)
+
+        total_generated = 0
+        for schedule in schedules:
+            generated = await self.generate_for_schedule(
+                schedule=schedule,
+                generate_until=horizon_end,
+            )
+            total_generated += len(generated)
+
+        await self.db_session.flush()
+        return total_generated
+
     async def generate_for_schedule(
         self,
         schedule: ChoreSchedule,
@@ -472,7 +490,7 @@ class GeneratePlannedChores(BaseService[int]):
             generate_until = min(generate_until, schedule.ends_at)
 
         # Window calculation
-        start_date = schedule.starts_at
+        start_date = max(schedule.starts_at, today) if schedule.last_generated_until is None else schedule.starts_at
         if schedule.last_generated_until is not None:
             start_date = max(
                 start_date,
@@ -482,9 +500,13 @@ class GeneratePlannedChores(BaseService[int]):
         if start_date > generate_until:
             return []
 
-        # Strict idempotency: prefetch existing PlannedChore due_dates for this schedule
+        # Strict idempotency: prefetch existing PlannedChore due_dates for this schedule or same chore in family
         existing_query = select(PlannedChore.due_date).where(
-            PlannedChore.schedule_id == schedule.id,
+            (PlannedChore.schedule_id == schedule.id)
+            | (
+                (PlannedChore.chore_id == schedule.chore_id)
+                & (PlannedChore.family_id == schedule.family_id)
+            ),
             PlannedChore.is_active.is_(True),
             PlannedChore.due_date >= start_date,
             PlannedChore.due_date <= generate_until,
@@ -524,6 +546,7 @@ class GeneratePlannedChores(BaseService[int]):
             schedule_repo = ChoreScheduleRepository(self.db_session)
             await schedule_repo.update(schedule)
 
+        await self.db_session.flush()
         return new_chores
 
     async def reconcile_for_schedule(

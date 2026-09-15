@@ -44,6 +44,7 @@ from planned_chores.services import (
     DeleteChoreSchedule,
     DeletePlannedChore,
     DeleteQuickPlannedChore,
+    GeneratePlannedChores,
     ReschedulePlannedChore,
     UncompletePlannedChore,
     UncompleteQuickPlannedChore,
@@ -401,6 +402,30 @@ async def delete_chore_schedule(
         await service.run_process()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@schedules_router.post(
+    path="/generate",
+    tags=["Chore Schedule"],
+    summary="Trigger schedule generation for family",
+)
+@router.post(
+    path="/schedules/generate",
+    tags=["Chore Schedule"],
+    include_in_schema=False,
+)
+async def trigger_schedule_generation(
+    current_user: User = Depends(FamilyMemberPermission()),
+    async_session: AsyncSession = Depends(get_db),
+):
+    """
+    Manually triggers generation of upcoming planned chores for all active recurring schedules of current family.
+    """
+    async with async_session.begin():
+        service = GeneratePlannedChores(db_session=async_session)
+        count = await service.generate_for_family(current_user.family_id)  # type: ignore
+
+    return {"status": "ok", "generated_count": count}
 
 
 @router.post(

@@ -242,3 +242,22 @@ async def test_update_planned_chore_message_service(
         assert result.message == "Updated message text"
         mock_update.assert_called_once_with(planned_chore)
 
+
+async def test_generate_for_family_service(
+    mock_db_session: AsyncMock,
+    sample_schedule: ChoreSchedule,
+):
+    service = GeneratePlannedChores(db_session=mock_db_session)
+
+    with patch("planned_chores.services.ChoreScheduleRepository.get_active_schedules_for_family", new_callable=AsyncMock) as mock_get_family_schedules, \
+         patch.object(service, "generate_for_schedule", new_callable=AsyncMock) as mock_gen_sched:
+        mock_get_family_schedules.return_value = [sample_schedule]
+        mock_gen_sched.return_value = [MagicMock(), MagicMock()]
+
+        total = await service.generate_for_family(sample_schedule.family_id)
+
+        assert total == 2
+        mock_get_family_schedules.assert_called_once_with(sample_schedule.family_id)
+        mock_gen_sched.assert_called_once()
+
+
