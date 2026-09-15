@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Enum, ForeignKey
+from sqlalchemy import Enum, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.enums import (
@@ -42,6 +42,10 @@ class PeerTransaction(BaseTransaction):
     """
 
     __tablename__ = "peer_transactions"
+    __table_args__ = (
+        Index("ix_peer_transactions_to_user_created", "to_user_id", "created_at"),
+        Index("ix_peer_transactions_from_user_created", "from_user_id", "created_at"),
+    )
 
     transaction_type: Mapped[PeerTransactionENUM] = mapped_column(
         Enum(
@@ -66,6 +70,9 @@ class RewardTransaction(BaseTransaction):
     """
 
     __tablename__ = "reward_transactions"
+    __table_args__ = (
+        Index("ix_reward_transactions_to_user_created", "to_user_id", "created_at"),
+    )
 
     transaction_type: Mapped[RewardTransactionENUM] = mapped_column(
         Enum(

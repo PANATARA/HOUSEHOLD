@@ -15,8 +15,6 @@ services:
         depends_on:
             - postgres_db
             - redis
-            - clickhouse
-            - rabbitmq
         stdin_open: true
         tty: true
         networks:
@@ -49,38 +47,8 @@ services:
             - "6379:6379"
         networks:
             - shared_network
-    rabbitmq:
-        image: rabbitmq:3-management
-        container_name: rabbitmq
-        hostname: rabbitmq
-        ports:
-            - "5672:5672"
-            - "15672:15672"
-        environment:
-            RABBITMQ_DEFAULT_USER: myuser
-            RABBITMQ_DEFAULT_PASS: mypassword
-        volumes:
-            - rabbitmq-data:/var/lib/rabbitmq
-        networks:
-            - shared_network
-        restart: unless-stopped
-    clickhouse:
-        image: clickhouse/clickhouse-server:latest
-        container_name: clickhouse
-        environment:
-            - CLICKHOUSE_DB=${CLICKHOUSE_DB}
-            - CLICKHOUSE_USER=${CLICKHOUSE_USER}
-            - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
-        volumes:
-            - clickhouse-data-analysis:/var/lib/clickhouse
-        ports:
-            - "8123:8123"
-        networks:
-            - shared_network
 volumes:
     pgdata:
-    clickhouse-data-analysis:
-    rabbitmq-data:
 
 networks:
   shared_network:

@@ -1,9 +1,6 @@
-import json
 from typing import AsyncGenerator
 
-import aio_pika
 import redis.asyncio as aioredis
-import clickhouse_connect
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -75,69 +72,5 @@ class RedisClient(metaclass=Singleton):
             await self.client.aclose()
 
 
-class ClickHouseClient(metaclass=Singleton):
-    def __init__(self):
-        self.host = config.CLICKHOUSE_HOST
-        self.port = config.CLICKHOUSE_PORT
-        self.user = config.CLICKHOUSE_USER
-        self.password = config.CLICKHOUSE_PASSWORD
-        self._client: clickhouse_connect.driver.asyncclient.AsyncClient | None = None
-
-    async def connect(self):
-        if self._client is None:
-            self._client = await clickhouse_connect.get_async_client(
-                host=self.host,
-                port=self.port,
-                username=self.user,
-                password=self.password,
-            )
-            await self._client.query("SELECT 1")
-            print("ClickHouse connected")
-
-    async def get_client(self):
-        if self._client is None:
-            await self.connect()
-        return self._client
-
-    async def close(self):
-        if self._client:
-            await self._client.close()
-            self._client = None
-            print("ClickHouse connection closed")
-
-
-class RabbitMQClient(metaclass=Singleton):
-    def __init__(self, url: str):
-        self.url = url
-        self.connection = None
-        self.channel = None
-
-    async def connect(self):
-        if not self.connection:
-            self.connection = await aio_pika.connect_robust(self.url)
-            self.channel = await self.connection.channel()
-
-    async def publish(self, message: dict):
-        if not self.connection:
-            await self.connect()
-
-        exchange = await self.channel.get_exchange("clickhouse_exchange")
-
-        await exchange.publish(
-            aio_pika.Message(
-                body=json.dumps(message).encode(),
-                content_type="application/json",
-                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-            ),
-            routing_key="completions",
-        )
-
-    async def close(self):
-        if self.connection:
-            await self.connection.close()
-            print("ClickHouse connection closed")
-
-
 redis_client = RedisClient(redis_url=config.REDIS_URL)
-clickhouse_client = ClickHouseClient()
-rabbit_client = RabbitMQClient(config.RABBITMQ_URL)
+

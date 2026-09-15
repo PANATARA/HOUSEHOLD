@@ -1,7 +1,7 @@
 import datetime
 import uuid
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.enums import FrequencyTypeENUM
@@ -10,12 +10,19 @@ from core.models import Base, BaseIdTimeStampModel
 
 class PlannedChore(Base, BaseIdTimeStampModel):
     __tablename__ = "planned_chore"
+    __table_args__ = (
+        Index("ix_planned_chore_family_active_due", "family_id", "is_active", "due_date"),
+        Index("ix_planned_chore_family_completed_due", "family_id", "completed_by_id", "due_date"),
+        Index("ix_planned_chore_completed_due", "completed_by_id", "due_date"),
+        Index("ix_planned_chore_schedule_due", "schedule_id", "due_date"),
+    )
 
     schedule_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(column="chore_schedule.id", ondelete="SET NULL")
     )
     chore_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(column="chores.id", ondelete="RESTRICT")
+        ForeignKey(column="chores.id", ondelete="RESTRICT"),
+        index=True,
     )
     family_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(column="family.id", ondelete="CASCADE")
@@ -24,7 +31,8 @@ class PlannedChore(Base, BaseIdTimeStampModel):
         ForeignKey(column="users.id", ondelete="SET NULL")
     )
     assigned_to_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey(column="users.id", ondelete="SET NULL")
+        ForeignKey(column="users.id", ondelete="SET NULL"),
+        index=True,
     )
     due_date: Mapped[datetime.date]
     message: Mapped[str | None] = mapped_column(String(2000), nullable=True)
@@ -39,6 +47,10 @@ class PlannedChore(Base, BaseIdTimeStampModel):
 
 class ChoreSchedule(Base, BaseIdTimeStampModel):
     __tablename__ = "chore_schedule"
+    __table_args__ = (
+        Index("ix_chore_schedule_family_is_active", "family_id", "is_active"),
+        Index("ix_chore_schedule_chore_is_active", "chore_id", "is_active"),
+    )
 
     chore_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(column="chores.id", ondelete="RESTRICT")
@@ -78,6 +90,9 @@ class ChoreSchedule(Base, BaseIdTimeStampModel):
 
 class QuickPlannedChore(Base, BaseIdTimeStampModel):
     __tablename__ = "quick_planned_chore"
+    __table_args__ = (
+        Index("ix_quick_planned_chore_family_active_due", "family_id", "is_active", "due_date"),
+    )
 
     name: Mapped[str]
     description: Mapped[str | None]
@@ -92,10 +107,12 @@ class QuickPlannedChore(Base, BaseIdTimeStampModel):
     )
     is_active: Mapped[bool] = mapped_column(default=True)
     completed_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey(column="users.id", ondelete="SET NULL")
+        ForeignKey(column="users.id", ondelete="SET NULL"),
+        index=True,
     )
     assigned_to_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey(column="users.id", ondelete="SET NULL")
+        ForeignKey(column="users.id", ondelete="SET NULL"),
+        index=True,
     )
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(column="users.id", ondelete="SET NULL")

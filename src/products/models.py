@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.models import Base, BaseIdTimeStampModel
@@ -8,6 +8,10 @@ from core.models import Base, BaseIdTimeStampModel
 
 class Product(Base, BaseIdTimeStampModel):
     __tablename__ = "products"
+    __table_args__ = (
+        Index("ix_products_family_id_is_active", "family_id", "is_active"),
+        Index("ix_products_seller_id_is_active", "seller_id", "is_active"),
+    )
 
     name: Mapped[str]
     description: Mapped[str]

@@ -19,9 +19,9 @@ if config.config_file_name is not None:
 from core.models import Base
 
 from users.models import User, UserFamilyPermissions, UserSettings
-from families.models import Family
+from families.models import Family, Event
 from chores.models import Chore, DefaultChore, DefaultChoreTranslation
-from planned_chores.models import PlannedChore, ChoreSchedule
+from planned_chores.models import PlannedChore, ChoreSchedule, QuickPlannedChore
 from wallets.models import Wallet, PeerTransaction, RewardTransaction
 from products.models import Product, ProductBuyer
 from meals.models import Recipe, PlannedMeal, GroceryItem

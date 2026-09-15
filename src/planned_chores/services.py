@@ -7,7 +7,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
-from config import ENABLE_CLICKHOUSE
 from core.enums import FrequencyTypeENUM
 from core.exceptions.chores_completion import ChoreCompletionCanNotBeChanged
 from core.services import BaseService
@@ -18,7 +17,6 @@ from core.validators import (
     validate_quick_planned_chore_is_completed,
     validate_quick_planned_chore_is_not_completed,
 )
-from database_connection import rabbit_client
 from planned_chores.models import ChoreSchedule, PlannedChore, QuickPlannedChore
 from planned_chores.repository import (
     ChoreScheduleRepository,
@@ -36,43 +34,6 @@ from users.repository import UserRepository
 from users.models import User
 from wallets.models import RewardTransaction
 from wallets.services import AwardService, QuickAwardService
-
-
-async def publish_chore_completion_event(
-    planned_chore: PlannedChore, sign: int
-) -> None:
-    """
-    sign=1  — the PlannedChore is calculated in statistics (completed)
-    sign=-1 — the PlannedChore has been removed from statistics (execution canceled or the completed task has been deleted)
-    """
-    message = {
-        "id": str(planned_chore.id),
-        "chore_id": str(planned_chore.chore_id),
-        "family_id": str(planned_chore.family_id),
-        "completed_by_id": str(planned_chore.completed_by_id),
-        "assigned_to_id": str(planned_chore.assigned_to_id),
-        "due_date": planned_chore.due_date.isoformat(),
-        "sign": sign,
-    }
-    await rabbit_client.publish(message=message)
-
-
-async def publish_quick_chore_completion_event(
-    quick_chore: QuickPlannedChore, sign: int
-) -> None:
-    message = {
-        "id": str(quick_chore.id),
-        "chore_id": None,
-        "family_id": str(quick_chore.family_id),
-        "completed_by_id": str(quick_chore.completed_by_id),
-        "assigned_to_id": str(quick_chore.assigned_to_id)
-        if quick_chore.assigned_to_id
-        else None,
-        "due_date": quick_chore.due_date.isoformat(),
-        "sign": sign,
-        "is_quick": True,  # флаг чтобы различать в аналитике
-    }
-    await rabbit_client.publish(message=message)
 
 
 @dataclass
@@ -117,9 +78,6 @@ class DeletePlannedChore(BaseService[RewardTransaction | None]):
             await self._delete_planned_chore()
             return None
         else:
-            if ENABLE_CLICKHOUSE:
-                # The PlannedChore has been completed - we remove it from the statistics before deleting
-                await publish_chore_completion_event(self.planned_chore, sign=-1)
             await self._soft_delete_planned_chore()
             return await self._revoke_award()
 
@@ -151,8 +109,6 @@ class CompletePlannedChore(BaseService[PlannedChore]):
         planned_chore = await self._complete_planned_chore()
         await self.increment_family_total_completed()
         await self.increment_user_total_completed()
-        if ENABLE_CLICKHOUSE:
-            await publish_chore_completion_event(planned_chore, sign=1)
         await self.send_reward()
         return planned_chore
 
@@ -190,10 +146,6 @@ class UncompletePlannedChore(BaseService[PlannedChore]):
     db_session: AsyncSession
 
     async def process(self) -> PlannedChore:
-        if ENABLE_CLICKHOUSE:
-            # публикуем ДО очистки completed_by_id — нужны те же значения, что были при complete
-            await publish_chore_completion_event(self.planned_chore, sign=-1)
-
         await self.decrement_family_total_completed()
         await self.decrement_user_total_completed()
         await self._revoke_award()
@@ -804,8 +756,6 @@ class CompleteQuickPlannedChore(BaseService[QuickPlannedChore]):
         quick_planned_chore = await self._complete_quick_planned_chore()
         await self.increment_family_total_completed()
         await self.increment_user_total_completed()
-        if ENABLE_CLICKHOUSE:
-            await publish_quick_chore_completion_event(quick_planned_chore, sign=1)
         await self.send_reward()
         return quick_planned_chore
 
@@ -846,10 +796,6 @@ class UncompleteQuickPlannedChore(BaseService[QuickPlannedChore]):
     db_session: AsyncSession
 
     async def process(self) -> QuickPlannedChore:
-        if ENABLE_CLICKHOUSE:
-            await publish_quick_chore_completion_event(
-                self.quick_planned_chore, sign=-1
-            )
         await self.decrement_family_total_completed()
         await self.decrement_user_total_completed()
         await self._revoke_award()

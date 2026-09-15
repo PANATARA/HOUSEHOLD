@@ -2,7 +2,7 @@ import datetime
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,6 +14,9 @@ if TYPE_CHECKING:
 
 class Recipe(Base, BaseIdTimeStampModel):
     __tablename__ = "recipes"
+    __table_args__ = (
+        Index("ix_recipes_family_id_is_active", "family_id", "is_active"),
+    )
 
     family_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("family.id", ondelete="CASCADE"),
@@ -22,6 +25,7 @@ class Recipe(Base, BaseIdTimeStampModel):
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     title: Mapped[str] = mapped_column(String(128))
@@ -50,6 +54,9 @@ class Recipe(Base, BaseIdTimeStampModel):
 
 class PlannedMeal(Base, BaseIdTimeStampModel):
     __tablename__ = "planned_meals"
+    __table_args__ = (
+        Index("ix_planned_meals_family_date_active", "family_id", "date", "is_active"),
+    )
 
     family_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("family.id", ondelete="CASCADE")
@@ -61,10 +68,12 @@ class PlannedMeal(Base, BaseIdTimeStampModel):
     recipe_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("recipes.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     assigned_cook_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     servings: Mapped[int] = mapped_column(default=4)
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -72,6 +81,7 @@ class PlannedMeal(Base, BaseIdTimeStampModel):
     completed_by_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -91,6 +101,9 @@ class PlannedMeal(Base, BaseIdTimeStampModel):
 
 class GroceryItem(Base, BaseIdTimeStampModel):
     __tablename__ = "grocery_items"
+    __table_args__ = (
+        Index("ix_grocery_items_family_active_bought", "family_id", "is_active", "is_bought"),
+    )
 
     family_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("family.id", ondelete="CASCADE")

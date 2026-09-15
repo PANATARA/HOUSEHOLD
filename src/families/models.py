@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.models import Base, BaseIdTimeStampModel
@@ -20,7 +20,8 @@ class Family(Base, BaseIdTimeStampModel):
         ForeignKey(
             column="users.id",
             ondelete="SET NULL",
-        )
+        ),
+        index=True,
     )
     avatar_version: Mapped[int | None] = mapped_column(default=None)
     avatar_extension: Mapped[str | None] = mapped_column(default=None)
@@ -33,6 +34,9 @@ class Family(Base, BaseIdTimeStampModel):
 
 class Event(Base, BaseIdTimeStampModel):
     __tablename__ = "events"
+    __table_args__ = (
+        Index("ix_events_family_id_date", "family_id", "date"),
+    )
 
     name: Mapped[str]
     description: Mapped[str | None]
