@@ -24,6 +24,8 @@ S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", default="S3_BUCKET_NAME")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(os.path.dirname(BASE_DIR), "uploads")
+STATIC_DIR = os.getenv("STATIC_DIR", default=os.path.join(os.path.dirname(BASE_DIR), "static"))
+SERVE_FRONTEND: bool = os.getenv("SERVE_FRONTEND", default="False").lower() in ("true", "1", "yes")
 BASE_URL = os.getenv("BASE_URL", default="localhost:8000")
 
 

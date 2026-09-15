@@ -15,6 +15,7 @@ from planned_chores.router import (
     schedules_router,
     update_planned_chore_message,
 )
+import config
 from config import swagger_ui_settings
 from core.enums import PostgreSQLEnum
 from core.exceptions.base_exceptions import BaseAPIException
@@ -114,6 +115,39 @@ app.add_api_route(
     methods=["PATCH"],
     include_in_schema=False,
 )
+
+# Optional PWA frontend serving (enabled via SERVE_FRONTEND=True)
+if config.SERVE_FRONTEND:
+    import os
+    from fastapi import HTTPException
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import FileResponse
+
+    static_dir = config.STATIC_DIR
+    if os.path.exists(static_dir):
+        logger.info("Serving PWA frontend from: %s", static_dir)
+
+        assets_dir = os.path.join(static_dir, "assets")
+        if os.path.exists(assets_dir):
+            app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+        icons_dir = os.path.join(static_dir, "icons")
+        if os.path.exists(icons_dir):
+            app.mount("/icons", StaticFiles(directory=icons_dir), name="icons")
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def serve_spa_frontend(full_path: str):
+            if full_path in ("docs", "redoc", "openapi.json") or full_path.startswith("api"):
+                raise HTTPException(status_code=404, detail="Not Found")
+            file_path = os.path.join(static_dir, full_path)
+            if full_path and os.path.isfile(file_path):
+                return FileResponse(file_path)
+            index_path = os.path.join(static_dir, "index.html")
+            if os.path.isfile(index_path):
+                return FileResponse(index_path)
+            return JSONResponse(status_code=404, content={"detail": "Frontend index.html not found"})
+    else:
+        logger.warning("SERVE_FRONTEND is True, but static directory '%s' does not exist.", static_dir)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

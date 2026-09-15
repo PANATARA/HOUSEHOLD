@@ -10,6 +10,7 @@ services:
             - ./requirements.txt:/usr/src/app/requirements.txt:cached
             - ./alembic.ini:/usr/src/app/alembic.ini:cached
             - ./uploads:/usr/src/app/uploads  
+            - ./static:/usr/src/app/static:cached
         env_file:
             - .env
         depends_on:

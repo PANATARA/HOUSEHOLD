@@ -174,3 +174,5 @@ cython_debug/
 
 uploads/
 docker-compose-dev.yml
+static/*
+!static/.gitkeep

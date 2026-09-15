@@ -103,3 +103,17 @@ redis-shell: ## Open Redis interactive CLI (redis-cli)
 
 test: ## Run tests with pytest
 	@./venv/bin/pytest
+
+pwa-build: ## Build PWA from frontend repo and copy to static/
+	@if [ -d "../HOUSEHOLD-APP/frontend" ]; then \
+		echo "Building PWA in ../HOUSEHOLD-APP/frontend..."; \
+		(cd ../HOUSEHOLD-APP/frontend && npm run build:pwa) && \
+		rm -rf static/* && \
+		touch static/.gitkeep && \
+		cp -r ../HOUSEHOLD-APP/frontend/dist/* static/ && \
+		echo "✓ PWA built and copied to static/!"; \
+	else \
+		echo "Directory ../HOUSEHOLD-APP/frontend not found."; \
+		exit 1; \
+	fi
+
