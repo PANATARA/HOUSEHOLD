@@ -62,15 +62,22 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> list[UserChoresCountSchema]:
-        condition = "family_id = :family_id AND completed_by_id IS NOT NULL"
+        condition = "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
             SELECT completed_by_id, COUNT(*) AS count
-            FROM planned_chore
-            WHERE {condition}
+            FROM (
+                SELECT completed_by_id
+                FROM planned_chore
+                WHERE {condition}
+                UNION ALL
+                SELECT completed_by_id
+                FROM quick_planned_chore
+                WHERE {condition}
+            ) AS combined
             GROUP BY completed_by_id
             ORDER BY count DESC
         """)
@@ -87,7 +94,7 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> list[ChoresFamilyCountSchema]:
-        condition = "family_id = :family_id AND completed_by_id IS NOT NULL"
+        condition = "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
@@ -112,15 +119,22 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> dict[date, int]:
-        condition = "family_id = :family_id AND completed_by_id IS NOT NULL"
+        condition = "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
-            SELECT due_date AS day, COUNT(*) AS count
-            FROM planned_chore
-            WHERE {condition}
+            SELECT day, COUNT(*) AS count
+            FROM (
+                SELECT due_date AS day
+                FROM planned_chore
+                WHERE {condition}
+                UNION ALL
+                SELECT due_date AS day
+                FROM quick_planned_chore
+                WHERE {condition}
+            ) AS combined
             GROUP BY day
             ORDER BY day
         """)
@@ -133,15 +147,22 @@ class StatsPostgresRepository(StatsRepository):
         completed_by_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> dict[date, int]:
-        condition = "completed_by_id = :completed_by_id"
+        condition = "completed_by_id = :completed_by_id AND is_active"
         params = {"completed_by_id": str(completed_by_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
-            SELECT due_date AS day, COUNT(*) AS count
-            FROM planned_chore
-            WHERE {condition}
+            SELECT day, COUNT(*) AS count
+            FROM (
+                SELECT due_date AS day
+                FROM planned_chore
+                WHERE {condition}
+                UNION ALL
+                SELECT due_date AS day
+                FROM quick_planned_chore
+                WHERE {condition}
+            ) AS combined
             GROUP BY day
             ORDER BY day
         """)
@@ -157,14 +178,21 @@ class StatsPostgresRepository(StatsRepository):
         if not users_ids:
             return []
 
-        condition = "completed_by_id = ANY(:user_ids)"
+        condition = "completed_by_id = ANY(:user_ids) AND is_active"
         params = {"user_ids": list(map(str, users_ids))}
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
             SELECT completed_by_id, COUNT(*) AS completion_count
-            FROM planned_chore
-            WHERE {condition}
+            FROM (
+                SELECT completed_by_id
+                FROM planned_chore
+                WHERE {condition}
+                UNION ALL
+                SELECT completed_by_id
+                FROM quick_planned_chore
+                WHERE {condition}
+            ) AS combined
             GROUP BY completed_by_id
         """)
 
@@ -180,15 +208,22 @@ class StatsPostgresRepository(StatsRepository):
     async def get_family_chore_completion_count(
         self, family_id: UUID, interval: DateRangeSchema | None = None
     ) -> int:
-        condition = "family_id = :family_id AND completed_by_id IS NOT NULL"
+        condition = "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
 
         query = text(f"""
             SELECT COUNT(*)
-            FROM planned_chore
-            WHERE {condition}
+            FROM (
+                SELECT 1
+                FROM planned_chore
+                WHERE {condition}
+                UNION ALL
+                SELECT 1
+                FROM quick_planned_chore
+                WHERE {condition}
+            ) AS combined
         """)
 
         rows = (await self.db_session.execute(query, params)).all()
@@ -203,12 +238,21 @@ class StatsPostgresRepository(StatsRepository):
     ) -> int:
         query = text("""
             WITH active_days AS (
-                SELECT
-                    due_date AS day
-                FROM planned_chore
-                WHERE family_id = :family_id
-                  AND completed_by_id IS NOT NULL
-                GROUP BY due_date
+                SELECT day
+                FROM (
+                    SELECT due_date AS day
+                    FROM planned_chore
+                    WHERE family_id = :family_id
+                      AND completed_by_id IS NOT NULL
+                      AND is_active
+                    UNION ALL
+                    SELECT due_date AS day
+                    FROM quick_planned_chore
+                    WHERE family_id = :family_id
+                      AND completed_by_id IS NOT NULL
+                      AND is_active
+                ) AS combined
+                GROUP BY day
             ),
 
             anchor AS (
@@ -253,11 +297,19 @@ class StatsPostgresRepository(StatsRepository):
     ) -> int:
         query = text("""
             WITH active_days AS (
-                SELECT
-                    due_date AS day
-                FROM planned_chore
-                WHERE completed_by_id = :user_id
-                GROUP BY due_date
+                SELECT day
+                FROM (
+                    SELECT due_date AS day
+                    FROM planned_chore
+                    WHERE completed_by_id = :user_id
+                      AND is_active
+                    UNION ALL
+                    SELECT due_date AS day
+                    FROM quick_planned_chore
+                    WHERE completed_by_id = :user_id
+                      AND is_active
+                ) AS combined
+                GROUP BY day
             ),
 
             anchor AS (
