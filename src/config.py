@@ -76,3 +76,7 @@ EMAIL_HOSTNAME = os.getenv("EMAIL_HOSTNAME", "smtp.hostname.ru")
 """ FCM / NOTIFICATIONS SETTINGS """
 FCM_CREDENTIALS_PATH: str | None = os.getenv("FCM_CREDENTIALS_PATH")
 FCM_CREDENTIALS_JSON: str | None = os.getenv("FCM_CREDENTIALS_JSON")
+
+
+""" GOOGLE AUTH SETTINGS """
+GOOGLE_CLIENT_ID: str | None = os.getenv("GOOGLE_CLIENT_ID")

@@ -22,6 +22,7 @@ class User(Base, BaseIdTimeStampModel):
         index=True,
     )
     email: Mapped[str] = mapped_column(String(255), unique=True)
+    google_sub: Mapped[str | None] = mapped_column(String(100), unique=True, index=True, nullable=True, default=None)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 

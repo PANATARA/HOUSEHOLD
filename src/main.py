@@ -96,6 +96,7 @@ main_api_router = APIRouter(prefix="/api")
 # # set routes to the app instance
 main_api_router.include_router(user_router, prefix="/users")
 main_api_router.include_router(auth_router, prefix="/login")
+main_api_router.include_router(auth_router, prefix="/auth")
 main_api_router.include_router(families_router, prefix="/families")
 main_api_router.include_router(planned_chores_router, prefix="/chores")
 main_api_router.include_router(schedules_router, prefix="/schedules")

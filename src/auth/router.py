@@ -11,9 +11,10 @@ from auth.schemas import (
     AccessToken,
     AuthCodeEmail,
     AuthEmail,
+    GoogleAuthSchema,
     RefreshToken,
 )
-from auth.services import send_email_secret_code
+from auth.services import InvalidGoogleTokenError, send_email_secret_code, verify_google_id_token
 from config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     MAX_VERIFY_CODE,
@@ -125,6 +126,68 @@ async def post_email_code(
             data={"sub": str(user.id), "is_family_admin": user_is_family_admin},
             expires_delta=refresh_token_expires,
         )
+    return AccessRefreshTokens(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        is_new_user=is_new_user,
+        is_family_member=bool(user.family_id),
+    )
+
+
+@router.post("/google", response_model=AccessRefreshTokens, tags=["Auth"])
+async def google_auth(
+    body: GoogleAuthSchema, db: AsyncSession = Depends(get_db)
+) -> AccessRefreshTokens:
+    token = body.get_token()
+    try:
+        id_info = await verify_google_id_token(token)
+    except InvalidGoogleTokenError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid or expired Google token: {str(e)}",
+        )
+
+    sub = id_info.get("sub")
+    email = id_info.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google token does not contain an email address",
+        )
+
+    name = id_info.get("given_name") or id_info.get("name")
+    surname = id_info.get("family_name")
+
+    async with db.begin():
+        user_repo = UserRepository(db)
+        user, is_new_user = await user_repo.upsert_google_user(
+            sub=sub,
+            email=email,
+            name=name,
+            surname=surname,
+        )
+
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        if user.family_id is not None:
+            family_dal = FamilyRepository(db_session=db)
+            user_is_family_admin = await family_dal.user_is_family_admin(
+                user_id=user.id, family_id=user.family_id
+            )
+        else:
+            user_is_family_admin = False
+
+        access_token = create_jwt_token(
+            data={"sub": str(user.id), "is_family_admin": user_is_family_admin},
+            expires_delta=access_token_expires,
+        )
+
+        refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
+        refresh_token = create_jwt_token(
+            data={"sub": str(user.id), "is_family_admin": user_is_family_admin},
+            expires_delta=refresh_token_expires,
+        )
+
     return AccessRefreshTokens(
         access_token=access_token,
         refresh_token=refresh_token,

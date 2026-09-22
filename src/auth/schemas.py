@@ -33,3 +33,15 @@ class AuthCodeEmail(BaseModel):
         if v < MIN_VERIFY_CODE or v > MAX_VERIFY_CODE:
             raise ValueError("Code must be exactly 6 digits")
         return v
+
+
+class GoogleAuthSchema(BaseModel):
+    credential: str | None = None
+    token: str | None = None
+
+    def get_token(self) -> str:
+        t = self.credential or self.token
+        if not t:
+            raise ValueError("Google ID Token ('credential' or 'token') is required")
+        return t
+
