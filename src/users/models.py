@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING
 import uuid
 from datetime import date
 
@@ -5,6 +6,9 @@ from sqlalchemy import Boolean, Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.models import Base, BaseIdTimeStampModel, OneToOneUserModel
+
+if TYPE_CHECKING:
+    from notifications.models import UserDevice
 
 
 class User(Base, BaseIdTimeStampModel):
@@ -26,6 +30,9 @@ class User(Base, BaseIdTimeStampModel):
     )
     settings: Mapped["UserSettings"] = relationship(
         "UserSettings", back_populates="user", uselist=False
+    )
+    devices: Mapped[list["UserDevice"]] = relationship(
+        "UserDevice", back_populates="user", cascade="all, delete-orphan"
     )
     avatar_version: Mapped[int | None] = mapped_column(default=None)
     avatar_extension: Mapped[str | None] = mapped_column(default=None)

@@ -2,11 +2,20 @@ from datetime import date
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
+)
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.repository import ChoreRepository
+from notifications.service import notify_family_about_new_chore
 from core.permissions import (
     ChorePermission,
     ChoreSchedulePermission,
@@ -71,6 +80,7 @@ schedules_router = APIRouter()
 async def create_planned_chore(
     chore_id: UUID,
     body: PlannedChoreCreateSchema,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(ChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
 ):
@@ -93,6 +103,18 @@ async def create_planned_chore(
             db_session=async_session,
         )
         planned_chore = await service.run_process()
+
+        if current_user.family_id:
+            background_tasks.add_task(
+                notify_family_about_new_chore,
+                family_id=current_user.family_id,
+                creator_id=current_user.id,
+                creator_name=current_user.name or current_user.username,
+                chore_name=chore.name,
+                chore_id=planned_chore.id,
+                chore_type="planned",
+            )
+
         return JSONResponse(
             content={"id": str(planned_chore.id)}, status_code=status.HTTP_201_CREATED
         )
@@ -434,6 +456,7 @@ async def trigger_schedule_generation(
 )
 async def create_quick_planned_chore(
     body: QuickPlannedChoreCreateSchema,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(FamilyMemberPermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
 ):
@@ -449,6 +472,18 @@ async def create_quick_planned_chore(
             assigned_to_user=assigned_to_user,
             db_session=async_session,
         ).run_process()
+
+        if current_user.family_id:
+            background_tasks.add_task(
+                notify_family_about_new_chore,
+                family_id=current_user.family_id,
+                creator_id=current_user.id,
+                creator_name=current_user.name or current_user.username,
+                chore_name=obj.name,
+                chore_id=obj.id,
+                chore_type="quick",
+            )
+
         return JSONResponse(
             content={"id": str(obj.id)},
             status_code=status.HTTP_201_CREATED,

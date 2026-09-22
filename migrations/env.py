@@ -25,6 +25,7 @@ from planned_chores.models import PlannedChore, ChoreSchedule, QuickPlannedChore
 from wallets.models import Wallet, PeerTransaction, RewardTransaction
 from products.models import Product, ProductBuyer
 from meals.models import Recipe, PlannedMeal, GroceryItem
+from notifications.models import UserDevice
 
 
 target_metadata = Base.metadata

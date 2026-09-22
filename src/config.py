@@ -71,3 +71,8 @@ PRODUCT_AVATAR_EXPIRE: int = 60 * 60 * 24
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS", "example@ex.com")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "password")
 EMAIL_HOSTNAME = os.getenv("EMAIL_HOSTNAME", "smtp.hostname.ru")
+
+
+""" FCM / NOTIFICATIONS SETTINGS """
+FCM_CREDENTIALS_PATH: str | None = os.getenv("FCM_CREDENTIALS_PATH")
+FCM_CREDENTIALS_JSON: str | None = os.getenv("FCM_CREDENTIALS_JSON")
