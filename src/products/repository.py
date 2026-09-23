@@ -50,8 +50,6 @@ class ProductRepository(BaseDals[Product], DeleteDALMixin):
                     User.username,
                     "name",
                     User.name,
-                    "surname",
-                    User.surname,
                     "icon",
                     User.icon,
                     "icon_color",

@@ -88,14 +88,12 @@ async def test_upsert_google_user_new(mock_db_session: AsyncMock):
         sub="sub_12345",
         email="newuser@gmail.com",
         name="John",
-        surname="Doe",
     )
 
     assert is_new is True
     assert user.email == "newuser@gmail.com"
     assert user.google_sub == "sub_12345"
     assert user.name == "John"
-    assert user.surname == "Doe"
     assert mock_db_session.add.call_count == 2  # user + settings
 
 
@@ -107,7 +105,6 @@ async def test_upsert_google_user_existing(mock_db_session: AsyncMock):
         email="existing@gmail.com",
         username="existing_user",
         name=None,
-        surname=None,
         google_sub=None,
         is_active=True,
     )
@@ -119,13 +116,11 @@ async def test_upsert_google_user_existing(mock_db_session: AsyncMock):
         sub="sub_99999",
         email="existing@gmail.com",
         name="Jane",
-        surname="Smith",
     )
 
     assert is_new is False
     assert user.google_sub == "sub_99999"
     assert user.name == "Jane"
-    assert user.surname == "Smith"
 
 
 # ==========================================

@@ -12,14 +12,58 @@ class UserRepository(BaseDals[User]):
     model = User
     not_found_exception = UserNotFoundError
 
-    async def get_user_by_email(self, email: str) -> User:
-        query = select(User).where(User.email == email)
+    async def get_by_username(self, username: str) -> User | None:
+        query = select(User).where(User.username == username)
         result = await self.db_session.execute(query)
-        user = result.fetchone()
+        return result.scalars().first()
+
+    async def get_by_username_or_email(self, identifier: str) -> User | None:
+        query = select(User).where(
+            or_(User.username == identifier, User.email == identifier)
+        )
+        result = await self.db_session.execute(query)
+        return result.scalars().first()
+
+    async def get_user_by_email(self, email: str) -> User:
+        user = await self.get_by_username_or_email(email)
         if user:
-            return user[0]
-        else:
-            raise self.not_found_exception
+            return user
+        raise self.not_found_exception
+
+    async def create_user_with_password(
+        self,
+        username: str,
+        hashed_password: str,
+        name: str | None = None,
+        email: str | None = None,
+        icon: str | None = None,
+        icon_color: str | None = None,
+        icon_bg: str | None = None,
+    ) -> User:
+        new_user = User(
+            username=username,
+            hashed_password=hashed_password,
+            name=name or username,
+            email=email,
+            is_active=True,
+            icon=icon or "material-symbols:person-rounded",
+            icon_color=icon_color or "#ffffff",
+            icon_bg=icon_bg or "linear-gradient(135deg, #F97316 0%, #FB7185 100%)",
+        )
+        self.db_session.add(new_user)
+        await self.db_session.flush()
+        await self.db_session.refresh(new_user)
+
+        settings = UserSettings(
+            user_id=new_user.id,
+            app_theme="Dark",
+            language="ru",
+            date_of_birth=date(2001, 1, 1),
+        )
+        self.db_session.add(settings)
+        await self.db_session.flush()
+
+        return new_user
 
     async def get_by_google_sub_or_email(
         self, sub: str, email: str
@@ -36,7 +80,6 @@ class UserRepository(BaseDals[User]):
         sub: str,
         email: str,
         name: str | None = None,
-        surname: str | None = None,
     ) -> tuple[User, bool]:
         user = await self.get_by_google_sub_or_email(sub=sub, email=email)
         if user is not None:
@@ -46,9 +89,6 @@ class UserRepository(BaseDals[User]):
                 changed = True
             if name and not user.name:
                 user.name = name
-                changed = True
-            if surname and not user.surname:
-                user.surname = surname
                 changed = True
             if changed:
                 await self.db_session.flush()
@@ -63,7 +103,6 @@ class UserRepository(BaseDals[User]):
             google_sub=sub,
             username=username,
             name=name,
-            surname=surname,
             is_active=True,
         )
         self.db_session.add(new_user)

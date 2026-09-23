@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from users.schemas import UserResponseSchema
 
@@ -9,10 +9,10 @@ from users.schemas import UserResponseSchema
 class FamilyCreateSchema(BaseModel):
     """Schema for creating a new family"""
 
-    name: str
-    icon: str
-    icon_color: str
-    icon_bg: str
+    name: str = Field(..., min_length=2, max_length=60)
+    icon: str = Field(default="material-symbols:home-rounded", max_length=100)
+    icon_color: str = Field(default="#ffffff", max_length=50)
+    icon_bg: str = Field(default="linear-gradient(135deg, #F97316 0%, #FB7185 100%)", max_length=200)
 
 
 class FamilyResponseSchema(BaseModel):
@@ -34,10 +34,10 @@ class FamilyStatsResponseSchema(FamilyResponseSchema):
 
 
 class FamilyUpdateSchema(BaseModel):
-    name: str | None = None
-    icon: str | None = None
-    icon_color: str | None = None
-    icon_bg: str | None = None
+    name: str | None = Field(default=None, min_length=2, max_length=60)
+    icon: str | None = Field(default=None, max_length=100)
+    icon_color: str | None = Field(default=None, max_length=50)
+    icon_bg: str | None = Field(default=None, max_length=200)
 
     @field_validator("name", "icon", "icon_color", "icon_bg", mode="before")
     @classmethod

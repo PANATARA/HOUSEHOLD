@@ -129,6 +129,12 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.example
+serviceAccountKey.json
+!serviceAccountKey.json.example
+*firebase*.json
+*serviceAccount*.json
 .env.test
 .venv
 env/

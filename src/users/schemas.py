@@ -1,14 +1,13 @@
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class UserResponseSchema(BaseModel):
     id: UUID
     username: str
     name: str | None
-    surname: str | None
     icon: str
     icon_color: str
     icon_bg: str
@@ -30,15 +29,14 @@ class UserResponseProfile(UserResponseSchema):
 
 
 class UserUpdateSchema(BaseModel):
-    username: str | None = None
-    name: str | None = None
-    surname: str | None = None
-    icon: str | None = None
-    icon_color: str | None = None
-    icon_bg: str | None = None
+    username: str | None = Field(default=None, min_length=2, max_length=30)
+    name: str | None = Field(default=None, min_length=1, max_length=50)
+    icon: str | None = Field(default=None, max_length=100)
+    icon_color: str | None = Field(default=None, max_length=50)
+    icon_bg: str | None = Field(default=None, max_length=200)
 
     @field_validator(
-        "username", "name", "surname", "icon", "icon_color", "icon_bg", mode="before"
+        "username", "name", "icon", "icon_color", "icon_bg", mode="before"
     )
     @classmethod
     def field_not_none(cls, value, info):
@@ -58,6 +56,6 @@ class UserSettingsResponseSchema(BaseModel):
 
 
 class UserSettingsUpdateSchema(BaseModel):
-    app_theme: str | None = None
-    language: str | None = None
+    app_theme: str | None = Field(default=None, max_length=20)
+    language: str | None = Field(default=None, max_length=10)
     date_of_birth: date | None = None

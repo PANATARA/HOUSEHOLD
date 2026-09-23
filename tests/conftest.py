@@ -41,7 +41,6 @@ def sample_user(sample_user_id: uuid.UUID, sample_family_id: uuid.UUID) -> User:
         id=sample_user_id,
         username="testuser",
         name="Test",
-        surname="User",
         email="test@example.com",
         family_id=sample_family_id,
         is_superuser=False,

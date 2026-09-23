@@ -1,6 +1,4 @@
-from pydantic import BaseModel, field_validator
-
-from config import MAX_VERIFY_CODE, MIN_VERIFY_CODE
+from pydantic import BaseModel, Field
 
 
 class AccessRefreshTokens(BaseModel):
@@ -20,19 +18,22 @@ class AccessToken(BaseModel):
     token_type: str
 
 
-class AuthEmail(BaseModel):
-    email: str
+class LoginSchema(BaseModel):
+    username: str = Field(..., min_length=1, max_length=60)
+    password: str = Field(..., min_length=1)
 
 
-class AuthCodeEmail(BaseModel):
-    email: str
-    code: int
+class RegisterSchema(BaseModel):
+    username: str = Field(..., min_length=2, max_length=60)
+    password: str = Field(..., min_length=6)
+    name: str | None = Field(default=None, max_length=50)
+    icon: str | None = Field(default=None, max_length=100)
+    icon_color: str | None = Field(default=None, max_length=50)
+    icon_bg: str | None = Field(default=None, max_length=100)
 
-    @field_validator("code")
-    def validate_code(cls, v):
-        if v < MIN_VERIFY_CODE or v > MAX_VERIFY_CODE:
-            raise ValueError("Code must be exactly 6 digits")
-        return v
+
+class DebugAuthModel(BaseModel):
+    username: str = "debug_user"
 
 
 class GoogleAuthSchema(BaseModel):
@@ -44,4 +45,3 @@ class GoogleAuthSchema(BaseModel):
         if not t:
             raise ValueError("Google ID Token ('credential' or 'token') is required")
         return t
-

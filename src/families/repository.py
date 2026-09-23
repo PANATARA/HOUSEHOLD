@@ -31,7 +31,6 @@ class FamilyRepository(BaseDals[Family]):
                 User.id,
                 User.username,
                 User.name,
-                User.surname,
                 User.icon,
                 User.icon_color,
                 User.icon_bg,

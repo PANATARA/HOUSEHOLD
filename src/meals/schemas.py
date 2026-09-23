@@ -100,7 +100,6 @@ class CookBriefSchema(BaseModel):
 
     id: UUID
     name: str | None = None
-    surname: str | None = None
     icon: str | None = "material-symbols:person-rounded"
     icon_bg: str | None = "#FFE8E0"
     icon_color: str | None = "#E06A47"

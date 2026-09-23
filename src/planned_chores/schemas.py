@@ -10,9 +10,9 @@ from users.schemas import UserResponseSchema
 
 
 class PlannedChoreCreateSchema(BaseModel):
-    assigned_to_id: UUID | None
+    assigned_to_id: UUID | None = None
     due_date: date
-    message: str
+    message: str = Field(default="", max_length=1000)
 
 
 class PlannedChoreRescheduleSchema(BaseModel):
@@ -126,33 +126,32 @@ class ChoreScheduleResponseSchema(BaseModel):
 
 
 class QuickPlannedChoreCreateSchema(BaseModel):
-    name: str
-    description: str | None = None
-    icon: str = "material-symbols:bolt-rounded"
-    icon_color: str = "#ffffff"
-    icon_bg: str = "linear-gradient(135deg, #F59E0B 0%, #F97316 100%)"
-    valuation: int
+    name: str = Field(..., min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    icon: str = Field(default="material-symbols:bolt-rounded", max_length=100)
+    icon_color: str = Field(default="#ffffff", max_length=50)
+    icon_bg: str = Field(default="linear-gradient(135deg, #F59E0B 0%, #F97316 100%)", max_length=200)
+    valuation: int = Field(default=10, ge=0, le=100000)
     assigned_to_id: UUID | None = None
     due_date: datetime.date
-    message: str = Field(default="", max_length=50)
+    message: str = Field(default="", max_length=1000)
 
 
 class QuickPlannedChoreUpdateSchema(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    icon: str | None = None
-    icon_color: str | None = None
-    icon_bg: str | None = None
-    valuation: int | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    icon: str | None = Field(default=None, max_length=100)
+    icon_color: str | None = Field(default=None, max_length=50)
+    icon_bg: str | None = Field(default=None, max_length=200)
+    valuation: int | None = Field(default=None, ge=0, le=100000)
     assigned_to_id: UUID | None = None
     due_date: datetime.date | None = None
-    message: str | None = Field(default=None, max_length=50)
+    message: str | None = Field(default=None, max_length=1000)
 
 
 class QuickPlannedChoreUserSchema(BaseModel):
     id: UUID
     name: str
-    surname: str
     icon: str
     icon_color: str
     icon_bg: str

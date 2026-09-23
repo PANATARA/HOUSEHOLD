@@ -13,8 +13,11 @@ from users.repository import UserRepository, UserSettingsRepository
 
 @dataclass
 class UserCreatorService(BaseService[User]):
-    email: str
+    username: str
     db_session: AsyncSession
+    password: str | None = None
+    email: str | None = None
+    name: str | None = None
 
     async def process(self) -> User:
         user = await self._create_user()
@@ -23,8 +26,17 @@ class UserCreatorService(BaseService[User]):
 
     async def _create_user(self) -> User:
         user_dal = UserRepository(self.db_session)
-        username = self._get_username_by_email(self.email)
-        new_user = User(username=username, email=self.email)
+        from core.hashing import Hasher
+
+        hashed_password = (
+            Hasher.get_password_hash(self.password) if self.password else None
+        )
+        new_user = User(
+            username=self.username,
+            name=self.name or self.username,
+            email=self.email,
+            hashed_password=hashed_password,
+        )
         try:
             user = await user_dal.create(object=new_user)
         except IntegrityError:
@@ -41,12 +53,6 @@ class UserCreatorService(BaseService[User]):
         )
         settings_dal = UserSettingsRepository(self.db_session)
         return await settings_dal.create(settings)
-
-    def _get_username_by_email(self, email: str) -> str:
-        now = datetime.now()
-        date_str = now.strftime("%Y%m%d")
-        username = email.split("@")[0] + "_" + date_str
-        return username
 
 
 def _generate_levels(total_levels: int = 100, max_exp: int = 10000) -> list[dict]:

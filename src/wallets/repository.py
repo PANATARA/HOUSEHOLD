@@ -73,8 +73,6 @@ class TransactionDataService:
                     u.username,
                     "name",
                     u.name,
-                    "surname",
-                    u.surname,
                     "icon",
                     u.icon,
                     "icon_color",

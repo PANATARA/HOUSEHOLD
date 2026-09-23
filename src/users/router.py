@@ -98,7 +98,6 @@ async def me_user_partial_update(
         id=user.id,
         username=user.username,
         name=user.name,
-        surname=user.surname,
         icon=user.icon,
         icon_bg=user.icon_bg,
         icon_color=user.icon_color,
