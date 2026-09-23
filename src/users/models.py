@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING
 import uuid
 from datetime import date
 
@@ -7,8 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.models import Base, BaseIdTimeStampModel, OneToOneUserModel
 
-if TYPE_CHECKING:
-    from notifications.models import UserDevice
+from notifications.models import UserDevice
 
 
 class User(Base, BaseIdTimeStampModel):

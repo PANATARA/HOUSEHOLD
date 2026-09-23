@@ -18,6 +18,16 @@ import config
 from database_connection import async_session_maker
 from planned_chores.services import GeneratePlannedChores
 
+# Ensure all SQLAlchemy models are registered in the mapper registry
+import users.models  # noqa: F401
+import families.models  # noqa: F401
+import chores.models  # noqa: F401
+import planned_chores.models  # noqa: F401
+import notifications.models  # noqa: F401
+import wallets.models  # noqa: F401
+import products.models  # noqa: F401
+import meals.models  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 
