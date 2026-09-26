@@ -11,8 +11,15 @@ from core.models import Base, BaseIdTimeStampModel
 class PlannedChore(Base, BaseIdTimeStampModel):
     __tablename__ = "planned_chore"
     __table_args__ = (
-        Index("ix_planned_chore_family_active_due", "family_id", "is_active", "due_date"),
-        Index("ix_planned_chore_family_completed_due", "family_id", "completed_by_id", "due_date"),
+        Index(
+            "ix_planned_chore_family_active_due", "family_id", "is_active", "due_date"
+        ),
+        Index(
+            "ix_planned_chore_family_completed_due",
+            "family_id",
+            "completed_by_id",
+            "due_date",
+        ),
         Index("ix_planned_chore_completed_due", "completed_by_id", "due_date"),
         Index("ix_planned_chore_schedule_due", "schedule_id", "due_date"),
     )
@@ -91,7 +98,12 @@ class ChoreSchedule(Base, BaseIdTimeStampModel):
 class QuickPlannedChore(Base, BaseIdTimeStampModel):
     __tablename__ = "quick_planned_chore"
     __table_args__ = (
-        Index("ix_quick_planned_chore_family_active_due", "family_id", "is_active", "due_date"),
+        Index(
+            "ix_quick_planned_chore_family_active_due",
+            "family_id",
+            "is_active",
+            "due_date",
+        ),
     )
 
     name: Mapped[str]

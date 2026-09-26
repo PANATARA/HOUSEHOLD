@@ -7,8 +7,8 @@ sys.path.append(str(Path(__file__).parent.parent))
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.database_connection import async_session
 from src.chores.models import DefaultChore, DefaultChoreTranslation
+from src.database_connection import async_session
 
 # ─── Data ────────────────────────────────────────────────────────────────────
 

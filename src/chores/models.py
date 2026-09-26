@@ -8,9 +8,7 @@ from core.models import Base, BaseIdTimeStampModel
 
 class Chore(Base, BaseIdTimeStampModel):
     __tablename__ = "chores"
-    __table_args__ = (
-        Index("ix_chores_family_id_is_active", "family_id", "is_active"),
-    )
+    __table_args__ = (Index("ix_chores_family_id_is_active", "family_id", "is_active"),)
 
     name: Mapped[str]
     description: Mapped[str | None]
@@ -38,9 +36,7 @@ class Chore(Base, BaseIdTimeStampModel):
 
 class DefaultChore(Base, BaseIdTimeStampModel):
     __tablename__ = "default_chore"
-    __table_args__ = (
-        Index("ix_default_chore_is_active_order", "is_active", "order"),
-    )
+    __table_args__ = (Index("ix_default_chore_is_active_order", "is_active", "order"),)
 
     icon: Mapped[str] = mapped_column(server_default="material-symbols:mop")
     icon_color: Mapped[str] = mapped_column(server_default="#ffffff")

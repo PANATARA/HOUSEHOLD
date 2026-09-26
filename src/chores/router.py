@@ -9,9 +9,9 @@ from chores.repository import ChoreRepository, DefaultChoreRepository
 from chores.schemas import (
     ChoreCreateSchema,
     ChoreResponseSchema,
-    ChoreUpdateSchema,
     ChoresFromDefaultsSchema,
     ChoresListResponseSchema,
+    ChoreUpdateSchema,
     DefaultChoreResponseSchema,
 )
 from chores.services import (

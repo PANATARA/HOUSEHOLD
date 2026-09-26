@@ -63,12 +63,18 @@ def init_firebase() -> bool:
             if os.path.exists(path):
                 cred = credentials.Certificate(path)
             else:
-                logger.warning(f"FCM_CREDENTIALS_PATH specified but file not found: {path}")
+                logger.warning(
+                    f"FCM_CREDENTIALS_PATH specified but file not found: {path}"
+                )
 
         # 3. Default fallback file locations
         if cred is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            for fname in ("serviceAccountKey.json", "firebase-credentials.json", "fcm-credentials.json"):
+            for fname in (
+                "serviceAccountKey.json",
+                "firebase-credentials.json",
+                "fcm-credentials.json",
+            ):
                 cand_path = os.path.join(base_dir, fname)
                 if os.path.exists(cand_path):
                     logger.info(f"Found FCM credentials file at {cand_path}")
@@ -182,7 +188,9 @@ class NotificationService:
                             ):
                                 invalid_tokens.append(chunk[idx])
             except Exception as e:
-                logger.error(f"Error during FCM multicast batch send: {e}", exc_info=True)
+                logger.error(
+                    f"Error during FCM multicast batch send: {e}", exc_info=True
+                )
                 total_failure += len(chunk)
 
         if invalid_tokens:

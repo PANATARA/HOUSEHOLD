@@ -10,7 +10,6 @@ from main import app
 from users.models import User
 from users.repository import UserRepository
 
-
 # ==========================================
 # Unit Tests for Hasher
 # ==========================================
@@ -207,25 +206,3 @@ async def test_login_nonexistent_user(mock_db_session: AsyncMock):
 
     assert response.status_code == 401
     assert "Неверный логин или пароль" in response.json()["detail"]
-
-
-@pytest.mark.asyncio
-async def test_debug_auth(mock_db_session: AsyncMock):
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.first.return_value = None
-    mock_db_session.execute.return_value = mock_result
-
-    app.dependency_overrides[get_db] = lambda: mock_db_session
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        response = await ac.post(
-            "/api/auth/debug-auth",
-            json={"username": "quick_dev"},
-        )
-
-    app.dependency_overrides.clear()
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data

@@ -7,8 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore
+from chores.repository import ChoreRepository
 from core.enums import FrequencyTypeENUM
-from core.exceptions.chores_completion import ChoreCompletionCanNotBeChanged
 from core.services import BaseService
 from core.validators import (
     validate_date_is_not_in_past,
@@ -17,6 +17,7 @@ from core.validators import (
     validate_quick_planned_chore_is_completed,
     validate_quick_planned_chore_is_not_completed,
 )
+from families.repository import FamilyRepository
 from planned_chores.models import ChoreSchedule, PlannedChore, QuickPlannedChore
 from planned_chores.repository import (
     ChoreScheduleRepository,
@@ -24,16 +25,12 @@ from planned_chores.repository import (
     QuickPlannedChoreRepository,
 )
 from planned_chores.schemas import (
-    ChoreScheduleCreateSchema,
     ChoreScheduleUpdateSchema,
     QuickPlannedChoreCreateSchema,
     QuickPlannedChoreUpdateSchema,
 )
-from families.repository import FamilyRepository
-from users.repository import UserRepository
 from users.models import User
-from wallets.models import RewardTransaction
-from wallets.services import AwardService, QuickAwardService
+from users.repository import UserRepository
 
 
 @dataclass
@@ -69,17 +66,17 @@ class CreatePlannedChore(BaseService[PlannedChore]):
 
 
 @dataclass
-class DeletePlannedChore(BaseService[RewardTransaction | None]):
+class DeletePlannedChore(BaseService[None]):
     planned_chore: PlannedChore
     db_session: AsyncSession
 
-    async def process(self) -> RewardTransaction | None:
+    async def process(self):
         if self.planned_chore.completed_by_id is None:
             await self._delete_planned_chore()
             return None
         else:
             await self._soft_delete_planned_chore()
-            return await self._revoke_award()
+            return await self.change_experience()
 
     async def _delete_planned_chore(self) -> None:
         repo = PlannedChoreRepository(self.db_session)
@@ -89,14 +86,17 @@ class DeletePlannedChore(BaseService[RewardTransaction | None]):
         repo = PlannedChoreRepository(self.db_session)
         await repo.soft_delete(self.planned_chore.id)
 
-    async def _revoke_award(self) -> RewardTransaction:
-        service = AwardService(
-            planned_chore=self.planned_chore,
-            message="Отмена награды за выполнение задания",
-            db_session=self.db_session,
-            amount_multiplier=-1,
+    async def change_experience(self) -> None:
+        chore = await ChoreRepository(self.db_session).get_by_id(
+            self.planned_chore.chore_id
         )
-        return await service.run_process()
+        amount = chore.valuation
+        await UserRepository(self.db_session).decrement_experience(
+            self.planned_chore.completed_by_id, amount
+        )
+        await FamilyRepository(self.db_session).decrement_experience(
+            self.planned_chore.family_id, amount
+        )
 
 
 @dataclass
@@ -109,7 +109,7 @@ class CompletePlannedChore(BaseService[PlannedChore]):
         planned_chore = await self._complete_planned_chore()
         await self.increment_family_total_completed()
         await self.increment_user_total_completed()
-        await self.send_reward()
+        await self.change_experience()
         return planned_chore
 
     async def _complete_planned_chore(self) -> PlannedChore:
@@ -125,13 +125,17 @@ class CompletePlannedChore(BaseService[PlannedChore]):
         repo = UserRepository(self.db_session)
         return await repo.increment_total_completed(self.completed_by.id)
 
-    async def send_reward(self):
-        service = AwardService(
-            planned_chore=self.planned_chore,
-            message="income",
-            db_session=self.db_session,
+    async def change_experience(self) -> None:
+        chore = await ChoreRepository(self.db_session).get_by_id(
+            self.planned_chore.chore_id
         )
-        await service.run_process()
+        amount = chore.valuation
+        await UserRepository(self.db_session).increment_experience(
+            self.completed_by.id, amount
+        )
+        await FamilyRepository(self.db_session).increment_experience(
+            self.planned_chore.family_id, amount
+        )
 
     def get_validators(self):
         return [
@@ -148,7 +152,7 @@ class UncompletePlannedChore(BaseService[PlannedChore]):
     async def process(self) -> PlannedChore:
         await self.decrement_family_total_completed()
         await self.decrement_user_total_completed()
-        await self._revoke_award()
+        await self.change_experience()
         planned_chore = await self._uncomplete_planned_chore()
         return planned_chore
 
@@ -165,14 +169,17 @@ class UncompletePlannedChore(BaseService[PlannedChore]):
         repo = UserRepository(self.db_session)
         return await repo.decrement_total_completed(self.planned_chore.completed_by_id)
 
-    async def _revoke_award(self) -> RewardTransaction:
-        service = AwardService(
-            planned_chore=self.planned_chore,
-            message="Отмена награды за выполнение задания",
-            db_session=self.db_session,
-            amount_multiplier=-1,
+    async def change_experience(self) -> None:
+        chore = await ChoreRepository(self.db_session).get_by_id(
+            self.planned_chore.chore_id
         )
-        return await service.run_process()
+        amount = chore.valuation
+        await UserRepository(self.db_session).decrement_experience(
+            self.planned_chore.completed_by_id, amount
+        )
+        await FamilyRepository(self.db_session).decrement_experience(
+            self.planned_chore.family_id, amount
+        )
 
     def get_validators(self):
         return [lambda: validate_planned_chore_is_completed(self.planned_chore)]
@@ -216,12 +223,18 @@ class UpdatePlannedChoreMessage(BaseService[PlannedChore]):
 UpdatePlannedChore = UpdatePlannedChoreMessage
 
 
+# # # # # # # #  #
+# CHORE SCHEDULE #
+# # # # # # # #  #
+
+
 @dataclass
 class CreateChoreSchedule(BaseService[ChoreSchedule]):
     """
     Creates a new recurring chore schedule (ChoreSchedule).
     Validates recurrence frequency, bitmask / day bounds, and family membership.
     """
+
     chore: Chore
     assigned_to: User
     created_by: User
@@ -304,6 +317,7 @@ class UpdateChoreSchedule(BaseService[ChoreSchedule]):
     Updates an existing recurring chore schedule and reconciles future uncompleted planned chores.
     Deletes uncompleted chores that do not match the new recurrence parameters.
     """
+
     schedule: ChoreSchedule
     body: ChoreScheduleUpdateSchema
     db_session: AsyncSession
@@ -396,6 +410,7 @@ class DeleteChoreSchedule(BaseService[None]):
     Deactivates (soft-deletes) a chore schedule and cleans up associated future uncompleted chores.
     Optionally revokes completion awards for already completed chores if specified.
     """
+
     schedule: ChoreSchedule
     db_session: AsyncSession
     revoke_completed_awards: bool = False
@@ -431,6 +446,7 @@ class GeneratePlannedChores(BaseService[int]):
     Generates planned chores ahead for all active recurring chore schedules.
     Maintains a rolling horizon (default: 3 weeks) idempotently.
     """
+
     db_session: AsyncSession
     horizon_weeks: int = 3
 
@@ -490,7 +506,11 @@ class GeneratePlannedChores(BaseService[int]):
             generate_until = min(generate_until, schedule.ends_at)
 
         # Window calculation
-        start_date = max(schedule.starts_at, today) if schedule.last_generated_until is None else schedule.starts_at
+        start_date = (
+            max(schedule.starts_at, today)
+            if schedule.last_generated_until is None
+            else schedule.starts_at
+        )
         if schedule.last_generated_until is not None:
             start_date = max(
                 start_date,
@@ -742,6 +762,11 @@ class GeneratePlannedChores(BaseService[int]):
         return date.day == target_day
 
 
+# # # # # # # # # # # #
+# QUICK PLANNED CHORE #
+# # # # # # # # # # # #
+
+
 @dataclass
 class CreateQuickPlannedChore(BaseService[QuickPlannedChore]):
     body: QuickPlannedChoreCreateSchema
@@ -779,7 +804,7 @@ class CompleteQuickPlannedChore(BaseService[QuickPlannedChore]):
         quick_planned_chore = await self._complete_quick_planned_chore()
         await self.increment_family_total_completed()
         await self.increment_user_total_completed()
-        await self.send_reward()
+        await self.change_experience()
         return quick_planned_chore
 
     async def _complete_quick_planned_chore(self) -> QuickPlannedChore:
@@ -798,12 +823,14 @@ class CompleteQuickPlannedChore(BaseService[QuickPlannedChore]):
             self.current_user.id  # ← было self.quick_planned_chore.id
         )
 
-    async def send_reward(self):
-        await QuickAwardService(
-            quick_chore=self.quick_planned_chore,
-            message="income",
-            db_session=self.db_session,
-        ).run_process()
+    async def change_experience(self) -> None:
+        amount = self.quick_planned_chore.valuation
+        await UserRepository(self.db_session).increment_experience(
+            self.current_user.id, amount
+        )
+        await FamilyRepository(self.db_session).increment_experience(
+            self.current_user.family_id, amount
+        )
 
     def get_validators(self):
         return [
@@ -821,7 +848,6 @@ class UncompleteQuickPlannedChore(BaseService[QuickPlannedChore]):
     async def process(self) -> QuickPlannedChore:
         await self.decrement_family_total_completed()
         await self.decrement_user_total_completed()
-        await self._revoke_award()
         return await self._uncomplete_quick_planned_chore()
 
     async def _uncomplete_quick_planned_chore(self) -> QuickPlannedChore:
@@ -839,14 +865,14 @@ class UncompleteQuickPlannedChore(BaseService[QuickPlannedChore]):
             self.quick_planned_chore.completed_by_id
         )
 
-    async def _revoke_award(self) -> RewardTransaction:
-        service = QuickAwardService(
-            quick_chore=self.quick_planned_chore,
-            message="Отмена награды за выполнение задания",
-            db_session=self.db_session,
-            amount_multiplier=-1,
+    async def change_experience(self) -> None:
+        amount = self.quick_planned_chore.valuation
+        await UserRepository(self.db_session).decrement_experience(
+            self.quick_planned_chore.completed_by_id, amount
         )
-        return await service.run_process()
+        await FamilyRepository(self.db_session).decrement_experience(
+            self.quick_planned_chore.family_id, amount
+        )
 
     def get_validators(self):
         return [
@@ -881,12 +907,13 @@ class DeleteQuickPlannedChore(BaseService[None]):
         obj = await repo.get_by_id(self.quick_planned_chore_id)
 
         if obj.completed_by_id is not None:
-            await AwardService(
-                planned_chore=obj,
-                message="Отмена награды за выполнение задания",
-                db_session=self.db_session,
-                amount_multiplier=-1,
-            ).run_process()
+            amount = obj.valuation
+            await UserRepository(self.db_session).decrement_experience(
+                obj.completed_by_id, amount
+            )
+            await FamilyRepository(self.db_session).decrement_experience(
+                obj.family_id, amount
+            )
 
             await FamilyRepository(self.db_session).decrement_total_completed(
                 obj.family_id

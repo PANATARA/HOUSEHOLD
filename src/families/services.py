@@ -1,6 +1,5 @@
 import random
 import string
-
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -9,15 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.exceptions.families import InvalidInviteCodeError, UserCannotLeaveFamily
 from core.services import BaseService
 from core.validators import validate_user_not_in_family
+from database_connection import redis_client
 from families.models import Family
 from families.repository import FamilyRepository
 from users.models import User, UserFamilyPermissions
 from users.repository import UserPermissionsRepository, UserRepository
 from users.schemas import UserFamilyPermissionModelSchema
-from wallets.models import Wallet
-from wallets.repository import WalletRepository
-from wallets.services import WalletCreatorService
-from database_connection import redis_client
 
 
 @dataclass
@@ -68,7 +64,6 @@ class AddUserToFamilyService(BaseService[Family]):
 
     async def process(self) -> Family:
         await self._add_user_to_family()
-        await self._create_user_wallet()
         await self._create_permissions(self.permissions.model_dump())
         return self.family
 
@@ -82,10 +77,6 @@ class AddUserToFamilyService(BaseService[Family]):
         fields = self.permissions.model_dump()
         fields["user_id"] = self.user.id
         return await perm_dal.create(UserFamilyPermissions(**fields))
-
-    async def _create_user_wallet(self) -> Wallet:
-        user_wallet = WalletCreatorService(self.user, self.db_session)
-        return await user_wallet.run_process()
 
     def get_validators(self):
         return [lambda: validate_user_not_in_family(self.user)]
@@ -101,7 +92,6 @@ class LogoutUserFromFamilyService(BaseService[None]):
     async def process(self) -> None:
         await self._update_user_field()
         await self._delete_user_permissions()
-        await self._delete_user_wallet()
 
     async def _update_user_field(self) -> None:
         user_dal = UserRepository(self.db_session)
@@ -112,14 +102,6 @@ class LogoutUserFromFamilyService(BaseService[None]):
         permissions_repo = UserPermissionsRepository(self.db_session)
         user_permission = await permissions_repo.get_by_user_id(self.user.id)
         await permissions_repo.hard_delete(user_permission.id)
-
-    async def _delete_user_wallet(self) -> None:
-        wallet_repo = WalletRepository(self.db_session)
-        wallet = await wallet_repo.get_by_user_id(self.user.id)
-        await wallet_repo.hard_delete(wallet.id)
-
-    async def _delete_user_products(self) -> None:
-        pass
 
     async def validate(self):
         family_dal = FamilyRepository(self.db_session)

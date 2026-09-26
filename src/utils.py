@@ -1,6 +1,7 @@
-from datetime import UTC, datetime, timedelta
-from statistics.schemas import DateRangeSchema
 from calendar import monthrange
+from datetime import UTC, datetime, timedelta
+
+from statistics.schemas import DateRangeSchema
 
 
 def get_current_week_range() -> DateRangeSchema:

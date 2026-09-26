@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+
 from sqlalchemy import Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -10,13 +11,17 @@ if TYPE_CHECKING:
 
 class UserDevice(Base, BaseUserModel):
     __tablename__ = "user_devices"
-    __table_args__ = (
-        Index("ix_user_devices_user_id", "user_id"),
-    )
+    __table_args__ = (Index("ix_user_devices_user_id", "user_id"),)
 
-    token: Mapped[str] = mapped_column(String(512), unique=True, index=True, nullable=False)
-    device_type: Mapped[str] = mapped_column(String(50), default="android", nullable=False)
-    device_name: Mapped[str | None] = mapped_column(String(100), default=None, nullable=True)
+    token: Mapped[str] = mapped_column(
+        String(512), unique=True, index=True, nullable=False
+    )
+    device_type: Mapped[str] = mapped_column(
+        String(50), default="android", nullable=False
+    )
+    device_name: Mapped[str | None] = mapped_column(
+        String(100), default=None, nullable=True
+    )
 
     user: Mapped["User"] = relationship("User", back_populates="devices")
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError

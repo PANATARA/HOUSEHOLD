@@ -17,3 +17,50 @@ combine_as_imports = true
 skip = [
     "migrations", "venv", ".mypy_cache", "__pycache__"
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+exclude = [
+    "migrations",
+    "venv",
+    ".venv",
+    ".mypy_cache",
+    "__pycache__",
+    ".pytest_cache",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults (FastAPI Depends)
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = [
+    "auth",
+    "chores",
+    "config",
+    "core",
+    "database_connection",
+    "dependencies",
+    "events",
+    "families",
+    "main",
+    "meals",
+    "notifications",
+    "planned_chores",
+    "statistics",
+    "users",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

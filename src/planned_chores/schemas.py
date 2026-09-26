@@ -130,7 +130,9 @@ class QuickPlannedChoreCreateSchema(BaseModel):
     description: str | None = Field(default=None, max_length=500)
     icon: str = Field(default="material-symbols:bolt-rounded", max_length=100)
     icon_color: str = Field(default="#ffffff", max_length=50)
-    icon_bg: str = Field(default="linear-gradient(135deg, #F59E0B 0%, #F97316 100%)", max_length=200)
+    icon_bg: str = Field(
+        default="linear-gradient(135deg, #F59E0B 0%, #F97316 100%)", max_length=200
+    )
     valuation: int = Field(default=10, ge=0, le=100000)
     assigned_to_id: UUID | None = None
     due_date: datetime.date

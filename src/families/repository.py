@@ -57,6 +57,15 @@ class FamilyRepository(BaseDals[Family]):
         )
         await self.db_session.flush()
 
+    async def decrement_experience(self, family_id: UUID, value: int):
+        await self.db_session.execute(
+            update(Family)
+            .where(Family.id == family_id)
+            .where(Family.experience >= value)
+            .values(experience=Family.experience - value)
+        )
+        await self.db_session.flush()
+
     async def increment_total_completed(self, family_id: UUID):
         await self.db_session.execute(
             update(Family)
@@ -137,4 +146,3 @@ class EventRepository(BaseDals[Event], DeleteDALMixin):
             EventResponseSchema.model_validate(event)
             for event in result.scalars().all()
         ]
-

@@ -1,22 +1,14 @@
-from datetime import datetime
 from logging import getLogger
-from statistics.repository import StatsRepository, get_statistic_repo
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from config import USE_S3_STORAGE
-from core.exceptions.base_exceptions import ImageError
 from core.exceptions.families import (
     UserCannotLeaveFamily,
     UserIsAlreadyFamilyMember,
-)
-from core.get_avatars import (
-    GetAvatarService,
-    UploadAvatarService,
 )
 from core.permissions import (
     FamilyInvitePermission,
@@ -47,6 +39,7 @@ from families.services import (
     JoinFamilyByInviteCodeService,
     LogoutUserFromFamilyService,
 )
+from statistics.repository import StatsRepository, get_statistic_repo
 from users.models import User
 from users.repository import UserRepository
 from users.schemas import UserResponseSchema
@@ -327,56 +320,6 @@ async def join_to_family(
         )
         family = await service.run_process()
         return FamilyResponseSchema.model_validate(family)
-
-
-@router.post(
-    path="/avatar/file/",
-    summary="Upload new family's avatar",
-    tags=["Family"],
-    include_in_schema=False,
-)
-async def upload_family_avatar(
-    file: UploadFile = File(...),
-    current_user: User = Depends(FamilyMemberPermission(only_admin=True)),
-    async_session: AsyncSession = Depends(get_db),
-) -> JSONResponse:
-    async with async_session.begin():
-        family = await FamilyRepository(async_session).get_by_id(current_user.family_id)
-        service = UploadAvatarService(
-            target_object=family, file=file, db_session=async_session
-        )
-        try:
-            new_avatar_url = await service.run_process()
-        except ImageError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-    return JSONResponse({"avatar_url": new_avatar_url})
-
-
-@router.get(
-    path="/avatar",
-    summary="Get family's avatar",
-    tags=["Family"],
-    response_model=None,
-    include_in_schema=False,
-)
-async def family_get_avatar(
-    current_user: User = Depends(FamilyMemberPermission()),
-    async_session: AsyncSession = Depends(get_db),
-) -> FileResponse | RedirectResponse:
-    async with async_session.begin():
-        service = GetAvatarService(
-            target_kind="Family",
-            target_object_id=current_user.family_id,
-            db_session=async_session,
-        )
-        avatar = await service.run_process()
-
-    if avatar is None:
-        raise HTTPException(status_code=404, detail="no avatar")
-    elif USE_S3_STORAGE:
-        return RedirectResponse(url=avatar)
-    else:
-        return FileResponse(avatar)
 
 
 @router.post(

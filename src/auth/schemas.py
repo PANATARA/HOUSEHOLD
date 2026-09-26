@@ -32,10 +32,6 @@ class RegisterSchema(BaseModel):
     icon_bg: str | None = Field(default=None, max_length=100)
 
 
-class DebugAuthModel(BaseModel):
-    username: str = "debug_user"
-
-
 class GoogleAuthSchema(BaseModel):
     credential: str | None = None
     token: str | None = None

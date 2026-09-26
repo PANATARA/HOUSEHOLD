@@ -1,4 +1,5 @@
 from uuid import UUID
+
 from sqlalchemy import delete, select
 
 from core.base_dals import BaseDals

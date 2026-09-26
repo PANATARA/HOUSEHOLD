@@ -65,9 +65,7 @@ class UserRepository(BaseDals[User]):
 
         return new_user
 
-    async def get_by_google_sub_or_email(
-        self, sub: str, email: str
-    ) -> User | None:
+    async def get_by_google_sub_or_email(self, sub: str, email: str) -> User | None:
         conditions = [User.email == email]
         if sub:
             conditions.append(User.google_sub == sub)
@@ -125,6 +123,15 @@ class UserRepository(BaseDals[User]):
             update(User)
             .where(User.id == user_id)
             .values(experience=User.experience + value)
+        )
+        await self.db_session.flush()
+
+    async def decrement_experience(self, user_id: UUID, value: int):
+        await self.db_session.execute(
+            update(User)
+            .where(User.id == user_id)
+            .where(User.experience >= value)
+            .values(experience=User.experience - value)
         )
         await self.db_session.flush()
 

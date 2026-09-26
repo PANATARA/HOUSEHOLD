@@ -9,7 +9,9 @@ from statistics.schemas import DateRangeSchema
 
 
 @pytest.mark.asyncio
-async def test_stats_repo_family_members_includes_quick_planned_chore(mock_db_session: AsyncMock):
+async def test_stats_repo_family_members_includes_quick_planned_chore(
+    mock_db_session: AsyncMock,
+):
     family_id = uuid.uuid4()
     user1_id = uuid.uuid4()
     user2_id = uuid.uuid4()

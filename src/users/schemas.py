@@ -35,9 +35,7 @@ class UserUpdateSchema(BaseModel):
     icon_color: str | None = Field(default=None, max_length=50)
     icon_bg: str | None = Field(default=None, max_length=200)
 
-    @field_validator(
-        "username", "name", "icon", "icon_color", "icon_bg", mode="before"
-    )
+    @field_validator("username", "name", "icon", "icon_color", "icon_bg", mode="before")
     @classmethod
     def field_not_none(cls, value, info):
         if value is None:

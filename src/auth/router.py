@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth.schemas import (
     AccessRefreshTokens,
     AccessToken,
-    DebugAuthModel,
     GoogleAuthSchema,
     LoginSchema,
     RefreshToken,
@@ -25,7 +24,9 @@ from users.repository import UserRepository
 router = APIRouter()
 
 
-def _build_tokens(user: User, is_family_admin: bool, is_new_user: bool) -> AccessRefreshTokens:
+def _build_tokens(
+    user: User, is_family_admin: bool, is_new_user: bool
+) -> AccessRefreshTokens:
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_jwt_token(
         data={"sub": str(user.id), "is_family_admin": is_family_admin},
@@ -45,7 +46,12 @@ def _build_tokens(user: User, is_family_admin: bool, is_new_user: bool) -> Acces
     )
 
 
-@router.post("/register", response_model=AccessRefreshTokens, status_code=status.HTTP_201_CREATED, tags=["Auth"])
+@router.post(
+    "/register",
+    response_model=AccessRefreshTokens,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Auth"],
+)
 async def register(
     body: RegisterSchema, db: AsyncSession = Depends(get_db)
 ) -> AccessRefreshTokens:
@@ -108,7 +114,9 @@ async def login(
                 user_id=user.id, family_id=user.family_id
             )
 
-        return _build_tokens(user, is_family_admin=user_is_family_admin, is_new_user=False)
+        return _build_tokens(
+            user, is_family_admin=user_is_family_admin, is_new_user=False
+        )
 
 
 @router.post("/refresh", response_model=AccessToken, tags=["Auth"])
@@ -181,32 +189,6 @@ async def google_auth(
                 user_id=user.id, family_id=user.family_id
             )
 
-        return _build_tokens(user, is_family_admin=user_is_family_admin, is_new_user=is_new_user)
-
-
-@router.post("/debug-auth", response_model=AccessRefreshTokens, tags=["Auth"])
-async def debug_auth(
-    body: DebugAuthModel, db: AsyncSession = Depends(get_db)
-) -> AccessRefreshTokens:
-    username = body.username.strip() or "debug_user"
-    async with db.begin():
-        user_repo = UserRepository(db)
-        user = await user_repo.get_by_username_or_email(identifier=username)
-        is_new_user = False
-        if user is None:
-            hashed_password = Hasher.get_password_hash("password123")
-            user = await user_repo.create_user_with_password(
-                username=username,
-                hashed_password=hashed_password,
-                name=username,
-            )
-            is_new_user = True
-
-        user_is_family_admin = False
-        if user.family_id is not None:
-            family_dal = FamilyRepository(db_session=db)
-            user_is_family_admin = await family_dal.user_is_family_admin(
-                user_id=user.id, family_id=user.family_id
-            )
-
-        return _build_tokens(user, is_family_admin=user_is_family_admin, is_new_user=is_new_user)
+        return _build_tokens(
+            user, is_family_admin=user_is_family_admin, is_new_user=is_new_user
+        )

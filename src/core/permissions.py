@@ -11,7 +11,6 @@ from core.exceptions.http_exceptions import permission_denided
 from core.security import get_payload_from_jwt_token
 from database_connection import get_db
 from planned_chores.models import ChoreSchedule, PlannedChore, QuickPlannedChore
-from products.models import Product
 from users.models import User, UserFamilyPermissions
 from users.repository import UserRepository
 
@@ -218,44 +217,6 @@ class ChoreSchedulePermission(BasePermission):
                 & (User.family_id == ChoreSchedule.family_id)
             ),
         )
-
-        result = await async_session.execute(query)
-        user = result.scalars().first()
-
-        if user is None:
-            raise permission_denided
-        return user
-
-
-class ProductPermission(BasePermission):
-    """
-    Permission that checks if the user has access to a product belonging to their family.
-    """
-
-    def __init__(self, only_owner: bool = False):
-        self.only_owner = only_owner
-        super().__init__()
-
-    async def get_user_and_check_permission(
-        self,
-        token_payload: dict[str, Any],
-        http_method: str,
-        async_session: AsyncSession,
-        **kwargs,
-    ) -> User:
-        product_id = kwargs.get("product_id")
-        user_id = token_payload.get("sub")
-
-        exists_query = (
-            select(Product)
-            .where(Product.id == product_id)
-            .where(Product.family_id == User.family_id)
-        )
-
-        if self.only_owner:
-            exists_query = exists_query.where(Product.seller_id == user_id)
-
-        query = select(User).where(User.id == user_id).where(exists(exists_query))
 
         result = await async_session.execute(query)
         user = result.scalars().first()

@@ -117,3 +117,10 @@ pwa-build: ## Build PWA from frontend repo and copy to static/
 		exit 1; \
 	fi
 
+format: ## Format code and sort imports using Ruff
+	@./venv/bin/ruff check --select I --fix src tests scripts
+	@./venv/bin/ruff format src tests scripts
+	@echo "✓ Code formatted and imports sorted!"
+
+lint: ## Lint codebase with Ruff
+	@./venv/bin/ruff check src tests scripts

@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query
 
 from core.permissions import FamilyMemberPermission, FamilyUserAccessPermission
@@ -100,12 +101,12 @@ Each day in the range will be listed, even if the nobody had no activity on that
 {date_range_docs}
 
 **Response**:
-Returns a list of days with the corresponding number of completed chores.  
+Returns a list of days with the corresponding number of completed chores.
 Days without any activity will have an activity count of 0.
 Results are sorted chronologically.
 
-**Note:**  
-- The maximum allowed date range is **1 year** (366 days).  
+**Note:**
+- The maximum allowed date range is **1 year** (366 days).
 - If a longer range is requested, an error will be returned.
 """,
 )
@@ -141,12 +142,12 @@ Each day in the range will be listed, even if the user had no activity on that d
 {date_range_docs}
 
 **Response**:
-Returns a list of days with the corresponding number of completed chores.  
+Returns a list of days with the corresponding number of completed chores.
 Days without any activity will have an activity count of 0.
 Results are sorted chronologically.
 
-**Note:**  
-- The maximum allowed date range is **1 year** (366 days).  
+**Note:**
+- The maximum allowed date range is **1 year** (366 days).
 - If a longer range is requested, an error will be returned.
 """,
 )
@@ -195,7 +196,7 @@ async def users_chores_counts(
     response_model=UserProfileStats,
     summary="Get user's chore completion stats",
     description="""
-        Returns the number of chores completed by a specific user 
+        Returns the number of chores completed by a specific user
         for the current week and current month.
         Requires permission to access the user's profile.
     """,

@@ -1,13 +1,14 @@
 import datetime
 import uuid
+
 import pytest
 from pydantic import ValidationError
 
 from core.enums import FrequencyTypeENUM
 from planned_chores.schemas import (
     ChoreScheduleCreateSchema,
-    ChoreScheduleUpdateSchema,
     ChoreScheduleResponseSchema,
+    ChoreScheduleUpdateSchema,
 )
 
 
@@ -187,7 +188,10 @@ def test_response_schema_validation():
 
 
 def test_planned_chore_update_message_schema_valid():
-    from planned_chores.schemas import PlannedChoreUpdateMessageSchema, PlannedChoreUpdateSchema
+    from planned_chores.schemas import (
+        PlannedChoreUpdateMessageSchema,
+        PlannedChoreUpdateSchema,
+    )
 
     schema = PlannedChoreUpdateMessageSchema(message="New custom note")
     assert schema.message == "New custom note"
@@ -208,4 +212,3 @@ def test_planned_chore_update_message_schema_required():
 
     with pytest.raises(ValidationError):
         PlannedChoreUpdateMessageSchema()  # missing message
-

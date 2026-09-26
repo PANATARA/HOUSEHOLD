@@ -23,8 +23,6 @@ class Family(Base, BaseIdTimeStampModel):
         ),
         index=True,
     )
-    avatar_version: Mapped[int | None] = mapped_column(default=None)
-    avatar_extension: Mapped[str | None] = mapped_column(default=None)
     total_completed: Mapped[int] = mapped_column(server_default="0", nullable=False)
     experience: Mapped[int] = mapped_column(default=0)
 
@@ -34,9 +32,7 @@ class Family(Base, BaseIdTimeStampModel):
 
 class Event(Base, BaseIdTimeStampModel):
     __tablename__ = "events"
-    __table_args__ = (
-        Index("ix_events_family_id_date", "family_id", "date"),
-    )
+    __table_args__ = (Index("ix_events_family_id_date", "family_id", "date"),)
 
     name: Mapped[str]
     description: Mapped[str | None]

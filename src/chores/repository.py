@@ -89,7 +89,6 @@ class DefaultChoreRepository(BaseDals[Chore]):
             return []
         return [DefaultChoreResponseSchema.model_validate(item) for item in raw_data]
 
-
     async def get_default_chores_not_added(
         self, family_id: UUID, language: str
     ) -> list[DefaultChoreResponseSchema]:

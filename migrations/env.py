@@ -22,8 +22,6 @@ from users.models import User, UserFamilyPermissions, UserSettings
 from families.models import Family, Event
 from chores.models import Chore, DefaultChore, DefaultChoreTranslation
 from planned_chores.models import PlannedChore, ChoreSchedule, QuickPlannedChore
-from wallets.models import Wallet, PeerTransaction, RewardTransaction
-from products.models import Product, ProductBuyer
 from meals.models import Recipe, PlannedMeal, GroceryItem
 from notifications.models import UserDevice
 

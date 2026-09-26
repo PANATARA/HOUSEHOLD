@@ -6,13 +6,12 @@ from sqlalchemy.orm import sessionmaker
 
 import config
 
-
 # create async engine for interaction with database
 engine = create_async_engine(
     url=config.REAL_DATABASE_URL,
     future=True,
-    echo=True,
-    execution_options={"isolation_level": "REPEATABLE READ"},
+    echo=False,
+    execution_options={"isolation_level": "READ COMMITTED"},
 )
 
 # create session for the interaction with database
@@ -73,4 +72,3 @@ class RedisClient(metaclass=Singleton):
 
 
 redis_client = RedisClient(redis_url=config.REDIS_URL)
-

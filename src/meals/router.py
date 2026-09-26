@@ -51,8 +51,13 @@ router = APIRouter(tags=["Meals & Recipe Hub"])
     summary="Get family recipes with category and search filtering",
 )
 async def get_recipes(
-    category: str | None = Query(None, description="Category filter (quick, kids, desserts, dinner, favorites, etc.)"),
-    search: str | None = Query(None, description="Search query by dish name or description"),
+    category: str | None = Query(
+        None,
+        description="Category filter (quick, kids, desserts, dinner, favorites, etc.)",
+    ),
+    search: str | None = Query(
+        None, description="Search query by dish name or description"
+    ),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
 ):
@@ -185,8 +190,12 @@ async def delete_recipe(
     summary="Get planned meals for a date range (defaults to current week)",
 )
 async def get_planned_meals(
-    due_date: datetime.date | None = Query(None, description="Specific date (YYYY-MM-DD)"),
-    start_date: datetime.date | None = Query(None, description="Start date (YYYY-MM-DD)"),
+    due_date: datetime.date | None = Query(
+        None, description="Specific date (YYYY-MM-DD)"
+    ),
+    start_date: datetime.date | None = Query(
+        None, description="Start date (YYYY-MM-DD)"
+    ),
     end_date: datetime.date | None = Query(None, description="End date (YYYY-MM-DD)"),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),

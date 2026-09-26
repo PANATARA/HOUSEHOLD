@@ -1,6 +1,5 @@
 from core.exceptions.base_exceptions import (
     BaseAPIException,
-    ImageError,
     ObjectNotFoundError,
 )
 
@@ -18,10 +17,6 @@ class UserNotFoundError(UserError, ObjectNotFoundError):
         self.message = message
         super().__init__(self.message)
 
-
-class UserAvatarSizeTooLargre(UserError, ImageError):
-    def __init__(self, message="Image size is too large"):
-        self.message = message
         super().__init__(self.message)
 
 

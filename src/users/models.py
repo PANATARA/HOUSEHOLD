@@ -5,7 +5,6 @@ from sqlalchemy import Boolean, Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.models import Base, BaseIdTimeStampModel, OneToOneUserModel
-
 from notifications.models import UserDevice
 
 
@@ -18,9 +17,15 @@ class User(Base, BaseIdTimeStampModel):
         ForeignKey(column="family.id", ondelete="SET NULL", use_alter=True),
         index=True,
     )
-    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, default=None)
-    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
-    google_sub: Mapped[str | None] = mapped_column(String(100), unique=True, index=True, nullable=True, default=None)
+    email: Mapped[str | None] = mapped_column(
+        String(255), unique=True, nullable=True, default=None
+    )
+    hashed_password: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, default=None
+    )
+    google_sub: Mapped[str | None] = mapped_column(
+        String(100), unique=True, index=True, nullable=True, default=None
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -33,8 +38,6 @@ class User(Base, BaseIdTimeStampModel):
     devices: Mapped[list["UserDevice"]] = relationship(
         "UserDevice", back_populates="user", cascade="all, delete-orphan"
     )
-    avatar_version: Mapped[int | None] = mapped_column(default=None)
-    avatar_extension: Mapped[str | None] = mapped_column(default=None)
     icon: Mapped[str] = mapped_column(server_default="material-symbols:person-rounded")
     icon_color: Mapped[str] = mapped_column(server_default="#ffffff")
     icon_bg: Mapped[str] = mapped_column(

@@ -6,14 +6,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from core.enums import FrequencyTypeENUM
-from families.models import Family
-from users.models import User
 from chores.models import Chore
-from planned_chores.models import ChoreSchedule, PlannedChore
+from core.enums import FrequencyTypeENUM
 from database_connection import get_db
-from core.permissions import ChoreSchedulePermission, PlannedChorePermission, FamilyMemberPermission
+from families.models import Family
 from main import app
+from planned_chores.models import ChoreSchedule
+from users.models import User
 
 
 @pytest.fixture
@@ -130,6 +129,7 @@ async def async_client(
     Ensures tests run in complete isolation from production DB and network.
     """
     from fastapi import Request
+
     from core.permissions import BasePermission
 
     async def override_get_db():

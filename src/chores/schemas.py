@@ -6,9 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field
 class ChoreCreateSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-    icon: str = Field(default="material-symbols:cleaning-services-rounded", max_length=100)
+    icon: str = Field(
+        default="material-symbols:cleaning-services-rounded", max_length=100
+    )
     icon_color: str = Field(default="#ffffff", max_length=50)
-    icon_bg: str = Field(default="linear-gradient(135deg, #8a7f6e 0%, #6b5f50 100%)", max_length=200)
+    icon_bg: str = Field(
+        default="linear-gradient(135deg, #8a7f6e 0%, #6b5f50 100%)", max_length=200
+    )
     valuation: int = Field(default=10, ge=0, le=100000)
 
 

@@ -12,7 +12,9 @@ class FamilyCreateSchema(BaseModel):
     name: str = Field(..., min_length=2, max_length=60)
     icon: str = Field(default="material-symbols:home-rounded", max_length=100)
     icon_color: str = Field(default="#ffffff", max_length=50)
-    icon_bg: str = Field(default="linear-gradient(135deg, #F97316 0%, #FB7185 100%)", max_length=200)
+    icon_bg: str = Field(
+        default="linear-gradient(135deg, #F97316 0%, #FB7185 100%)", max_length=200
+    )
 
 
 class FamilyResponseSchema(BaseModel):

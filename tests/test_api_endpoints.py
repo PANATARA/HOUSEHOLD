@@ -2,13 +2,11 @@ import datetime
 import uuid
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from httpx import AsyncClient
 
-from core.enums import FrequencyTypeENUM
 from chores.models import Chore
-from users.models import User
 from planned_chores.models import ChoreSchedule, PlannedChore
+from users.models import User
 
 
 async def test_create_schedule_endpoint(
@@ -25,9 +23,18 @@ async def test_create_schedule_endpoint(
         "starts_at": today,
     }
 
-    with patch("chores.repository.ChoreRepository.get_by_id", new_callable=AsyncMock) as mock_chore, \
-         patch("users.repository.UserRepository.get_by_id", new_callable=AsyncMock) as mock_user, \
-         patch("planned_chores.services.CreateChoreSchedule.run_process", new_callable=AsyncMock) as mock_service:
+    with (
+        patch(
+            "chores.repository.ChoreRepository.get_by_id", new_callable=AsyncMock
+        ) as mock_chore,
+        patch(
+            "users.repository.UserRepository.get_by_id", new_callable=AsyncMock
+        ) as mock_user,
+        patch(
+            "planned_chores.services.CreateChoreSchedule.run_process",
+            new_callable=AsyncMock,
+        ) as mock_service,
+    ):
         mock_chore.return_value = sample_chore
         mock_user.return_value = sample_user
         mock_service.return_value = sample_schedule
@@ -55,7 +62,9 @@ async def test_create_schedule_chore_not_found(
         "starts_at": datetime.date.today().isoformat(),
     }
 
-    with patch("chores.repository.ChoreRepository.get_by_id", new_callable=AsyncMock) as mock_chore:
+    with patch(
+        "chores.repository.ChoreRepository.get_by_id", new_callable=AsyncMock
+    ) as mock_chore:
         mock_chore.return_value = None
 
         response = await async_client.post(
@@ -71,8 +80,15 @@ async def test_get_chore_schedule_endpoint(
     sample_chore: Chore,
     sample_schedule: ChoreSchedule,
 ):
-    with patch("chores.repository.ChoreRepository.get_by_id", new_callable=AsyncMock) as mock_chore, \
-         patch("planned_chores.repository.ChoreScheduleRepository.get_by_chore_id", new_callable=AsyncMock) as mock_sched:
+    with (
+        patch(
+            "chores.repository.ChoreRepository.get_by_id", new_callable=AsyncMock
+        ) as mock_chore,
+        patch(
+            "planned_chores.repository.ChoreScheduleRepository.get_by_chore_id",
+            new_callable=AsyncMock,
+        ) as mock_sched,
+    ):
         mock_chore.return_value = sample_chore
         mock_sched.return_value = sample_schedule
 
@@ -87,8 +103,15 @@ async def test_get_chore_schedule_not_found(
     async_client: AsyncClient,
     sample_chore: Chore,
 ):
-    with patch("chores.repository.ChoreRepository.get_by_id", new_callable=AsyncMock) as mock_chore, \
-         patch("planned_chores.repository.ChoreScheduleRepository.get_by_chore_id", new_callable=AsyncMock) as mock_sched:
+    with (
+        patch(
+            "chores.repository.ChoreRepository.get_by_id", new_callable=AsyncMock
+        ) as mock_chore,
+        patch(
+            "planned_chores.repository.ChoreScheduleRepository.get_by_chore_id",
+            new_callable=AsyncMock,
+        ) as mock_sched,
+    ):
         mock_chore.return_value = sample_chore
         mock_sched.return_value = None
 
@@ -104,8 +127,16 @@ async def test_update_schedule_endpoint(
         "interval": 3,
     }
 
-    with patch("planned_chores.repository.ChoreScheduleRepository.get_by_id", new_callable=AsyncMock) as mock_get, \
-         patch("planned_chores.services.UpdateChoreSchedule.run_process", new_callable=AsyncMock) as mock_service:
+    with (
+        patch(
+            "planned_chores.repository.ChoreScheduleRepository.get_by_id",
+            new_callable=AsyncMock,
+        ) as mock_get,
+        patch(
+            "planned_chores.services.UpdateChoreSchedule.run_process",
+            new_callable=AsyncMock,
+        ) as mock_service,
+    ):
         mock_get.return_value = sample_schedule
         sample_schedule.interval = 3
         mock_service.return_value = sample_schedule
@@ -123,8 +154,16 @@ async def test_delete_schedule_endpoint(
     async_client: AsyncClient,
     sample_schedule: ChoreSchedule,
 ):
-    with patch("planned_chores.repository.ChoreScheduleRepository.get_by_id", new_callable=AsyncMock) as mock_get, \
-         patch("planned_chores.services.DeleteChoreSchedule.run_process", new_callable=AsyncMock) as mock_del:
+    with (
+        patch(
+            "planned_chores.repository.ChoreScheduleRepository.get_by_id",
+            new_callable=AsyncMock,
+        ) as mock_get,
+        patch(
+            "planned_chores.services.DeleteChoreSchedule.run_process",
+            new_callable=AsyncMock,
+        ) as mock_del,
+    ):
         mock_get.return_value = sample_schedule
         mock_del.return_value = None
 
@@ -181,9 +220,20 @@ async def test_update_planned_chore_message_endpoint(
 
     payload = {"message": "Updated message text"}
 
-    with patch("planned_chores.repository.PlannedChoreRepository.get_by_id", new_callable=AsyncMock) as mock_get, \
-         patch("planned_chores.services.UpdatePlannedChoreMessage.run_process", new_callable=AsyncMock) as mock_service, \
-         patch("planned_chores.repository.PlannedChoreRepository.get_planned_chore_by_id", new_callable=AsyncMock) as mock_full:
+    with (
+        patch(
+            "planned_chores.repository.PlannedChoreRepository.get_by_id",
+            new_callable=AsyncMock,
+        ) as mock_get,
+        patch(
+            "planned_chores.services.UpdatePlannedChoreMessage.run_process",
+            new_callable=AsyncMock,
+        ) as mock_service,
+        patch(
+            "planned_chores.repository.PlannedChoreRepository.get_planned_chore_by_id",
+            new_callable=AsyncMock,
+        ) as mock_full,
+    ):
         mock_get.return_value = planned_chore
         mock_service.return_value = planned_chore
         mock_full.return_value = mock_resp_schema
@@ -248,9 +298,20 @@ async def test_update_planned_chore_message_endpoint_alias(
 
     payload = {"message": "Updated via alias"}
 
-    with patch("planned_chores.repository.PlannedChoreRepository.get_by_id", new_callable=AsyncMock) as mock_get, \
-         patch("planned_chores.services.UpdatePlannedChoreMessage.run_process", new_callable=AsyncMock) as mock_service, \
-         patch("planned_chores.repository.PlannedChoreRepository.get_planned_chore_by_id", new_callable=AsyncMock) as mock_full:
+    with (
+        patch(
+            "planned_chores.repository.PlannedChoreRepository.get_by_id",
+            new_callable=AsyncMock,
+        ) as mock_get,
+        patch(
+            "planned_chores.services.UpdatePlannedChoreMessage.run_process",
+            new_callable=AsyncMock,
+        ) as mock_service,
+        patch(
+            "planned_chores.repository.PlannedChoreRepository.get_planned_chore_by_id",
+            new_callable=AsyncMock,
+        ) as mock_full,
+    ):
         mock_get.return_value = planned_chore
         mock_service.return_value = planned_chore
         mock_full.return_value = mock_resp_schema
@@ -276,4 +337,3 @@ async def test_update_planned_chore_message_validation_error(
         json={"message": "a" * 2001},
     )
     assert response.status_code == 422
-

@@ -46,7 +46,9 @@ class Recipe(Base, BaseIdTimeStampModel):
     steps: Mapped[list[dict]] = mapped_column(JSONB, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    created_by: Mapped["User | None"] = relationship("User", foreign_keys=[created_by_id])
+    created_by: Mapped["User | None"] = relationship(
+        "User", foreign_keys=[created_by_id]
+    )
 
     def __repr__(self):
         return f"<Recipe id={self.id} title={self.title}>"
@@ -102,7 +104,12 @@ class PlannedMeal(Base, BaseIdTimeStampModel):
 class GroceryItem(Base, BaseIdTimeStampModel):
     __tablename__ = "grocery_items"
     __table_args__ = (
-        Index("ix_grocery_items_family_active_bought", "family_id", "is_active", "is_bought"),
+        Index(
+            "ix_grocery_items_family_active_bought",
+            "family_id",
+            "is_active",
+            "is_bought",
+        ),
     )
 
     family_id: Mapped[uuid.UUID] = mapped_column(

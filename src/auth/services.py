@@ -1,5 +1,6 @@
 import asyncio
 import logging
+
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
@@ -21,7 +22,10 @@ def _sync_verify_google_token(token: str, client_id: str | None = None) -> dict:
             request,
             audience=client_id if client_id else None,
         )
-        if id_info.get("iss") not in ["accounts.google.com", "https://accounts.google.com"]:
+        if id_info.get("iss") not in [
+            "accounts.google.com",
+            "https://accounts.google.com",
+        ]:
             raise InvalidGoogleTokenError(f"Invalid token issuer: {id_info.get('iss')}")
         return id_info
     except (ValueError, GoogleAuthError) as e:
@@ -30,4 +34,6 @@ def _sync_verify_google_token(token: str, client_id: str | None = None) -> dict:
 
 
 async def verify_google_id_token(token: str) -> dict:
-    return await asyncio.to_thread(_sync_verify_google_token, token, config.GOOGLE_CLIENT_ID)
+    return await asyncio.to_thread(
+        _sync_verify_google_token, token, config.GOOGLE_CLIENT_ID
+    )

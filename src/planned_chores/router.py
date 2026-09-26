@@ -15,7 +15,6 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.repository import ChoreRepository
-from notifications.service import notify_family_about_new_chore
 from core.permissions import (
     ChorePermission,
     ChoreSchedulePermission,
@@ -24,6 +23,7 @@ from core.permissions import (
     QuickPlannedChorePermission,
 )
 from database_connection import get_db
+from notifications.service import notify_family_about_new_chore
 from planned_chores.repository import (
     ChoreScheduleRepository,
     PlannedChoreRepository,
@@ -33,12 +33,10 @@ from planned_chores.schemas import (
     ChoreScheduleCreateSchema,
     ChoreScheduleResponseSchema,
     ChoreScheduleUpdateSchema,
-    CreateChoreScheduleSchema,
     PlannedChoreCreateSchema,
     PlannedChoreRescheduleSchema,
     PlannedChoreResponseSchema,
     PlannedChoreUpdateMessageSchema,
-    PlannedChoreUpdateSchema,
     QuickPlannedChoreCreateSchema,
     QuickPlannedChoreResponseSchema,
     QuickPlannedChoreUpdateSchema,
@@ -47,7 +45,6 @@ from planned_chores.services import (
     CompletePlannedChore,
     CompleteQuickPlannedChore,
     CreateChoreSchedule,
-    CreateChoreScheduleService,
     CreatePlannedChore,
     CreateQuickPlannedChore,
     DeleteChoreSchedule,
@@ -58,7 +55,6 @@ from planned_chores.services import (
     UncompletePlannedChore,
     UncompleteQuickPlannedChore,
     UpdateChoreSchedule,
-    UpdatePlannedChore,
     UpdatePlannedChoreMessage,
     UpdateQuickPlannedChore,
 )
@@ -292,9 +288,7 @@ async def create_chore_schedule(
         if chore is None:
             raise HTTPException(status_code=404, detail="Chore not found")
 
-        assigned_to = await UserRepository(async_session).get_by_id(
-            body.assigned_to_id
-        )
+        assigned_to = await UserRepository(async_session).get_by_id(body.assigned_to_id)
         if assigned_to is None:
             raise HTTPException(status_code=404, detail="User not found")
 

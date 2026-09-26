@@ -2,13 +2,11 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import ValidationError
 
 from auth.schemas import GoogleAuthSchema
 from auth.services import InvalidGoogleTokenError, verify_google_id_token
 from users.models import User
 from users.repository import UserRepository
-
 
 # ==========================================
 # Schema Tests
@@ -47,7 +45,9 @@ async def test_verify_google_id_token_success():
         "family_name": "User",
         "iss": "https://accounts.google.com",
     }
-    with patch("auth.services.google_id_token.verify_oauth2_token", return_value=mock_payload):
+    with patch(
+        "auth.services.google_id_token.verify_oauth2_token", return_value=mock_payload
+    ):
         result = await verify_google_id_token("mock_google_jwt")
         assert result["sub"] == "1234567890"
         assert result["email"] == "test@gmail.com"
@@ -60,14 +60,19 @@ async def test_verify_google_id_token_invalid_issuer():
         "email": "test@gmail.com",
         "iss": "https://malicious-issuer.com",
     }
-    with patch("auth.services.google_id_token.verify_oauth2_token", return_value=mock_payload):
+    with patch(
+        "auth.services.google_id_token.verify_oauth2_token", return_value=mock_payload
+    ):
         with pytest.raises(InvalidGoogleTokenError, match="Invalid token issuer"):
             await verify_google_id_token("mock_google_jwt")
 
 
 @pytest.mark.asyncio
 async def test_verify_google_id_token_invalid():
-    with patch("auth.services.google_id_token.verify_oauth2_token", side_effect=ValueError("Token expired")):
+    with patch(
+        "auth.services.google_id_token.verify_oauth2_token",
+        side_effect=ValueError("Token expired"),
+    ):
         with pytest.raises(InvalidGoogleTokenError):
             await verify_google_id_token("mock_google_jwt")
 
@@ -129,7 +134,9 @@ async def test_upsert_google_user_existing(mock_db_session: AsyncMock):
 
 
 @pytest.mark.asyncio
-async def test_api_google_auth_success(async_client, mock_db_session: AsyncMock, sample_user: User):
+async def test_api_google_auth_success(
+    async_client, mock_db_session: AsyncMock, sample_user: User
+):
     mock_payload = {
         "sub": "google_sub_12345",
         "email": "user@gmail.com",
@@ -140,8 +147,16 @@ async def test_api_google_auth_success(async_client, mock_db_session: AsyncMock,
         "iss": "https://accounts.google.com",
     }
 
-    with patch("auth.router.verify_google_id_token", AsyncMock(return_value=mock_payload)), \
-         patch.object(UserRepository, "upsert_google_user", AsyncMock(return_value=(sample_user, True))):
+    with (
+        patch(
+            "auth.router.verify_google_id_token", AsyncMock(return_value=mock_payload)
+        ),
+        patch.object(
+            UserRepository,
+            "upsert_google_user",
+            AsyncMock(return_value=(sample_user, True)),
+        ),
+    ):
         resp = await async_client.post(
             "/api/auth/google",
             json={"credential": "sample_valid_google_jwt"},
@@ -156,7 +171,10 @@ async def test_api_google_auth_success(async_client, mock_db_session: AsyncMock,
 
 @pytest.mark.asyncio
 async def test_api_google_auth_invalid_token(async_client, mock_db_session: AsyncMock):
-    with patch("auth.router.verify_google_id_token", AsyncMock(side_effect=InvalidGoogleTokenError("Expired"))):
+    with patch(
+        "auth.router.verify_google_id_token",
+        AsyncMock(side_effect=InvalidGoogleTokenError("Expired")),
+    ):
         resp = await async_client.post(
             "/api/auth/google",
             json={"credential": "invalid_token"},

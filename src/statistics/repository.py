@@ -1,11 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date
-from statistics.schemas import (
-    ChoresFamilyCountSchema,
-    DateRangeSchema,
-    UserChoresCountSchema,
-)
 from uuid import UUID
 
 from fastapi import Depends
@@ -13,6 +8,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database_connection import get_db
+from statistics.schemas import (
+    ChoresFamilyCountSchema,
+    DateRangeSchema,
+    UserChoresCountSchema,
+)
 
 
 class StatsRepository(ABC):
@@ -62,7 +62,9 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> list[UserChoresCountSchema]:
-        condition = "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
+        condition = (
+            "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
+        )
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
@@ -94,7 +96,9 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> list[ChoresFamilyCountSchema]:
-        condition = "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
+        condition = (
+            "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
+        )
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
@@ -119,7 +123,9 @@ class StatsPostgresRepository(StatsRepository):
         family_id: UUID,
         interval: DateRangeSchema | None = None,
     ) -> dict[date, int]:
-        condition = "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
+        condition = (
+            "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
+        )
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)
@@ -208,7 +214,9 @@ class StatsPostgresRepository(StatsRepository):
     async def get_family_chore_completion_count(
         self, family_id: UUID, interval: DateRangeSchema | None = None
     ) -> int:
-        condition = "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
+        condition = (
+            "family_id = :family_id AND completed_by_id IS NOT NULL AND is_active"
+        )
         params = {"family_id": str(family_id)}
 
         condition, params = self._add_date_interval(condition, params, interval)

@@ -7,9 +7,7 @@ from core.exceptions.chores_completion import (
     ChoreCompletionCanNotBeChanged,
 )
 from core.exceptions.families import UserIsAlreadyFamilyMember, UserNotFoundInFamily
-from core.exceptions.products import ProductError, ProductNotFoundError
 from planned_chores.models import PlannedChore, QuickPlannedChore
-from products.models import Product
 from users.models import User
 
 
@@ -51,13 +49,3 @@ def validate_quick_planned_chore_is_completed(target: QuickPlannedChore) -> None
 def validate_user_not_in_family(user: User) -> None:
     if user.family_id is not None:
         raise UserIsAlreadyFamilyMember()
-
-
-def validate_product_is_active(product: Product) -> None:
-    if not product.is_active:
-        raise ProductNotFoundError()
-
-
-def validate_user_can_buy_product(product: Product, byuer: User):
-    if product.seller_id == byuer.id:
-        raise ProductError()

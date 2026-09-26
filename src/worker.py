@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 import logging
 import sys
 from pathlib import Path
@@ -14,19 +15,17 @@ if str(_parent_dir) not in sys.path:
 from arq import cron
 from arq.connections import RedisSettings
 
+import chores.models  # noqa: F401
 import config
-from database_connection import async_session_maker
-from planned_chores.services import GeneratePlannedChores
+import families.models  # noqa: F401
+import meals.models  # noqa: F401
+import notifications.models  # noqa: F401
+import planned_chores.models  # noqa: F401
 
 # Ensure all SQLAlchemy models are registered in the mapper registry
 import users.models  # noqa: F401
-import families.models  # noqa: F401
-import chores.models  # noqa: F401
-import planned_chores.models  # noqa: F401
-import notifications.models  # noqa: F401
-import wallets.models  # noqa: F401
-import products.models  # noqa: F401
-import meals.models  # noqa: F401
+from database_connection import async_session_maker
+from planned_chores.services import GeneratePlannedChores
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +43,9 @@ async def generate_planned_chores_task(ctx: dict[str, Any]) -> int:
         logger.info("ARQ: Successfully generated %d planned chores.", count)
         return count
     except Exception as e:
-        logger.error("ARQ: Error during planned chores generation: %s", e, exc_info=True)
+        logger.error(
+            "ARQ: Error during planned chores generation: %s", e, exc_info=True
+        )
         raise
 
 

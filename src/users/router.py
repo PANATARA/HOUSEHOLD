@@ -1,16 +1,9 @@
 from logging import getLogger
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import USE_S3_STORAGE
-from core.exceptions.base_exceptions import ImageError
-from core.get_avatars import (
-    GetAvatarService,
-    UploadAvatarService,
-)
 from core.permissions import (
     FamilyUserAccessPermission,
     IsAuthenicatedPermission,
@@ -188,52 +181,3 @@ async def get_user_profile(
             "is_family_admin": is_family_admin,
         }
     )
-
-
-@router.post(
-    path="me/avatar/file",
-    summary="Upload a new avatar for the current user",
-    tags=["Me"],
-    include_in_schema=False,
-)
-async def me_user_upload_avatar(
-    file: UploadFile = File(...),
-    current_user: User = Depends(IsAuthenicatedPermission()),
-    async_session: AsyncSession = Depends(get_db),
-) -> JSONResponse:
-    async with async_session.begin():
-        service = UploadAvatarService(
-            target_object=current_user, file=file, db_session=async_session
-        )
-        try:
-            new_avatar_url = await service.run_process()
-        except ImageError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-    return JSONResponse(content={"avatar_url": new_avatar_url}, status_code=201)
-
-
-@router.get(
-    path="/{user_id}/avatar",
-    summary="Get avatar for a user by ID",
-    tags=["Users"],
-    response_model=None,
-    include_in_schema=False,
-)
-async def user_get_avatar(
-    user_id: UUID,
-    avatar_version: str | None = Query(None, description="Avatar version"),
-    current_user: User = Depends(FamilyUserAccessPermission()),
-    async_session: AsyncSession = Depends(get_db),
-) -> FileResponse | RedirectResponse:
-    async with async_session.begin():
-        service = GetAvatarService(
-            target_kind="User", target_object_id=user_id, db_session=async_session
-        )
-        avatar = await service.run_process()
-
-    if avatar is None:
-        raise HTTPException(status_code=404, detail="User has no avatar")
-    elif USE_S3_STORAGE:
-        return RedirectResponse(url=avatar)
-    else:
-        return FileResponse(avatar)

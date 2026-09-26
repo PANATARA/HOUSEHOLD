@@ -1,8 +1,6 @@
 import datetime
 import uuid
-from unittest.mock import AsyncMock, patch, MagicMock
-
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from core.enums import FrequencyTypeENUM
 from planned_chores.models import ChoreSchedule, PlannedChore
@@ -75,8 +73,16 @@ async def test_reconciliation_deletes_unmatched_uncompleted_chores(
 
     generator = GeneratePlannedChores(db_session=mock_db_session)
 
-    with patch("planned_chores.services.PlannedChoreRepository.hard_delete", new_callable=AsyncMock) as mock_delete, \
-         patch("planned_chores.services.ChoreScheduleRepository.update", new_callable=AsyncMock):
+    with (
+        patch(
+            "planned_chores.services.PlannedChoreRepository.hard_delete",
+            new_callable=AsyncMock,
+        ) as mock_delete,
+        patch(
+            "planned_chores.services.ChoreScheduleRepository.update",
+            new_callable=AsyncMock,
+        ),
+    ):
         await generator.reconcile_for_schedule(sample_schedule, from_date=today)
 
         # Day 1 and Day 2 should be deleted
@@ -122,8 +128,16 @@ async def test_reconciliation_preserves_completed_chores(
 
     generator = GeneratePlannedChores(db_session=mock_db_session)
 
-    with patch("planned_chores.services.PlannedChoreRepository.hard_delete", new_callable=AsyncMock) as mock_delete, \
-         patch("planned_chores.services.ChoreScheduleRepository.update", new_callable=AsyncMock):
+    with (
+        patch(
+            "planned_chores.services.PlannedChoreRepository.hard_delete",
+            new_callable=AsyncMock,
+        ) as mock_delete,
+        patch(
+            "planned_chores.services.ChoreScheduleRepository.update",
+            new_callable=AsyncMock,
+        ),
+    ):
         await generator.reconcile_for_schedule(sample_schedule, from_date=today)
         mock_delete.assert_not_called()
 
@@ -164,7 +178,9 @@ async def test_reconciliation_updates_assigned_user(
 
     generator = GeneratePlannedChores(db_session=mock_db_session)
 
-    with patch("planned_chores.services.ChoreScheduleRepository.update", new_callable=AsyncMock):
+    with patch(
+        "planned_chores.services.ChoreScheduleRepository.update", new_callable=AsyncMock
+    ):
         await generator.reconcile_for_schedule(sample_schedule, from_date=today)
         assert chore.assigned_to_id == new_user_id
 
@@ -199,6 +215,9 @@ async def test_reconciliation_deactivates_schedule_cleans_up(
 
     generator = GeneratePlannedChores(db_session=mock_db_session)
 
-    with patch("planned_chores.services.PlannedChoreRepository.hard_delete", new_callable=AsyncMock) as mock_delete:
+    with patch(
+        "planned_chores.services.PlannedChoreRepository.hard_delete",
+        new_callable=AsyncMock,
+    ) as mock_delete:
         await generator.reconcile_for_schedule(sample_schedule, from_date=today)
         mock_delete.assert_called_once_with(chore1.id)

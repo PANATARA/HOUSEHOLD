@@ -12,9 +12,8 @@ from notifications.schemas import (
     DeviceResponseSchema,
     NotificationSendTestSchema,
 )
-from notifications.service import NotificationService, init_firebase, is_fcm_available
+from notifications.service import NotificationService
 from users.models import User
-
 
 # ==========================================
 # Schema Tests
@@ -191,8 +190,13 @@ async def test_notification_service_send_multicast_success(mock_db_session: Asyn
     mock_response.failure_count = 0
     mock_response.responses = []
 
-    with patch("notifications.service.is_fcm_available", return_value=True), \
-         patch("notifications.service.messaging.send_each_for_multicast", return_value=mock_response):
+    with (
+        patch("notifications.service.is_fcm_available", return_value=True),
+        patch(
+            "notifications.service.messaging.send_each_for_multicast",
+            return_value=mock_response,
+        ),
+    ):
         service = NotificationService(mock_db_session)
         result = await service.send_multicast(
             tokens=["token_1", "token_2"],
@@ -211,15 +215,22 @@ async def test_notification_service_prune_invalid_tokens(mock_db_session: AsyncM
     from firebase_admin import messaging
 
     mock_resp1 = MagicMock(success=True)
-    mock_resp2 = MagicMock(success=False, exception=messaging.UnregisteredError("Token unregistered"))
+    mock_resp2 = MagicMock(
+        success=False, exception=messaging.UnregisteredError("Token unregistered")
+    )
 
     mock_response = MagicMock()
     mock_response.success_count = 1
     mock_response.failure_count = 1
     mock_response.responses = [mock_resp1, mock_resp2]
 
-    with patch("notifications.service.is_fcm_available", return_value=True), \
-         patch("notifications.service.messaging.send_each_for_multicast", return_value=mock_response):
+    with (
+        patch("notifications.service.is_fcm_available", return_value=True),
+        patch(
+            "notifications.service.messaging.send_each_for_multicast",
+            return_value=mock_response,
+        ),
+    ):
         service = NotificationService(mock_db_session)
         service.device_repo.delete_tokens = AsyncMock()
 
@@ -269,7 +280,9 @@ async def test_notification_service_notify_family_new_chore(mock_db_session: Asy
 
 
 @pytest.mark.asyncio
-async def test_api_register_device(async_client, mock_db_session: AsyncMock, sample_user: User):
+async def test_api_register_device(
+    async_client, mock_db_session: AsyncMock, sample_user: User
+):
     now = datetime.now()
     registered_device = UserDevice(
         id=uuid.uuid4(),
@@ -284,7 +297,9 @@ async def test_api_register_device(async_client, mock_db_session: AsyncMock, sam
     mock_result.scalar_one_or_none.return_value = None
     mock_db_session.execute.return_value = mock_result
 
-    with patch.object(DeviceRepository, "register_device", AsyncMock(return_value=registered_device)):
+    with patch.object(
+        DeviceRepository, "register_device", AsyncMock(return_value=registered_device)
+    ):
         resp = await async_client.post(
             "/api/notifications/devices",
             json={
@@ -301,7 +316,9 @@ async def test_api_register_device(async_client, mock_db_session: AsyncMock, sam
 
 
 @pytest.mark.asyncio
-async def test_api_list_devices(async_client, mock_db_session: AsyncMock, sample_user: User):
+async def test_api_list_devices(
+    async_client, mock_db_session: AsyncMock, sample_user: User
+):
     now = datetime.now()
     d1 = UserDevice(
         id=uuid.uuid4(),
@@ -322,7 +339,9 @@ async def test_api_list_devices(async_client, mock_db_session: AsyncMock, sample
         updated_at=now,
     )
 
-    with patch.object(DeviceRepository, "get_user_devices", AsyncMock(return_value=[d1, d2])):
+    with patch.object(
+        DeviceRepository, "get_user_devices", AsyncMock(return_value=[d1, d2])
+    ):
         resp = await async_client.get("/api/notifications/devices")
         assert resp.status_code == 200
         data = resp.json()
@@ -333,15 +352,21 @@ async def test_api_list_devices(async_client, mock_db_session: AsyncMock, sample
 
 @pytest.mark.asyncio
 async def test_api_unregister_device(async_client, mock_db_session: AsyncMock):
-    with patch.object(DeviceRepository, "unregister_device", AsyncMock(return_value=True)):
-        resp = await async_client.delete("/api/notifications/devices/token_to_delete_12345")
+    with patch.object(
+        DeviceRepository, "unregister_device", AsyncMock(return_value=True)
+    ):
+        resp = await async_client.delete(
+            "/api/notifications/devices/token_to_delete_12345"
+        )
         assert resp.status_code == 204
 
 
 @pytest.mark.asyncio
 async def test_api_send_test_notification(async_client, mock_db_session: AsyncMock):
     delivery_mock = {"total": 1, "success": 1, "failure": 0, "pruned": 0}
-    with patch.object(NotificationService, "send_to_user", AsyncMock(return_value=delivery_mock)):
+    with patch.object(
+        NotificationService, "send_to_user", AsyncMock(return_value=delivery_mock)
+    ):
         resp = await async_client.post(
             "/api/notifications/test",
             json={

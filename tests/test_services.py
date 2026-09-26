@@ -1,20 +1,20 @@
 import datetime
 import uuid
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from core.enums import FrequencyTypeENUM
 from chores.models import Chore
-from users.models import User
+from core.enums import FrequencyTypeENUM
 from planned_chores.models import ChoreSchedule, PlannedChore
 from planned_chores.schemas import ChoreScheduleUpdateSchema
 from planned_chores.services import (
     CreateChoreSchedule,
-    UpdateChoreSchedule,
     DeleteChoreSchedule,
     GeneratePlannedChores,
+    UpdateChoreSchedule,
 )
+from users.models import User
 
 
 def test_matches_daily(mock_db_session: AsyncMock, sample_schedule: ChoreSchedule):
@@ -33,7 +33,9 @@ def test_matches_daily(mock_db_session: AsyncMock, sample_schedule: ChoreSchedul
     assert generator._matches_daily(sample_schedule, datetime.date(2026, 9, 4)) is True
 
 
-def test_matches_weekly_bitmask(mock_db_session: AsyncMock, sample_schedule: ChoreSchedule):
+def test_matches_weekly_bitmask(
+    mock_db_session: AsyncMock, sample_schedule: ChoreSchedule
+):
     generator = GeneratePlannedChores(db_session=mock_db_session)
     sample_schedule.frequency_type = FrequencyTypeENUM.weekly
     # Monday 2026-09-07
@@ -45,20 +47,32 @@ def test_matches_weekly_bitmask(mock_db_session: AsyncMock, sample_schedule: Cho
     # Mon Sep 7 -> True
     assert generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 7)) is True
     # Tue Sep 8 -> False
-    assert generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 8)) is False
+    assert (
+        generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 8)) is False
+    )
     # Wed Sep 9 -> True
     assert generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 9)) is True
     # Thu Sep 10 -> False
-    assert generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 10)) is False
+    assert (
+        generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 10)) is False
+    )
     # Fri Sep 11 -> True
-    assert generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 11)) is True
+    assert (
+        generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 11)) is True
+    )
     # Sat Sep 12 -> False
-    assert generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 12)) is False
+    assert (
+        generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 12)) is False
+    )
     # Sun Sep 13 -> False
-    assert generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 13)) is False
+    assert (
+        generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 13)) is False
+    )
 
 
-def test_matches_weekly_biweekly(mock_db_session: AsyncMock, sample_schedule: ChoreSchedule):
+def test_matches_weekly_biweekly(
+    mock_db_session: AsyncMock, sample_schedule: ChoreSchedule
+):
     generator = GeneratePlannedChores(db_session=mock_db_session)
     sample_schedule.frequency_type = FrequencyTypeENUM.weekly
     # Monday 2026-09-07, interval = 2 weeks
@@ -69,12 +83,18 @@ def test_matches_weekly_biweekly(mock_db_session: AsyncMock, sample_schedule: Ch
     # Week 0 (Sep 7): True
     assert generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 7)) is True
     # Week 1 (Sep 14): False
-    assert generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 14)) is False
+    assert (
+        generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 14)) is False
+    )
     # Week 2 (Sep 21): True
-    assert generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 21)) is True
+    assert (
+        generator._matches_weekly(sample_schedule, datetime.date(2026, 9, 21)) is True
+    )
 
 
-def test_matches_monthly_clamp(mock_db_session: AsyncMock, sample_schedule: ChoreSchedule):
+def test_matches_monthly_clamp(
+    mock_db_session: AsyncMock, sample_schedule: ChoreSchedule
+):
     generator = GeneratePlannedChores(db_session=mock_db_session)
     sample_schedule.frequency_type = FrequencyTypeENUM.monthly
     sample_schedule.starts_at = datetime.date(2026, 1, 31)
@@ -82,13 +102,21 @@ def test_matches_monthly_clamp(mock_db_session: AsyncMock, sample_schedule: Chor
     sample_schedule.day_of_month = 31
 
     # Jan 31 -> True
-    assert generator._matches_monthly(sample_schedule, datetime.date(2026, 1, 31)) is True
+    assert (
+        generator._matches_monthly(sample_schedule, datetime.date(2026, 1, 31)) is True
+    )
     # Feb 28 in 2026 (non-leap year, last day of Feb) -> True (clamped)
-    assert generator._matches_monthly(sample_schedule, datetime.date(2026, 2, 28)) is True
+    assert (
+        generator._matches_monthly(sample_schedule, datetime.date(2026, 2, 28)) is True
+    )
     # Mar 31 -> True
-    assert generator._matches_monthly(sample_schedule, datetime.date(2026, 3, 31)) is True
+    assert (
+        generator._matches_monthly(sample_schedule, datetime.date(2026, 3, 31)) is True
+    )
     # Mar 30 -> False
-    assert generator._matches_monthly(sample_schedule, datetime.date(2026, 3, 30)) is False
+    assert (
+        generator._matches_monthly(sample_schedule, datetime.date(2026, 3, 30)) is False
+    )
 
 
 async def test_create_chore_schedule_service(
@@ -110,7 +138,9 @@ async def test_create_chore_schedule_service(
         db_session=mock_db_session,
     )
 
-    with patch("planned_chores.services.ChoreScheduleRepository.create", new_callable=AsyncMock) as mock_create:
+    with patch(
+        "planned_chores.services.ChoreScheduleRepository.create", new_callable=AsyncMock
+    ) as mock_create:
         mock_create.return_value = ChoreSchedule(
             id=uuid.uuid4(),
             chore_id=sample_chore.id,
@@ -166,8 +196,16 @@ async def test_update_chore_schedule_service(
         db_session=mock_db_session,
     )
 
-    with patch("planned_chores.services.ChoreScheduleRepository.update", new_callable=AsyncMock) as mock_update, \
-         patch("planned_chores.services.GeneratePlannedChores.reconcile_for_schedule", new_callable=AsyncMock) as mock_reconcile:
+    with (
+        patch(
+            "planned_chores.services.ChoreScheduleRepository.update",
+            new_callable=AsyncMock,
+        ) as mock_update,
+        patch(
+            "planned_chores.services.GeneratePlannedChores.reconcile_for_schedule",
+            new_callable=AsyncMock,
+        ) as mock_reconcile,
+    ):
         mock_update.return_value = sample_schedule
         updated = await service.run_process()
         assert updated.interval == 3
@@ -203,8 +241,16 @@ async def test_delete_chore_schedule_service(
         revoke_completed_awards=False,
     )
 
-    with patch("planned_chores.services.ChoreScheduleRepository.soft_delete", new_callable=AsyncMock) as mock_soft_del, \
-         patch("planned_chores.services.PlannedChoreRepository.hard_delete", new_callable=AsyncMock) as mock_hard_del:
+    with (
+        patch(
+            "planned_chores.services.ChoreScheduleRepository.soft_delete",
+            new_callable=AsyncMock,
+        ) as mock_soft_del,
+        patch(
+            "planned_chores.services.PlannedChoreRepository.hard_delete",
+            new_callable=AsyncMock,
+        ) as mock_hard_del,
+    ):
         await service.run_process()
         mock_soft_del.assert_called_once_with(sample_schedule.id)
         mock_hard_del.assert_called_once_with(uncompleted_chore.id)
@@ -230,7 +276,9 @@ async def test_update_planned_chore_message_service(
         is_active=True,
     )
 
-    with patch("planned_chores.services.PlannedChoreRepository.update", new_callable=AsyncMock) as mock_update:
+    with patch(
+        "planned_chores.services.PlannedChoreRepository.update", new_callable=AsyncMock
+    ) as mock_update:
         mock_update.return_value = planned_chore
         service = UpdatePlannedChoreMessage(
             planned_chore=planned_chore,
@@ -249,8 +297,15 @@ async def test_generate_for_family_service(
 ):
     service = GeneratePlannedChores(db_session=mock_db_session)
 
-    with patch("planned_chores.services.ChoreScheduleRepository.get_active_schedules_for_family", new_callable=AsyncMock) as mock_get_family_schedules, \
-         patch.object(service, "generate_for_schedule", new_callable=AsyncMock) as mock_gen_sched:
+    with (
+        patch(
+            "planned_chores.services.ChoreScheduleRepository.get_active_schedules_for_family",
+            new_callable=AsyncMock,
+        ) as mock_get_family_schedules,
+        patch.object(
+            service, "generate_for_schedule", new_callable=AsyncMock
+        ) as mock_gen_sched,
+    ):
         mock_get_family_schedules.return_value = [sample_schedule]
         mock_gen_sched.return_value = [MagicMock(), MagicMock()]
 
@@ -259,5 +314,3 @@ async def test_generate_for_family_service(
         assert total == 2
         mock_get_family_schedules.assert_called_once_with(sample_schedule.family_id)
         mock_gen_sched.assert_called_once()
-
-

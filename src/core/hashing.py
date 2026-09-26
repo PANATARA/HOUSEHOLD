@@ -2,7 +2,6 @@ import bcrypt
 
 
 class Hasher:
-
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str | None) -> bool:
         if not plain_password or not hashed_password:
