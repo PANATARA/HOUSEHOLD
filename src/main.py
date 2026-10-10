@@ -16,7 +16,8 @@ from config import swagger_ui_settings
 from core.enums import PostgreSQLEnum
 from core.exceptions.base_exceptions import BaseAPIException
 from database_connection import engine
-from families.router import router as families_router
+from families.router import get_today_summary, router as families_router
+from families.schemas import TodaySummaryResponseSchema
 from meals.router import router as meals_router
 from notifications.router import router as notifications_router
 from notifications.service import init_firebase
@@ -101,6 +102,20 @@ main_api_router.include_router(chores_router, prefix="/chores")
 main_api_router.include_router(stats_router, prefix="/stats")
 main_api_router.include_router(meals_router, prefix="/meals")
 main_api_router.include_router(notifications_router, prefix="/notifications")
+main_api_router.add_api_route(
+    "/today-summary",
+    get_today_summary,
+    methods=["GET"],
+    tags=["Summary"],
+    response_model=TodaySummaryResponseSchema,
+)
+main_api_router.add_api_route(
+    "/today",
+    get_today_summary,
+    methods=["GET"],
+    include_in_schema=False,
+    response_model=TodaySummaryResponseSchema,
+)
 main_api_router.add_api_route(
     "/planned-chores/{planned_chore_id}",
     update_planned_chore_message,
