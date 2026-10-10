@@ -33,7 +33,6 @@ from families.schemas import (
     FamilyStatsResponseSchema,
     FamilyUpdateSchema,
     InviteTokenSchema,
-    TodaySummaryResponseSchema,
 )
 from families.services import (
     FamilyCreatorService,
@@ -41,7 +40,6 @@ from families.services import (
     JoinFamilyByInviteCodeService,
     LogoutUserFromFamilyService,
 )
-from families.today_summary_service import GetTodaySummaryService
 from statistics.repository import StatsRepository, get_statistic_repo
 from users.models import User
 from users.repository import UserRepository
@@ -432,36 +430,3 @@ async def get_all_events(
         )
         return events
 
-
-@router.get(
-    path="/today-summary",
-    summary="Get today's family summary (chores count, grocery list, events, meal plan)",
-    tags=["Family", "Summary"],
-    response_model=TodaySummaryResponseSchema,
-)
-@router.get(
-    path="/today",
-    summary="Get today's family summary (chores count, grocery list, events, meal plan)",
-    tags=["Family", "Summary"],
-    response_model=TodaySummaryResponseSchema,
-    include_in_schema=False,
-)
-async def get_today_summary(
-    date: date | None = Query(
-        None, description="Target date (defaults to today in UTC)"
-    ),
-    unbought_only: bool = Query(
-        True, description="Filter grocery list to unbought items only"
-    ),
-    current_user: User = Depends(FamilyMemberPermission()),
-    async_session: AsyncSession = Depends(get_db),
-) -> TodaySummaryResponseSchema:
-    target_date = date or datetime.now(timezone.utc).date()
-    async with async_session.begin():
-        service = GetTodaySummaryService(
-            family_id=current_user.family_id,
-            target_date=target_date,
-            unbought_only=unbought_only,
-            db_session=async_session,
-        )
-        return await service.run_process()

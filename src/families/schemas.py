@@ -1,9 +1,8 @@
-from datetime import date as dt_date, datetime as dt_datetime
+from datetime import datetime as dt_datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from meals.schemas import GroceryItemResponseSchema, PlannedMealResponseSchema
 from users.schemas import UserResponseSchema
 
 
@@ -102,49 +101,3 @@ class EventResponseSchema(BaseModel):
     icon_bg: str
     family_id: UUID
 
-
-class TodayChoresSummarySchema(BaseModel):
-    total: int = Field(0, description="Total planned and quick chores for today")
-    active: int = Field(0, description="Active (uncompleted) chores for today")
-    completed: int = Field(0, description="Completed chores for today")
-
-
-class TodayMealsSummarySchema(BaseModel):
-    breakfast: list[PlannedMealResponseSchema] = Field(
-        default_factory=list, description="Breakfast meals planned for today"
-    )
-    lunch: list[PlannedMealResponseSchema] = Field(
-        default_factory=list, description="Lunch meals planned for today"
-    )
-    dinner: list[PlannedMealResponseSchema] = Field(
-        default_factory=list, description="Dinner meals planned for today"
-    )
-    snack: list[PlannedMealResponseSchema] = Field(
-        default_factory=list, description="Snack meals planned for today"
-    )
-    total_count: int = Field(0, description="Total meals planned for today")
-
-
-class TodaySummaryResponseSchema(BaseModel):
-    date: dt_date = Field(description="Target date for the summary")
-    chores: TodayChoresSummarySchema = Field(
-        description="Chores count breakdown for today"
-    )
-    chores_count: int = Field(
-        0, description="Total chores count scheduled for today"
-    )
-    groceries: list[GroceryItemResponseSchema] = Field(
-        default_factory=list, description="Active grocery list items"
-    )
-    groceries_count: int = Field(
-        0, description="Number of items in the grocery list"
-    )
-    event: EventResponseSchema | None = Field(
-        default=None, description="Primary/first family event for today if any"
-    )
-    events: list[EventResponseSchema] = Field(
-        default_factory=list, description="All family events for today"
-    )
-    meals: TodayMealsSummarySchema = Field(
-        description="Meal plan for today broken down by slots"
-    )
