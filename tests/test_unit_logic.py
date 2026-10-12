@@ -365,3 +365,45 @@ class TestHasherUnit:
         from core.hashing import Hasher
         pw = "MySecure!Password123"
         assert Hasher.get_password_hash(pw) != pw
+
+
+# ── Timezone Utilities Unit Tests ─────────────────────────────────────────────
+
+class TestTimezoneUtilities:
+
+    def test_resolve_timezone(self):
+        from utils import resolve_timezone
+        from zoneinfo import ZoneInfo
+        assert resolve_timezone("Europe/Moscow") == ZoneInfo("Europe/Moscow")
+        assert resolve_timezone("UTC") == ZoneInfo("UTC")
+        assert resolve_timezone("Invalid/Timezone") == ZoneInfo("UTC")
+        assert resolve_timezone(None) == ZoneInfo("UTC")
+
+    def test_get_user_now_and_today(self):
+        import datetime
+        from utils import get_user_now, get_user_today
+        now_moscow = get_user_now("Europe/Moscow")
+        assert now_moscow.tzinfo is not None
+        assert str(now_moscow.tzinfo) == "Europe/Moscow"
+
+        today_moscow = get_user_today("Europe/Moscow")
+        assert isinstance(today_moscow, datetime.date)
+
+    def test_get_current_week_and_month_range(self):
+        from utils import get_current_week_range, get_current_month_range
+        week = get_current_week_range("Europe/Moscow")
+        assert week.start.weekday() == 0  # Monday
+        assert week.end.weekday() == 6    # Sunday
+        assert (week.end - week.start).days == 6
+
+        month = get_current_month_range("Europe/Moscow")
+        assert month.start.day == 1
+        assert month.end.day >= 28
+
+    def test_get_request_timezone_header(self):
+        from utils import get_request_timezone
+        assert get_request_timezone("Europe/Moscow") == "Europe/Moscow"
+        assert get_request_timezone("Asia/Tokyo") == "Asia/Tokyo"
+        assert get_request_timezone("Garbage") == "UTC"
+        assert get_request_timezone(None) == "UTC"
+

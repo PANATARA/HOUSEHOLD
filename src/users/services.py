@@ -50,6 +50,7 @@ class UserCreatorService(BaseService[User]):
             app_theme="Dark",
             language="ru",
             date_of_birth=date(2001, 1, 1),
+            timezone="UTC",
         )
         settings_dal = UserSettingsRepository(self.db_session)
         return await settings_dal.create(settings)

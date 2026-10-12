@@ -16,7 +16,11 @@ from statistics.schemas import (
     UserProfileStats,
 )
 from users.models import User
-from utils import get_current_month_range, get_current_week_range
+from utils import (
+    get_current_month_range,
+    get_current_week_range,
+    get_request_timezone,
+)
 
 router = APIRouter()
 
@@ -205,9 +209,10 @@ async def users_profile_stats(
     user_id: UUID,
     current_user: User = Depends(FamilyUserAccessPermission()),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
+    user_tz: str = Depends(get_request_timezone),
 ) -> UserProfileStats:
-    week_interval = get_current_week_range()
-    month_interval = get_current_month_range()
+    week_interval = get_current_week_range(user_tz)
+    month_interval = get_current_month_range(user_tz)
 
     week_result = await statsRepo.get_users_chore_completion_count(
         [user_id], week_interval
@@ -236,9 +241,10 @@ async def users_profile_stats(
 async def family_profile_stats(
     current_user: User = Depends(FamilyMemberPermission()),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
+    user_tz: str = Depends(get_request_timezone),
 ) -> FamilyProfileStats:
-    week_interval = get_current_week_range()
-    month_interval = get_current_month_range()
+    week_interval = get_current_week_range(user_tz)
+    month_interval = get_current_month_range(user_tz)
 
     week_result = await statsRepo.get_family_chore_completion_count(
         current_user.family_id, week_interval

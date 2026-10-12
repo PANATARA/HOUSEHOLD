@@ -104,6 +104,7 @@ class CompletePlannedChore(BaseService[PlannedChore]):
     planned_chore: PlannedChore
     completed_by: User
     db_session: AsyncSession
+    today_date: datetime.date | None = None
 
     async def process(self) -> PlannedChore:
         planned_chore = await self._complete_planned_chore()
@@ -140,7 +141,9 @@ class CompletePlannedChore(BaseService[PlannedChore]):
     def get_validators(self):
         return [
             lambda: validate_planned_chore_is_not_completed(self.planned_chore),
-            lambda: validate_date_is_not_in_past(self.planned_chore.due_date),
+            lambda: validate_date_is_not_in_past(
+                self.planned_chore.due_date, self.today_date
+            ),
         ]
 
 

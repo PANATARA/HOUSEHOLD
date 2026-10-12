@@ -51,9 +51,23 @@ class UserSettingsResponseSchema(BaseModel):
     app_theme: str
     language: str
     date_of_birth: date
+    timezone: str = "UTC"
 
 
 class UserSettingsUpdateSchema(BaseModel):
     app_theme: str | None = Field(default=None, max_length=20)
     language: str | None = Field(default=None, max_length=10)
     date_of_birth: date | None = None
+    timezone: str | None = Field(default=None, max_length=50)
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: str | None) -> str | None:
+        if value is not None:
+            import zoneinfo
+            try:
+                zoneinfo.ZoneInfo(value)
+            except Exception:
+                raise ValueError(f"Invalid IANA timezone: {value}")
+        return value
+

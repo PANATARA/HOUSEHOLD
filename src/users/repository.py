@@ -59,6 +59,7 @@ class UserRepository(BaseDals[User]):
             app_theme="Dark",
             language="ru",
             date_of_birth=date(2001, 1, 1),
+            timezone="UTC",
         )
         self.db_session.add(settings)
         await self.db_session.flush()
@@ -112,6 +113,7 @@ class UserRepository(BaseDals[User]):
             app_theme="Dark",
             language="ru",
             date_of_birth=date(2001, 1, 1),
+            timezone="UTC",
         )
         self.db_session.add(settings)
         await self.db_session.flush()

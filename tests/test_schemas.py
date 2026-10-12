@@ -212,3 +212,24 @@ def test_planned_chore_update_message_schema_required():
 
     with pytest.raises(ValidationError):
         PlannedChoreUpdateMessageSchema()  # missing message
+
+
+def test_user_settings_schemas_timezone():
+    from users.schemas import UserSettingsResponseSchema, UserSettingsUpdateSchema
+
+    res = UserSettingsResponseSchema(
+        app_theme="Dark",
+        language="ru",
+        date_of_birth=datetime.date(2000, 1, 1),
+    )
+    assert res.timezone == "UTC"
+
+    upd = UserSettingsUpdateSchema(timezone="Europe/Moscow")
+    assert upd.timezone == "Europe/Moscow"
+
+    upd2 = UserSettingsUpdateSchema(timezone="Asia/Tokyo")
+    assert upd2.timezone == "Asia/Tokyo"
+
+    with pytest.raises(ValidationError):
+        UserSettingsUpdateSchema(timezone="Not/A/Timezone")
+

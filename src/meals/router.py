@@ -35,6 +35,7 @@ from meals.services import (
     RecipeCreatorService,
     RecipeUpdateService,
 )
+from utils import get_request_timezone, get_user_today
 from users.models import User
 
 router = APIRouter(tags=["Meals & Recipe Hub"])
@@ -199,12 +200,13 @@ async def get_planned_meals(
     end_date: datetime.date | None = Query(None, description="End date (YYYY-MM-DD)"),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
+    user_tz: str = Depends(get_request_timezone),
 ):
     if due_date is not None:
         start_date = due_date
         end_date = due_date
     else:
-        today = datetime.date.today()
+        today = get_user_today(user_tz)
         if start_date is None:
             start_date = today - datetime.timedelta(days=today.weekday())  # Monday
         if end_date is None:

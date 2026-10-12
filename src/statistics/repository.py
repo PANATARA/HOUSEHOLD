@@ -47,10 +47,14 @@ class StatsRepository(ABC):
     ) -> int: ...
 
     @abstractmethod
-    async def get_family_current_streak(self, family_id: UUID) -> int: ...
+    async def get_family_current_streak(
+        self, family_id: UUID, today_date: date | None = None
+    ) -> int: ...
 
     @abstractmethod
-    async def get_user_current_streak(self, user_id: UUID) -> int: ...
+    async def get_user_current_streak(
+        self, user_id: UUID, today_date: date | None = None
+    ) -> int: ...
 
 
 @dataclass
@@ -243,7 +247,11 @@ class StatsPostgresRepository(StatsRepository):
     async def get_family_current_streak(
         self,
         family_id: UUID,
+        today_date: date | None = None,
     ) -> int:
+        if today_date is None:
+            today_date = date.today()
+
         query = text("""
             WITH active_days AS (
                 SELECT day
@@ -267,8 +275,8 @@ class StatsPostgresRepository(StatsRepository):
                 SELECT
                     CASE
                         WHEN MAX(day) IS NULL THEN NULL
-                        WHEN MAX(day) >= CURRENT_DATE THEN CURRENT_DATE
-                        ELSE CURRENT_DATE - INTERVAL '1 day'
+                        WHEN MAX(day) >= :today_date THEN :today_date
+                        ELSE :today_date - INTERVAL '1 day'
                     END AS anchor_date
                 FROM active_days
             ),
@@ -294,6 +302,7 @@ class StatsPostgresRepository(StatsRepository):
             query,
             {
                 "family_id": family_id,
+                "today_date": today_date,
             },
         )
 
@@ -302,7 +311,11 @@ class StatsPostgresRepository(StatsRepository):
     async def get_user_current_streak(
         self,
         user_id: UUID,
+        today_date: date | None = None,
     ) -> int:
+        if today_date is None:
+            today_date = date.today()
+
         query = text("""
             WITH active_days AS (
                 SELECT day
@@ -324,8 +337,8 @@ class StatsPostgresRepository(StatsRepository):
                 SELECT
                     CASE
                         WHEN MAX(day) IS NULL THEN NULL
-                        WHEN MAX(day) >= CURRENT_DATE THEN CURRENT_DATE
-                        ELSE CURRENT_DATE - INTERVAL '1 day'
+                        WHEN MAX(day) >= :today_date THEN :today_date
+                        ELSE :today_date - INTERVAL '1 day'
                     END AS anchor_date
                 FROM active_days
             ),
@@ -351,6 +364,7 @@ class StatsPostgresRepository(StatsRepository):
             query,
             {
                 "user_id": user_id,
+                "today_date": today_date,
             },
         )
 

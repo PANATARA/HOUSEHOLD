@@ -57,6 +57,7 @@ class UserSettings(Base, OneToOneUserModel):
     app_theme: Mapped[str] = mapped_column(String, default="Dark")
     language: Mapped[str] = mapped_column(String, default="ru")
     date_of_birth: Mapped[date] = mapped_column(Date, default=date(2001, 1, 1))
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC", server_default="UTC")
 
     def __repr__(self):
         return super().__repr__()

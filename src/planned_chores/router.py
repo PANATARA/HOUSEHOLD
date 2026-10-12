@@ -60,6 +60,7 @@ from planned_chores.services import (
 )
 from users.models import User
 from users.repository import UserRepository
+from utils import get_request_timezone, get_user_today
 
 logger = getLogger(__name__)
 
@@ -150,6 +151,7 @@ async def complete_planned_chore(
     planned_chore_id: UUID,
     current_user: User = Depends(PlannedChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
+    user_tz: str = Depends(get_request_timezone),
 ) -> PlannedChoreResponseSchema:
     async with async_session.begin():
         repo = PlannedChoreRepository(async_session)
@@ -158,6 +160,7 @@ async def complete_planned_chore(
             planned_chore=planned_chore,
             completed_by=current_user,
             db_session=async_session,
+            today_date=get_user_today(user_tz),
         )
         await service.run_process()
         planned_chore_full = await repo.get_planned_chore_by_id(planned_chore.id)

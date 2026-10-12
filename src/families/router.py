@@ -44,7 +44,7 @@ from statistics.repository import StatsRepository, get_statistic_repo
 from users.models import User
 from users.repository import UserRepository
 from users.schemas import UserResponseSchema
-from utils import get_current_week_range
+from utils import get_current_week_range, get_request_timezone, get_user_today
 
 logger = getLogger(__name__)
 
@@ -136,6 +136,7 @@ async def get_my_family_with_stats(
     current_user: User = Depends(FamilyMemberPermission()),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
     async_session: AsyncSession = Depends(get_db),
+    user_tz: str = Depends(get_request_timezone),
 ) -> FamilyStatsResponseSchema:
     async with async_session.begin():
         family_id = current_user.family_id
@@ -144,10 +145,11 @@ async def get_my_family_with_stats(
         members_count = await repo.count_family_members(family_id)
         week_completed = await statsRepo.get_family_chore_completion_count(
             family_id,
-            interval=get_current_week_range(),
+            interval=get_current_week_range(user_tz),
         )
         streak = await statsRepo.get_family_current_streak(
             family_id,
+            today_date=get_user_today(user_tz),
         )
     return FamilyStatsResponseSchema.model_validate(
         {
@@ -184,13 +186,14 @@ async def get_family_leader(
     current_user: User = Depends(FamilyMemberPermission()),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
     async_session: AsyncSession = Depends(get_db),
+    user_tz: str = Depends(get_request_timezone),
 ) -> FamilyLeadersResponseSchema:
     async with async_session.begin():
         family_id: UUID = current_user.family_id  # type: ignore
 
         members = await statsRepo.get_family_members_by_chores_completions(
             family_id,
-            interval=get_current_week_range(),
+            interval=get_current_week_range(user_tz),
         )
 
         leaders: list[FamilyMemberStatsSchema] = []
@@ -402,10 +405,12 @@ async def delete_event(
 async def get_upcoming_events(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
+    user_tz: str = Depends(get_request_timezone),
 ):
     async with async_session.begin():
         events = await EventRepository(async_session).get_upcoming(
             family_id=current_user.family_id,
+            today_date=get_user_today(user_tz),
         )
         return events
 

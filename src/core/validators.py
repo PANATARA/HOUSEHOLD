@@ -21,8 +21,10 @@ def validate_chore_is_active(chore: Chore) -> None:
         raise ChoreNotFoundError()
 
 
-def validate_date_is_not_in_past(due_date: date) -> None:
-    if due_date < date.today():
+def validate_date_is_not_in_past(
+    due_date: date, today_date: date | None = None
+) -> None:
+    if due_date < (today_date or date.today()):
         raise ChoreCompletionCanNotBeChanged()
 
 

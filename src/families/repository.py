@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import and_, exists, func, select, update
@@ -113,13 +113,15 @@ class EventRepository(BaseDals[Event], DeleteDALMixin):
         self,
         family_id: UUID,
         limit: int = 3,
+        today_date: date | None = None,
     ) -> list[EventResponseSchema]:
-        now = datetime.utcnow().date()
+        if today_date is None:
+            today_date = datetime.now(timezone.utc).date()
         result = await self.db_session.execute(
             select(Event)
             .where(
                 Event.family_id == family_id,
-                Event.date >= now,
+                Event.date >= today_date,
             )
             .order_by(Event.date)
             .limit(limit)

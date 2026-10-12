@@ -11,7 +11,11 @@ from core.permissions import (
 from database_connection import get_db
 from families.repository import FamilyRepository
 from src.statistics.repository import StatsRepository, get_statistic_repo
-from src.utils import get_current_month_range, get_current_week_range
+from src.utils import (
+    get_current_month_range,
+    get_current_week_range,
+    get_request_timezone,
+)
 from users.models import User
 from users.repository import UserRepository, UserSettingsRepository
 from users.schemas import (
@@ -38,6 +42,7 @@ async def me_get_user_profile(
     current_user: User = Depends(IsAuthenicatedPermission()),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
     async_session: AsyncSession = Depends(get_db),
+    user_tz: str = Depends(get_request_timezone),
 ) -> UserResponseProfile:
     is_family_member = current_user.family_id is not None
     is_family_admin = False
@@ -52,11 +57,11 @@ async def me_get_user_profile(
     level_info = get_level_info(current_user.experience)
     week_completed = await statsRepo.get_users_chore_completion_count(
         [current_user.id],
-        interval=get_current_week_range(),
+        interval=get_current_week_range(user_tz),
     )
     month_completed = await statsRepo.get_users_chore_completion_count(
         [current_user.id],
-        interval=get_current_month_range(),
+        interval=get_current_month_range(user_tz),
     )
     return UserResponseProfile.model_validate(
         {
@@ -114,6 +119,7 @@ async def me_user_get_settings(
             app_theme=user_settings.app_theme,
             language=user_settings.language,
             date_of_birth=user_settings.date_of_birth,
+            timezone=user_settings.timezone,
         )
 
 
@@ -139,6 +145,7 @@ async def me_user_settings_partial_update(
         app_theme=user_settings.app_theme,
         language=user_settings.language,
         date_of_birth=user_settings.date_of_birth,
+        timezone=user_settings.timezone,
     )
     return result_response
 
@@ -153,6 +160,7 @@ async def get_user_profile(
     current_user: User = Depends(FamilyUserAccessPermission()),
     statsRepo: StatsRepository = Depends(get_statistic_repo),
     async_session: AsyncSession = Depends(get_db),
+    user_tz: str = Depends(get_request_timezone),
 ) -> UserResponseProfile:
     async with async_session.begin():
         user = await UserRepository(async_session).get_by_id(user_id)
@@ -164,11 +172,11 @@ async def get_user_profile(
     level_info = get_level_info(user.experience)
     week_completed = await statsRepo.get_users_chore_completion_count(
         [user_id],
-        interval=get_current_week_range(),
+        interval=get_current_week_range(user_tz),
     )
     month_completed = await statsRepo.get_users_chore_completion_count(
         [current_user.id],
-        interval=get_current_month_range(),
+        interval=get_current_month_range(user_tz),
     )
 
     return UserResponseProfile.model_validate(
