@@ -335,6 +335,30 @@ async def get_chore_schedule(
     return ChoreScheduleResponseSchema.model_validate(schedule)
 
 
+@schedules_router.get(
+    path="/{schedule_id}",
+    tags=["Chore Schedule"],
+    response_model=ChoreScheduleResponseSchema,
+)
+@router.get(
+    path="/schedules/{schedule_id}",
+    tags=["Chore Schedule"],
+    response_model=ChoreScheduleResponseSchema,
+    include_in_schema=False,
+)
+async def get_schedule_by_id(
+    schedule_id: UUID,
+    current_user: User = Depends(ChoreSchedulePermission(only_admin=False)),
+    async_session: AsyncSession = Depends(get_db),
+) -> ChoreScheduleResponseSchema:
+    async with async_session.begin():
+        schedule = await ChoreScheduleRepository(async_session).get_by_id(schedule_id)
+        if schedule is None:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+
+    return ChoreScheduleResponseSchema.model_validate(schedule)
+
+
 @schedules_router.patch(
     path="/{schedule_id}",
     tags=["Chore Schedule"],

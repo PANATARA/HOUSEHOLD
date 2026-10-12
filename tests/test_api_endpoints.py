@@ -337,3 +337,42 @@ async def test_update_planned_chore_message_validation_error(
         json={"message": "a" * 2001},
     )
     assert response.status_code == 422
+
+
+async def test_get_schedule_by_id_endpoint(
+    async_client: AsyncClient,
+    sample_schedule: ChoreSchedule,
+):
+    with patch(
+        "planned_chores.repository.ChoreScheduleRepository.get_by_id",
+        new_callable=AsyncMock,
+    ) as mock_get:
+        mock_get.return_value = sample_schedule
+
+        response = await async_client.get(f"/api/schedules/{sample_schedule.id}")
+        assert response.status_code == 200
+        assert response.json()["id"] == str(sample_schedule.id)
+
+
+async def test_delete_family_chore_endpoint(
+    async_client: AsyncClient,
+    sample_chore: Chore,
+):
+    with (
+        patch(
+            "chores.repository.ChoreRepository.get_by_id",
+            new_callable=AsyncMock,
+        ) as mock_get_chore,
+        patch(
+            "chores.services.DeleteChoreService.run_process",
+            new_callable=AsyncMock,
+        ) as mock_delete_service,
+    ):
+        mock_get_chore.return_value = sample_chore
+        mock_delete_service.return_value = None
+
+        response = await async_client.delete(f"/api/chores/{sample_chore.id}")
+        assert response.status_code == 204
+        mock_get_chore.assert_called_once_with(sample_chore.id)
+        mock_delete_service.assert_called_once()
+

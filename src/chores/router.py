@@ -17,6 +17,7 @@ from chores.schemas import (
 from chores.services import (
     ChoreCreatorService,
     ChoreFromDefaultService,
+    DeleteChoreService,
     UpdateChoreService,
 )
 from core.permissions import (
@@ -108,14 +109,11 @@ async def delete_family_chore(
 ) -> Response:
     async with async_session.begin():
         chore_dal = ChoreRepository(async_session)
-        result = await chore_dal.soft_delete(chore_id)
+        chore = await chore_dal.get_by_id(chore_id)
+        service = DeleteChoreService(chore=chore, db_session=async_session)
+        await service.run_process()
 
-        if result:
-            return Response(status_code=status.HTTP_204_NO_CONTENT)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail={"Chore was not found"}
-            )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.patch(

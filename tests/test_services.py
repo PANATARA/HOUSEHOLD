@@ -314,3 +314,63 @@ async def test_generate_for_family_service(
         assert total == 2
         mock_get_family_schedules.assert_called_once_with(sample_schedule.family_id)
         mock_gen_sched.assert_called_once()
+
+
+async def test_delete_chore_service_cascade(
+    mock_db_session: AsyncMock,
+    sample_chore: Chore,
+    sample_schedule: ChoreSchedule,
+    sample_user: User,
+):
+    from chores.services import DeleteChoreService
+
+    uncompleted_pc = PlannedChore(
+        id=uuid.uuid4(),
+        schedule_id=None,
+        chore_id=sample_chore.id,
+        family_id=sample_chore.family_id,
+        completed_by_id=None,
+        assigned_to_id=sample_user.id,
+        due_date=datetime.date.today(),
+        message="",
+        is_active=True,
+    )
+
+    mock_result = MagicMock()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = [uncompleted_pc]
+    mock_result.scalars.return_value = mock_scalars
+    mock_db_session.execute.return_value = mock_result
+
+    service = DeleteChoreService(
+        chore=sample_chore,
+        db_session=mock_db_session,
+    )
+
+    with (
+        patch(
+            "chores.services.ChoreRepository.soft_delete",
+            new_callable=AsyncMock,
+        ) as mock_chore_soft_del,
+        patch(
+            "planned_chores.repository.ChoreScheduleRepository.get_active_by_chore_id",
+            new_callable=AsyncMock,
+        ) as mock_get_active_schedules,
+        patch(
+            "planned_chores.services.DeleteChoreSchedule.run_process",
+            new_callable=AsyncMock,
+        ) as mock_delete_schedule_run,
+        patch(
+            "planned_chores.repository.PlannedChoreRepository.hard_delete",
+            new_callable=AsyncMock,
+        ) as mock_pc_hard_del,
+    ):
+        mock_get_active_schedules.return_value = [sample_schedule]
+
+        await service.run_process()
+
+        mock_chore_soft_del.assert_called_once_with(sample_chore.id)
+        assert sample_chore.is_active is False
+        mock_get_active_schedules.assert_called_once_with(sample_chore.id)
+        mock_delete_schedule_run.assert_called_once()
+        mock_pc_hard_del.assert_called_once_with(uncompleted_pc.id)

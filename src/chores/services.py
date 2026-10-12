@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from chores.models import Chore, DefaultChore
@@ -127,3 +128,49 @@ class ChoreFromDefaultService(BaseService[Chore | list[Chore]]):
     def _validate_ids_not_empty(self) -> None:
         if isinstance(self.default_chore_ids, list) and not self.default_chore_ids:
             raise ValueError("default_chore_ids cannot be empty")
+
+
+@dataclass
+class DeleteChoreService(BaseService[None]):
+    """
+    Deactivates (soft-deletes) a chore, deactivates all its active schedules,
+    and deletes uncompleted planned chores for this chore.
+    """
+
+    chore: Chore
+    db_session: AsyncSession
+
+    async def process(self) -> None:
+        chore_dal = ChoreRepository(self.db_session)
+        await chore_dal.soft_delete(self.chore.id)
+        self.chore.is_active = False
+
+        from planned_chores.models import PlannedChore
+        from planned_chores.repository import (
+            ChoreScheduleRepository,
+            PlannedChoreRepository,
+        )
+        from planned_chores.services import DeleteChoreSchedule
+
+        # 1. Deactivate active schedules and cleanup their uncompleted tasks
+        schedule_repo = ChoreScheduleRepository(self.db_session)
+        schedules = await schedule_repo.get_active_by_chore_id(self.chore.id)
+        for schedule in schedules:
+            delete_sched_service = DeleteChoreSchedule(
+                schedule=schedule,
+                db_session=self.db_session,
+                revoke_completed_awards=False,
+            )
+            await delete_sched_service.run_process()
+
+        # 2. Delete any remaining uncompleted planned chores for this chore
+        planned_chore_repo = PlannedChoreRepository(self.db_session)
+        query = select(PlannedChore).where(
+            PlannedChore.chore_id == self.chore.id,
+            PlannedChore.is_active.is_(True),
+            PlannedChore.completed_by_id.is_(None),
+        )
+        result = await self.db_session.execute(query)
+        uncompleted_chores = list(result.scalars().all())
+        for pc in uncompleted_chores:
+            await planned_chore_repo.hard_delete(pc.id)

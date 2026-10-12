@@ -228,14 +228,29 @@ class ChoreScheduleRepository(BaseDals[ChoreSchedule], DeleteDALMixin):
         result = await self.db_session.execute(query)
         return result.scalar_one_or_none()
 
+    async def get_active_by_chore_id(
+        self, chore_id: UUID
+    ) -> list[ChoreSchedule]:
+        query = (
+            select(self.model)
+            .where(
+                self.model.chore_id == chore_id,
+                self.model.is_active.is_(True),
+            )
+        )
+        result = await self.db_session.execute(query)
+        return list(result.scalars().all())
+
     async def get_active_schedules_for_family(
         self, family_id: UUID
     ) -> list[ChoreSchedule]:
         query = (
             select(self.model)
+            .join(Chore, self.model.chore_id == Chore.id)
             .where(
                 self.model.family_id == family_id,
                 self.model.is_active.is_(True),
+                Chore.is_active.is_(True),
             )
             .order_by(self.model.created_at.desc())
         )
@@ -243,7 +258,14 @@ class ChoreScheduleRepository(BaseDals[ChoreSchedule], DeleteDALMixin):
         return list(result.scalars().all())
 
     async def get_active(self) -> list[ChoreSchedule]:
-        query = select(self.model).where(self.model.is_active.is_(True))
+        query = (
+            select(self.model)
+            .join(Chore, self.model.chore_id == Chore.id)
+            .where(
+                self.model.is_active.is_(True),
+                Chore.is_active.is_(True),
+            )
+        )
         result = await self.db_session.execute(query)
         return list(result.scalars().all())
 
