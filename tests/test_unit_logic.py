@@ -407,3 +407,19 @@ class TestTimezoneUtilities:
         assert get_request_timezone("Garbage") == "UTC"
         assert get_request_timezone(None) == "UTC"
 
+    def test_resolve_language(self):
+        from utils import resolve_language, get_request_language
+
+        assert resolve_language("en") == "en"
+        assert resolve_language("ru") == "ru"
+        assert resolve_language("en-US") == "en"
+        assert resolve_language("en-GB,en;q=0.9,ru;q=0.8") == "en"
+        assert resolve_language("ru-RU") == "ru"
+        assert resolve_language("fr") == "ru"
+        assert resolve_language(None) == "ru"
+        assert resolve_language("") == "ru"
+
+        assert get_request_language("en") == "en"
+        assert get_request_language(None) == "ru"
+
+

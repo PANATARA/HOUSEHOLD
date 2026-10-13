@@ -26,6 +26,7 @@ class UserResponseProfile(UserResponseSchema):
     is_max_level: bool
     is_family_member: bool
     is_family_admin: bool
+    family_id: UUID | None = None
 
 
 class UserUpdateSchema(BaseModel):

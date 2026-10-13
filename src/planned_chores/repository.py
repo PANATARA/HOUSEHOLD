@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import aliased
 
-from chores.models import Chore
+from chores.models import Chore, DefaultChoreTranslation
 from core.base_dals import BaseDals, DeleteDALMixin
 from core.exceptions.chores import ChoreScheduleNotFoundError
 from core.exceptions.chores_completion import ChoreCompletionNotFoundError
@@ -21,11 +21,13 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
     not_found_exception = ChoreCompletionNotFoundError  # !Improve!
 
     async def get_planned_chore_by_id(
-        self, planned_chore_id: UUID
+        self, planned_chore_id: UUID, language: str = "ru"
     ) -> PlannedChoreResponseSchema | None:
 
         UserCompleted = aliased(User)
         UserAssigned = aliased(User)
+        trans_req = aliased(DefaultChoreTranslation, name="trans_req")
+        trans_fallback = aliased(DefaultChoreTranslation, name="trans_fallback")
 
         query = (
             select(
@@ -35,9 +37,9 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
                     "id",
                     Chore.id,
                     "name",
-                    Chore.name,
+                    func.coalesce(trans_req.name, trans_fallback.name, Chore.name),
                     "description",
-                    Chore.description,
+                    func.coalesce(Chore.description, trans_req.description, trans_fallback.description),
                     "icon",
                     Chore.icon,
                     "icon_color",
@@ -91,6 +93,16 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
                 PlannedChore.message.label("message"),
             )
             .join(Chore, PlannedChore.chore_id == Chore.id)
+            .outerjoin(
+                trans_req,
+                (trans_req.default_chore_id == Chore.default_chore_id)
+                & (trans_req.language == language),
+            )
+            .outerjoin(
+                trans_fallback,
+                (trans_fallback.default_chore_id == Chore.default_chore_id)
+                & (trans_fallback.language == "ru"),
+            )
             .outerjoin(UserCompleted, PlannedChore.completed_by_id == UserCompleted.id)
             .outerjoin(UserAssigned, PlannedChore.assigned_to_id == UserAssigned.id)
             .where(
@@ -113,6 +125,7 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
         family_id: UUID,
         date_from: date | None,
         date_to: date | None,
+        language: str = "ru",
     ) -> list[PlannedChoreResponseSchema]:
         conditions = [
             PlannedChore.family_id == family_id,
@@ -127,6 +140,8 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
 
         UserCompleted = aliased(User)
         UserAssigned = aliased(User)
+        trans_req = aliased(DefaultChoreTranslation, name="trans_req")
+        trans_fallback = aliased(DefaultChoreTranslation, name="trans_fallback")
 
         query = (
             select(
@@ -136,9 +151,9 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
                     "id",
                     Chore.id,
                     "name",
-                    Chore.name,
+                    func.coalesce(trans_req.name, trans_fallback.name, Chore.name),
                     "description",
-                    Chore.description,
+                    func.coalesce(Chore.description, trans_req.description, trans_fallback.description),
                     "icon",
                     Chore.icon,
                     "icon_color",
@@ -192,6 +207,16 @@ class PlannedChoreRepository(BaseDals[PlannedChore], DeleteDALMixin):
                 PlannedChore.message.label("message"),
             )
             .join(Chore, PlannedChore.chore_id == Chore.id)
+            .outerjoin(
+                trans_req,
+                (trans_req.default_chore_id == Chore.default_chore_id)
+                & (trans_req.language == language),
+            )
+            .outerjoin(
+                trans_fallback,
+                (trans_fallback.default_chore_id == Chore.default_chore_id)
+                & (trans_fallback.language == "ru"),
+            )
             .outerjoin(UserCompleted, PlannedChore.completed_by_id == UserCompleted.id)
             .outerjoin(UserAssigned, PlannedChore.assigned_to_id == UserAssigned.id)
             .where(*conditions)

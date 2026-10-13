@@ -57,3 +57,37 @@ def get_request_timezone(
         except Exception:
             pass
     return "UTC"
+
+
+SUPPORTED_LANGUAGES = {"ru", "en"}
+DEFAULT_LANGUAGE = "ru"
+
+
+def resolve_language(lang_code: str | None = None) -> str:
+    """
+    Resolve requested language code to a supported language ('ru' or 'en').
+    Accepts full codes like 'en-US', 'ru-RU', or simple 'en', 'ru'.
+    Parses comma-separated Accept-Language values as well.
+    Defaults to 'ru'.
+    """
+    if not lang_code:
+        return DEFAULT_LANGUAGE
+
+    for part in lang_code.split(","):
+        tag = part.split(";")[0].strip().lower()
+        primary = tag.split("-")[0].strip()
+        if primary in SUPPORTED_LANGUAGES:
+            return primary
+
+    return DEFAULT_LANGUAGE
+
+
+def get_request_language(
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
+) -> str:
+    """
+    FastAPI dependency to extract and resolve language from Accept-Language header.
+    Defaults to 'ru'.
+    """
+    return resolve_language(accept_language)
+

@@ -30,6 +30,7 @@ from statistics.repository import StatsRepository, get_statistic_repo
 from statistics.schemas import DateRangeSchema
 from users.models import User
 from users.repository import UserSettingsRepository
+from utils import get_request_language, resolve_language
 
 logger = getLogger(__name__)
 
@@ -46,10 +47,12 @@ async def get_family_chores(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
     stats_repo: StatsRepository = Depends(get_statistic_repo),
+    language: str = Depends(get_request_language),
 ):
     family_chores = await ChoreRepository(async_session).get_family_chores(
         current_user.family_id,  # type: ignore
         limit=limit,
+        language=language,
     )
 
     interval = DateRangeSchema(
@@ -143,18 +146,18 @@ async def edit_family_chore(
 async def get_default_chores(
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
+    language: str = Depends(get_request_language),
 ) -> list[DefaultChoreResponseSchema]:
     async with async_session:
         default_chore_repo = DefaultChoreRepository(async_session)
         user_settings_repo = UserSettingsRepository(async_session)
         user_settings = await user_settings_repo.get_by_user_id(current_user.id)
-        if user_settings is None:
-            language = "en"
-        else:
-            language = user_settings.language
+        effective_language = language
+        if language == "ru" and user_settings and user_settings.language:
+            effective_language = resolve_language(user_settings.language)
         result_response = await default_chore_repo.get_default_chores_not_added(
             current_user.family_id,  # type: ignore
-            language,
+            language=effective_language,
         )
 
     return result_response
@@ -169,16 +172,19 @@ async def create_chores_from_defaults(
     body: ChoresFromDefaultsSchema,
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
+    language: str = Depends(get_request_language),
 ) -> ChoreResponseSchema | list[ChoreResponseSchema]:
     async with async_session.begin():
+        chosen_language = body.language or language
         service = ChoreFromDefaultService(
             family_id=current_user.family_id,  # type: ignore
             db_session=async_session,
             default_chore_ids=body.default_chore_ids,
-            language=body.language,
+            language=chosen_language,
         )
         chores = await service.run_process()
 
     if isinstance(chores, list):
         return [ChoreResponseSchema.model_validate(c) for c in chores]
     return ChoreResponseSchema.model_validate(chores)
+

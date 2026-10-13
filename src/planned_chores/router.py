@@ -60,7 +60,7 @@ from planned_chores.services import (
 )
 from users.models import User
 from users.repository import UserRepository
-from utils import get_request_timezone, get_user_today
+from utils import get_request_language, get_request_timezone, get_user_today
 
 logger = getLogger(__name__)
 
@@ -152,6 +152,7 @@ async def complete_planned_chore(
     current_user: User = Depends(PlannedChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
     user_tz: str = Depends(get_request_timezone),
+    language: str = Depends(get_request_language),
 ) -> PlannedChoreResponseSchema:
     async with async_session.begin():
         repo = PlannedChoreRepository(async_session)
@@ -163,7 +164,9 @@ async def complete_planned_chore(
             today_date=get_user_today(user_tz),
         )
         await service.run_process()
-        planned_chore_full = await repo.get_planned_chore_by_id(planned_chore.id)
+        planned_chore_full = await repo.get_planned_chore_by_id(
+            planned_chore.id, language=language
+        )
         return PlannedChoreResponseSchema.model_validate(planned_chore_full)
 
 
@@ -177,6 +180,7 @@ async def uncomplete_planned_chore(
     planned_chore_id: UUID,
     current_user: User = Depends(PlannedChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
+    language: str = Depends(get_request_language),
 ):
     async with async_session.begin():
         repo = PlannedChoreRepository(async_session)
@@ -186,7 +190,9 @@ async def uncomplete_planned_chore(
             db_session=async_session,
         )
         await service.run_process()
-        planned_chore_full = await repo.get_planned_chore_by_id(planned_chore.id)
+        planned_chore_full = await repo.get_planned_chore_by_id(
+            planned_chore.id, language=language
+        )
         return PlannedChoreResponseSchema.model_validate(planned_chore_full)
 
 
@@ -201,6 +207,7 @@ async def reschedule_planned_chore(
     planned_chore_id: UUID,
     current_user: User = Depends(PlannedChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
+    language: str = Depends(get_request_language),
 ):
     async with async_session.begin():
         repo = PlannedChoreRepository(async_session)
@@ -211,7 +218,9 @@ async def reschedule_planned_chore(
             db_session=async_session,
         )
         await service.run_process()
-        planned_chore_full = await repo.get_planned_chore_by_id(planned_chore.id)
+        planned_chore_full = await repo.get_planned_chore_by_id(
+            planned_chore.id, language=language
+        )
         return PlannedChoreResponseSchema.model_validate(planned_chore_full)
 
 
@@ -235,6 +244,7 @@ async def update_planned_chore_message(
     body: PlannedChoreUpdateMessageSchema,
     current_user: User = Depends(PlannedChorePermission(only_admin=False)),
     async_session: AsyncSession = Depends(get_db),
+    language: str = Depends(get_request_language),
 ) -> PlannedChoreResponseSchema:
     async with async_session.begin():
         repo = PlannedChoreRepository(async_session)
@@ -245,7 +255,9 @@ async def update_planned_chore_message(
             db_session=async_session,
         )
         await service.run_process()
-        planned_chore_full = await repo.get_planned_chore_by_id(planned_chore.id)
+        planned_chore_full = await repo.get_planned_chore_by_id(
+            planned_chore.id, language=language
+        )
         return PlannedChoreResponseSchema.model_validate(planned_chore_full)
 
 
@@ -258,12 +270,14 @@ async def get_family_planned_chore(
     due_date: date | None = Query(default=None),
     current_user: User = Depends(FamilyMemberPermission()),
     async_session: AsyncSession = Depends(get_db),
+    language: str = Depends(get_request_language),
 ) -> list[PlannedChoreResponseSchema]:
     repo = PlannedChoreRepository(async_session)
     result = await repo.get_family_planned_chores(
         family_id=current_user.family_id,  # type: ignore
         date_from=due_date,
         date_to=due_date,
+        language=language,
     )
 
     return result

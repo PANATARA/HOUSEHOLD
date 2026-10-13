@@ -83,8 +83,10 @@ async def me_get_user_profile(
 async def me_user_partial_update(
     body: UserUpdateSchema,
     current_user: User = Depends(IsAuthenicatedPermission()),
+    statsRepo: StatsRepository = Depends(get_statistic_repo),
     async_session: AsyncSession = Depends(get_db),
-) -> UserResponseSchema:
+    user_tz: str = Depends(get_request_timezone),
+) -> UserResponseProfile:
     async with async_session.begin():
         user_dal = UserRepository(async_session)
         for field, value in body.model_dump(exclude_unset=True).items():
@@ -92,16 +94,35 @@ async def me_user_partial_update(
 
         user = await user_dal.update(current_user)
 
-    result_response = UserResponseSchema(
-        id=user.id,
-        username=user.username,
-        name=user.name,
-        icon=user.icon,
-        icon_bg=user.icon_bg,
-        icon_color=user.icon_color,
-        experience=user.experience,
+    is_family_member = user.family_id is not None
+    is_family_admin = False
+
+    if is_family_member:
+        async with async_session.begin():
+            is_family_admin = await FamilyRepository(
+                async_session
+            ).user_is_family_admin(user.id, user.family_id)
+
+    level_info = get_level_info(user.experience)
+    week_completed = await statsRepo.get_users_chore_completion_count(
+        [user.id],
+        interval=get_current_week_range(user_tz),
     )
-    return result_response
+    month_completed = await statsRepo.get_users_chore_completion_count(
+        [user.id],
+        interval=get_current_month_range(user_tz),
+    )
+    return UserResponseProfile.model_validate(
+        {
+            **user.__dict__,
+            **level_info,
+            "week_completed": week_completed[0].chores_completions_counts,
+            "month_completed": month_completed[0].chores_completions_counts,
+            "is_family_member": is_family_member,
+            "is_family_admin": is_family_admin,
+            "family_id": user.family_id,
+        }
+    )
 
 
 @router.get(path="/me/settings", summary="Get current user's settings", tags=["Me"])

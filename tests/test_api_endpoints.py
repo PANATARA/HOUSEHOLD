@@ -376,3 +376,56 @@ async def test_delete_family_chore_endpoint(
         mock_get_chore.assert_called_once_with(sample_chore.id)
         mock_delete_service.assert_called_once()
 
+
+async def test_get_family_chores_accept_language(
+    async_client: AsyncClient,
+    sample_user: User,
+):
+    with (
+        patch(
+            "chores.repository.ChoreRepository.get_family_chores",
+            new_callable=AsyncMock,
+        ) as mock_get_chores,
+        patch(
+            "statistics.repository.StatsRepository.get_chores_by_completions",
+            new_callable=AsyncMock,
+        ) as mock_stats,
+    ):
+        mock_get_chores.return_value = []
+        mock_stats.return_value = []
+
+        response = await async_client.get(
+            "/api/chores",
+            headers={"Accept-Language": "en-US,en;q=0.9"},
+        )
+        assert response.status_code == 200
+        mock_get_chores.assert_called_once_with(
+            sample_user.family_id,
+            limit=None,
+            language="en",
+        )
+
+
+async def test_get_family_planned_chores_accept_language(
+    async_client: AsyncClient,
+    sample_user: User,
+):
+    with patch(
+        "planned_chores.repository.PlannedChoreRepository.get_family_planned_chores",
+        new_callable=AsyncMock,
+    ) as mock_get_planned:
+        mock_get_planned.return_value = []
+
+        response = await async_client.get(
+            "/api/chores/planned",
+            headers={"Accept-Language": "en"},
+        )
+        assert response.status_code == 200
+        mock_get_planned.assert_called_once_with(
+            family_id=sample_user.family_id,
+            date_from=None,
+            date_to=None,
+            language="en",
+        )
+
+

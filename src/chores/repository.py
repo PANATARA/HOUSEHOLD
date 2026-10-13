@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy import func, select
+from sqlalchemy.orm import aliased, selectinload
 
 from chores.models import Chore, DefaultChore, DefaultChoreTranslation
 from chores.schemas import (
@@ -22,27 +22,45 @@ class ChoreRepository(BaseDals[Chore], DeleteDALMixin):
         return chores
 
     async def get_family_chores(
-        self, family_id: UUID, limit: int | None = None
+        self, family_id: UUID, limit: int | None = None, language: str = "ru"
     ) -> list[ChoreResponseSchema]:
         """
         Retrieves a list of chores associated with a specific family.
 
         Args:
             family_id (UUID): The ID of the family whose chores are being fetched.
+            limit (int | None): Max number of chores to return.
+            language (str): Requested language for template-based chores.
 
         Returns:
-            list[ChoreResponseSchema] | None: A list of chores if found, otherwise None.
+            list[ChoreResponseSchema]: A list of chores.
         """
-        query = select(
-            Chore.id,
-            Chore.name,
-            Chore.description,
-            Chore.icon,
-            Chore.icon_color,
-            Chore.icon_bg,
-            Chore.valuation,
-            Chore.default_chore_id,
-        ).where(Chore.family_id == family_id, Chore.is_active)
+        trans_req = aliased(DefaultChoreTranslation, name="trans_req")
+        trans_fallback = aliased(DefaultChoreTranslation, name="trans_fallback")
+
+        query = (
+            select(
+                Chore.id,
+                func.coalesce(trans_req.name, trans_fallback.name, Chore.name).label("name"),
+                func.coalesce(Chore.description, trans_req.description, trans_fallback.description).label("description"),
+                Chore.icon,
+                Chore.icon_color,
+                Chore.icon_bg,
+                Chore.valuation,
+                Chore.default_chore_id,
+            )
+            .outerjoin(
+                trans_req,
+                (trans_req.default_chore_id == Chore.default_chore_id)
+                & (trans_req.language == language),
+            )
+            .outerjoin(
+                trans_fallback,
+                (trans_fallback.default_chore_id == Chore.default_chore_id)
+                & (trans_fallback.language == "ru"),
+            )
+            .where(Chore.family_id == family_id, Chore.is_active)
+        )
 
         if limit is not None:
             query = query.limit(limit)
@@ -61,8 +79,11 @@ class DefaultChoreRepository(BaseDals[Chore]):
     not_found_exception = ChoreNotFoundError
 
     async def get_all_default_chores(
-        self, language: str
+        self, language: str = "ru"
     ) -> list[DefaultChoreResponseSchema]:
+        trans_req = aliased(DefaultChoreTranslation, name="trans_req")
+        trans_fallback = aliased(DefaultChoreTranslation, name="trans_fallback")
+
         query = (
             select(
                 DefaultChore.id,
@@ -71,14 +92,18 @@ class DefaultChoreRepository(BaseDals[Chore]):
                 DefaultChore.icon_bg,
                 DefaultChore.valuation,
                 DefaultChore.order,
-                DefaultChoreTranslation.name,
-                DefaultChoreTranslation.description,
+                func.coalesce(trans_req.name, trans_fallback.name).label("name"),
+                func.coalesce(trans_req.description, trans_fallback.description).label("description"),
             )
-            .join(
-                DefaultChoreTranslation,
-                (DefaultChoreTranslation.default_chore_id == DefaultChore.id)
-                & (DefaultChoreTranslation.language == language),
-                isouter=True,
+            .outerjoin(
+                trans_req,
+                (trans_req.default_chore_id == DefaultChore.id)
+                & (trans_req.language == language),
+            )
+            .outerjoin(
+                trans_fallback,
+                (trans_fallback.default_chore_id == DefaultChore.id)
+                & (trans_fallback.language == "ru"),
             )
             .where(DefaultChore.is_active)
             .order_by(DefaultChore.order)
@@ -90,8 +115,11 @@ class DefaultChoreRepository(BaseDals[Chore]):
         return [DefaultChoreResponseSchema.model_validate(item) for item in raw_data]
 
     async def get_default_chores_not_added(
-        self, family_id: UUID, language: str
+        self, family_id: UUID, language: str = "ru"
     ) -> list[DefaultChoreResponseSchema]:
+        trans_req = aliased(DefaultChoreTranslation, name="trans_req")
+        trans_fallback = aliased(DefaultChoreTranslation, name="trans_fallback")
+
         query = (
             select(
                 DefaultChore.id,
@@ -100,14 +128,18 @@ class DefaultChoreRepository(BaseDals[Chore]):
                 DefaultChore.icon_bg,
                 DefaultChore.valuation,
                 DefaultChore.order,
-                DefaultChoreTranslation.name,
-                DefaultChoreTranslation.description,
+                func.coalesce(trans_req.name, trans_fallback.name).label("name"),
+                func.coalesce(trans_req.description, trans_fallback.description).label("description"),
             )
-            .join(
-                DefaultChoreTranslation,
-                (DefaultChoreTranslation.default_chore_id == DefaultChore.id)
-                & (DefaultChoreTranslation.language == language),
-                isouter=True,
+            .outerjoin(
+                trans_req,
+                (trans_req.default_chore_id == DefaultChore.id)
+                & (trans_req.language == language),
+            )
+            .outerjoin(
+                trans_fallback,
+                (trans_fallback.default_chore_id == DefaultChore.id)
+                & (trans_fallback.language == "ru"),
             )
             .outerjoin(
                 Chore,

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import ForeignKey, Index
+from sqlalchemy import ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.models import Base, BaseIdTimeStampModel
@@ -55,6 +55,9 @@ class DefaultChore(Base, BaseIdTimeStampModel):
 class DefaultChoreTranslation(Base, BaseIdTimeStampModel):
     __tablename__ = "default_chore_translation"
     __table_args__ = (
+        UniqueConstraint(
+            "default_chore_id", "language", name="uq_default_chore_translation_chore_lang"
+        ),
         Index("ix_default_chore_trans_chore_id_lang", "default_chore_id", "language"),
     )
 
